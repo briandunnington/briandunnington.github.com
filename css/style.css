@@ -4,15 +4,14 @@
    Author:
    ========================================================================== */
 
+blockquote p {
+    font-size: 13px;
+    font-weight: bold;
+    line-height: 18px;
+    margin-bottom: 0;
+}
 
-
-
-
-
-
-
-
-
-
-
-
+code {
+    border: none;
+    color: #333333;
+}
