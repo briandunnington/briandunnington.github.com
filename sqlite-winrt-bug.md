@@ -1,5 +1,6 @@
 Title: SQLite on WinRT bug
 Date: 2012.09.14
+Summary: Got some queries that run fine, but if you add a column to the SELECT list or change the ORDER BY stop working? Got queries in a transaction that sometimes fail? Read on for the solution...
 
 <!-- Main hero unit for a primary marketing message or call to action -->
 <div class="hero-unit">
