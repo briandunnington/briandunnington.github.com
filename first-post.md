@@ -13,7 +13,7 @@ This is the first post on this blog. It is a bit of an experiment, as I am using
 
 All of the content is written in [Markdown][], a human-readable syntax for formatting text. I am using the free [Markdown Pad][] editor to write the content.
 
-The Markdown files are then ran through a custom tool that I created. The tool scans a directory for Markdown files (.md extension) and then converts the text to HTML (using the [Markdown Sharp][] library). The resulting HTML is then injected into an HTML template to create the final page. You can see the raw Markdown source used to generate any page by replacing the .html extension with .md (Example: [index.md][Example]).
+The Markdown files are then ran through a custom tool that I created. The tool scans a directory for Markdown files (.md extension) and then converts the text to HTML (using the [Markdown Sharp][] library). The resulting HTML is then injected into an HTML template to create the final page. You can see the raw Markdown source used to generate any page by replacing the .html extension with .md (Example: [first-post.md][Example]).
 
 As of this writing (2012.03.19), the template itself is using the [html5boilerplate][] library, with a side helping of [Twitter Bootstrap][] thrown in for the UI elements, all generated automatically by [Initializr][].
 
@@ -26,7 +26,7 @@ Let's see how it goes.
 [Markdown]: http://daringfireball.net/projects/markdown/
 [Markdown Pad]: http://markdownpad.com/
 [Markdown Sharp]: http://code.google.com/p/markdownsharp/
-[Example]: /first_post.md
+[Example]: /first-post.md
 [html5boilerplate]: http://html5boilerplate.com/
 [Twitter Bootstrap]: http://twitter.github.com/bootstrap/
 [Initializr]: http://www.initializr.com/
