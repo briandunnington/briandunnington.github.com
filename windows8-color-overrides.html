@@ -7,7 +7,7 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 
-	<title>brian dunnington - SQLite on WinRT bug</title>
+	<title>brian dunnington - Windows 8 Store Apps Color Overrides</title>
 	<meta name="description" content="code and computer related tidbits">
 	<meta name="author" content="brian dunnington">
 
@@ -90,61 +90,69 @@
 			  <!-- Main hero unit for a primary marketing message or call to action -->
 
 <div class="hero-unit">
-<h1>SQLite on WinRT bug</h1>
-<p>Got some queries that run fine, but if you add a column to the SELECT list or change the ORDER BY stop working? Got queries in a transaction that sometimes fail? Read on for the solution...</p>
+<h1>Windows 8 Store Apps Color Overrides</h1>
+<p>Tired of that purple color in your ComboBoxes, ListBoxes, and GridViews? Here is how to change it without retemplating all of the controls.</p>
 <!--<p><a class="btn btn-primary btn-large">Learn more &raquo;</a></p>-->
 </div>
 
-<p>While working on a Windows 8 app that uses a SQLite database, I was running into a very strange bug. I would construct a query that would work fine, but when I added certain columns to the ORDER BY clause, suddenly no results would be returned. I ruled out syntax issues since the same queries worked fine when ran in <a href="http://www.yunqa.de/delphi/doku.php/products/sqlitespy/index">SqlSpy</a>. After much debugging, I finally decided it was just a bug since I was using the Release Preview of Windows 8, beta version of VS 2012, and a pre-release version of SQLite with preliminary support for WinRT.</p>
+<p>So your Windows 8 Store (née Metro) is coming along and you are trying to polish up the look and feel. However, that annoying purple highlight color keeps popping up in unexpected places, like the background for selected items in ComboBoxes and ListBoxes, or in the border for selected items in a GridView. </p>
 
-<p>Fast-forward a few months and the bug cropped up again. This time, I added an additional single column to the SELECT clause and the query broke. By now, I had upgraded to the RTM version of Windows 8 and was using the official WinRT build of SQLite so I was less confident that it was just a beta bug. I decided that I needed to dig deeper.</p>
+<p><img src="http://1wpf.files.wordpress.com/2012/06/example.png" alt="Purple" /></p>
 
-<p>Whenever the issue cropped up, the SQLite.Step() command would return 'CannotOpen', which <a href="http://www.sqlite.org/c3ref/c_abort.html">the documentation</a> simply says means: "Unable to open the database file". A call to SQLite.GetErrorMsg() returned "library routine called out of sequence" for which the documentation <a href="http://sqlite.org/cvstrac/wiki?p=LibraryRoutineCalledOutOfSequence">listed several possible causes</a>, but none of them really applied. The database was definitely opened correctly and not closed unexpectedly. The calling code was isolated to a single thread, so no wonkiness there. The issue <em>was</em> occuring on the Step() command, but the statement pointer was definitely prepared properly and valid.</p>
+<p>Purple might work for some apps, but you are a perfectionist and you gotta have the exact shade of green that matches your logo. Some of the controls expose properties that let you set the color in your xaml and you could set up a <code>&lt;Style&gt;</code> rule to apply them, but then you have to always remember to apply the style and some of the controls don't even expose the necessary properties to override the color, so what to do?</p>
 
-<p>At this point, I could only assume the issue was deep in the bowels of the sqlite3.dll and I was not sure what to do. I googled a bunch of things on hunches, but nothing was coming up. Finally, I stumbled across <a href="http://sqlite.1065341.n5.nabble.com/Transaction-issues-with-WinRT-build-td63817.html">a posting</a> by a guy having a semi-similar problem. He was executing statements inside of a transaction and having some work and some fail. Several folks had suggestions on things to try, but nothing worked. Finally, Joe Mistachkin replied with this nuget of wisdom:</p>
+<p>Maybe everybody out there other than me already knows this, but the list of pre-defined control colors can be found at:
+<code>%PROGRAMFILES(x86)%\Windows Kits\8.0\Include\WinRT\Xaml\Design\generic.xaml</code></p>
 
-<blockquote>
-  <p>Setting the sqlite3_temp_directory to the value contained in the
-  "Windows.Storage.ApplicationData.Current.TemporaryFolder.Path" property should clear the issue.  This can be done immediately after opening the connection using PRAGMA temp_store_directory command on the newly opened database connection. </p>
-</blockquote>
+<p>In there, there are a few different sections for the Dark theme, Light theme, and High-Contrast theme. Looking through any of them, you can see a section called:</p>
 
-<p>Of course! WinRT apps cant access the full file system the same way that normal desktop apps can. In fact, by default, they can only access their own installation location. Apparently, sometimes SQLite needs to write to temporary files in order to execute queries and perhaps my changes were just enough to cause the database engine to need to use such a file. Joe's advice made sense in that SQLite for WinRT would need to be told where it was allowed to store temporary files.</p>
-
-<p>A quick look at the <a href="http://www.sqlite.org/pragma.html#pragma_temp_store_directory">temp_store_directory</a> documentation made it clear that this PRAGMA was deprecated and should not be used. (For those that dont know (like I didnt), a <a href="http://www.sqlite.org/pragma.html#pragma_temp_store_directory">PRAGMA statement</a> is a SQLite-specific command that can be used to modify the operation of the SQLite library.) Now that I knew the cause of the issue, my googling was better focused and I found <a href="http://stackoverflow.com/a/12246530/373799">this advice</a> that it was fine to use the temp_store_directory setting in this case.</p>
-
-<p>So armed with a potential solution, I coded up a quick test and it did indeed solve the issue - success at last! For those using <a href="https://github.com/praeclarum/sqlite-net/blob/master/src/SQLite.cs">Frank A. Krueger's sqlite-net</a> wrapper, here are the changes required (all in the SQLiteConnection class):</p>
-
-<pre><code>static bool isTempStoreSet;
-
-public SQLiteConnection(string databasePath, bool storeDateTimeAsTicks = false)
-{
-    DatabasePath = databasePath;
-    Sqlite3DatabaseHandle handle;
-    var r = SQLite3.Open(DatabasePath, out handle);
-    Handle = handle;
-    if (r != SQLite3.Result.OK)
-    {
-        throw SQLiteException.New(r, String.Format("Could not open database file: {0} ({1})", DatabasePath, r));
-    }
-    _open = true;
-
-    /* NOTE: Added to ensure that the temp directory is correctly set for WinRT apps.
-     * See: http://www.mailinglistarchive.com/html/sqlite-users@sqlite.org/2012-08/msg00238.html
-     * */
-    if (!isTempStoreSet)
-    {
-        Execute(String.Format("PRAGMA temp_store_directory = '{0}'", Windows.Storage.ApplicationData.Current.TemporaryFolder.Path));
-        tempStoreSet = true;
-    }
-    /* END NOTE */
-
-    StoreDateTimeAsTicks = storeDateTimeAsTicks;
-
-    BusyTimeout = TimeSpan.FromSeconds(0.1);
-}
+<pre><code>&lt;!--
+******************************************************************
+DEFAULT COMMON CONTROL COLORS
+******************************************************************
+--&gt;;
 </code></pre>
 
-<p>That was one of the longest bug-hunting expeditions I had been on for a long time, so I was glad to finally get it sorted. Thanks to the wonderful internet for being filled with folks much smarter than me for doing most of the hard work - I just wrote it up here so it was all in one place and hopefully will help somebody else out in the future.</p>
+<p>That section contains a long list of all of the colors used by the built-in controls. Most of them are various shades and opacities of black or white and should be good for most apps. But I went through and pulled out all of the items that defined a purplish color so you can easily see which items to override:</p>
+
+<pre><code>&lt;!-- Purple system brushes --&gt;
+&lt;SolidColorBrush x:Key="ComboBoxItemSelectedBackgroundThemeBrush" Color="#FF4617B4" /&gt;
+&lt;SolidColorBrush x:Key="ComboBoxItemSelectedPointerOverBackgroundThemeBrush" Color="#FF5F37BE" /&gt;
+&lt;SolidColorBrush x:Key="ComboBoxSelectedBackgroundThemeBrush" Color="#FF4617B4" /&gt;
+&lt;SolidColorBrush x:Key="ComboBoxSelectedPointerOverBackgroundThemeBrush" Color="#FF5F37BE" /&gt;
+&lt;SolidColorBrush x:Key="HyperlinkForegroundThemeBrush" Color="#FF9C72FF" /&gt;
+&lt;SolidColorBrush x:Key="HyperlinkPointerOverForegroundThemeBrush" Color="#CC9C72FF" /&gt;
+&lt;SolidColorBrush x:Key="HyperlinkPressedForegroundThemeBrush" Color="#999C72FF" /&gt;
+&lt;SolidColorBrush x:Key="ListBoxItemSelectedBackgroundThemeBrush" Color="#FF4617B4" /&gt;
+&lt;SolidColorBrush x:Key="ListBoxItemSelectedPointerOverBackgroundThemeBrush" Color="#FF5F37BE" /&gt;
+&lt;SolidColorBrush x:Key="ListViewItemDragBackgroundThemeBrush" Color="#994617B4" /&gt;
+&lt;SolidColorBrush x:Key="ListViewItemSelectedBackgroundThemeBrush" Color="#FF4617B4" /&gt;
+&lt;SolidColorBrush x:Key="ListViewItemSelectedPointerOverBackgroundThemeBrush" Color="#FF5F37BE" /&gt;
+&lt;SolidColorBrush x:Key="ListViewItemSelectedPointerOverBorderThemeBrush" Color="#FF5F37BE" /&gt;
+&lt;SolidColorBrush x:Key="ProgressBarForegroundThemeBrush" Color="#FF5B2EC5" /&gt;
+&lt;SolidColorBrush x:Key="ProgressBarIndeterminateForegroundThemeBrush" Color="#FF8A57FF" /&gt;
+&lt;SolidColorBrush x:Key="SliderTrackDecreaseBackgroundThemeBrush" Color="#FF5B2EC5" /&gt;
+&lt;SolidColorBrush x:Key="SliderTrackDecreasePointerOverBackgroundThemeBrush" Color="#FF724BCD" /&gt;
+&lt;SolidColorBrush x:Key="SliderTrackDecreasePressedBackgroundThemeBrush" Color="#FF8152EF" /&gt;
+&lt;SolidColorBrush x:Key="ToggleSwitchCurtainBackgroundThemeBrush" Color="#FF5729C1" /&gt;
+&lt;SolidColorBrush x:Key="ToggleSwitchCurtainPointerOverBackgroundThemeBrush" Color="#FF6E46CA" /&gt;
+&lt;SolidColorBrush x:Key="ToggleSwitchCurtainPressedBackgroundThemeBrush" Color="#FF7E4FEC" /&gt;
+</code></pre>
+
+<p>In order to make sure these get set before any control templates that use them, I simply added them to their own ResourceDictionary xaml file and included it directly above the <code>Common\StandardStyles.xaml</code> in <code>App.xaml.cs</code>:</p>
+
+<pre><code>&lt;ResourceDictionary.MergedDictionaries&gt;
+    &lt;ResourceDictionary Source="Common/ColorOverrides.xaml"/&gt;
+
+    &lt;!-- 
+        Styles that define common aspects of the platform look and feel
+        Required by Visual Studio project and item templates
+        --&gt;
+    &lt;ResourceDictionary Source="Common/StandardStyles.xaml"/&gt;
+&lt;/ResourceDictionary.MergedDictionaries&gt;
+</code></pre>
+
+<p>Hope that helps somebody check of that one last to-do item so they can submit their app, sit back, and start raking in the millions =)</p>
 
 		  </div>
       <div class="span1">

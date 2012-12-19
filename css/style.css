@@ -6,7 +6,7 @@
 
 blockquote p {
     font-size: 13px;
-    font-weight: bold;
+    font-weight: normal
     line-height: 18px;
     margin-bottom: 0;
 }
@@ -14,4 +14,12 @@ blockquote p {
 code {
     border: none;
     color: #333333;
+}
+
+.hero-unit {
+  padding: 40px;
+}
+
+.hero-unit h1 {
+  font-size: 50px;
 }
