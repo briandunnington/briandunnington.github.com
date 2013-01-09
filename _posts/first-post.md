@@ -26,7 +26,7 @@ Let's see how it goes.
 [Markdown]: http://daringfireball.net/projects/markdown/
 [Markdown Pad]: http://markdownpad.com/
 [Markdown Sharp]: http://code.google.com/p/markdownsharp/
-[Example]: /first-post.md
+[Example]: /_posts/first-post.md
 [html5boilerplate]: http://html5boilerplate.com/
 [Twitter Bootstrap]: http://twitter.github.com/bootstrap/
 [Initializr]: http://www.initializr.com/

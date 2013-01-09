@@ -4,9 +4,13 @@
    Author:
    ========================================================================== */
 
+html {
+    overflow-y:scroll;
+}
+
 blockquote p {
     font-size: 13px;
-    font-weight: normal
+    font-weight: normal;
     line-height: 18px;
     margin-bottom: 0;
 }
