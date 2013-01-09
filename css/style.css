@@ -4,20 +4,28 @@
    Author:
    ========================================================================== */
 
+
+
 html {
     overflow-y:scroll;
 }
 
 blockquote p {
-    font-size: 13px;
+    font-size: 120%;
     font-weight: normal;
-    line-height: 18px;
+    line-height: 140%;
     margin-bottom: 0;
+}
+
+pre {
+    overflow: scroll;
+    white-space: pre;
 }
 
 code {
     border: none;
     color: #333333;
+    white-space:pre;
 }
 
 .hero-unit {
@@ -26,4 +34,60 @@ code {
 
 .hero-unit h1 {
   font-size: 50px;
+}
+
+
+/* pre-formatted code */
+pre {border: 1px solid black;}
+
+/* C# code in a block */
+/*
+pre code.csharp {
+    border: 1px solid black;
+    max-height: 600px;
+    overflow: auto;
+    padding: 5px;
+    display: block;
+    border-radius: 4px 4px 4px 4px;
+}
+*/
+pre code.csharp {
+    display: block;
+}
+
+/* C# code that may be block or inline */
+.csharp {
+    font-family: Consolas, monospace;
+    padding: 1px 5px 1px 5px;
+/*    background-color: #eeeeee; */
+    color: black;
+}
+
+/* VS Environment -> Fonts and Colors -> Comment */
+.csharp .comment {
+    color: green;
+}
+
+/* VS Environment -> Fonts and Colors -> Keyword */
+.csharp .keyword {
+    color: blue;
+}
+
+/* VS Environment -> Fonts and Colors -> String */
+.csharp .string {
+    color: #A31515;
+}
+
+/* VS Environment -> Fonts and Colors -> User Types */
+.csharp .type {
+    color: #2B91AF;
+}
+
+/* VS Environment -> Fonts and Colors -> Current Statement */
+.csharp .highlight {
+    background-color: yellow;
+}
+
+.csharp .highlight * {
+    color: black;
 }

@@ -95,7 +95,7 @@
           <hr />
 
           @foreach(var post in @Model.Posts.OrderByDescending((p) => p.Date).Take(5)) {
-              <h6 class="muted">@post.Date</h6>
+              <h6 class="muted">@post.Date.ToString("yyyy.MM.dd")</h6>
               <h2>@post.Title</h2>
               <p>@post.Summary</p>
               <p><a class="btn" href="@post.Link">View details &raquo;</a></p>

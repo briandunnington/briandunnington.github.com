@@ -1,0 +1,294 @@
+<!doctype html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+	<title>brian dunnington - WinRT JSON Parser</title>
+	<meta name="description" content="code and computer related tidbits">
+	<meta name="author" content="brian dunnington">
+
+	<meta name="viewport" content="width=device-width">
+
+	<link rel="stylesheet" href="css/bootstrap.css">
+	<style>
+    body {
+      padding-top: 60px;
+      padding-bottom: 40px;
+    }
+    footer {
+      text-align: right;
+      margin-top: 40px;
+    }
+    h1 {
+      margin-bottom: 0.6em;
+    }
+  </style>
+	<link rel="stylesheet" href="css/bootstrap-responsive.css">
+	<link rel="stylesheet" href="css/style.css">
+
+	<!--[if lt IE 9]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<script>window.html5 || document.write('<script src="js/libs/html5.js"><\/script>')</script>
+	<![endif]-->
+</head>
+
+<body>
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="#">brian dunnington</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <li id="linkHome"><a href="/">Home</a></li>
+              <li id="linkAbout"><a href="/about.html">About</a></li>
+              <li id="linkContact"><a href="/contact.html">Contact</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+      <!-- Example row of columns
+      <div class="row">
+        <div class="span4">
+          <h2>Heading</h2>
+           <p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
+          <p><a class="btn" href="#">View details &raquo;</a></p>
+        </div>
+        <div class="span4">
+          <h2>Heading</h2>
+           <p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
+          <p><a class="btn" href="#">View details &raquo;</a></p>
+       </div>
+        <div class="span4">
+          <h2>Heading</h2>
+          <p>Donec sed odio dui. Cras justo odio, dapibus ac facilisis in, egestas eget quam. Vestibulum id ligula porta felis euismod semper. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus.</p>
+          <p><a class="btn" href="#">View details &raquo;</a></p>
+        </div>
+      </div>
+      -->
+
+	  <div class="row">
+      <div class="span1">
+        &nbsp;
+      </div>
+		  <div class="span6">
+			  <div class="hero-unit">
+<h1>WinRT JSON Parser</h1>
+<p>The classes in Windows.Data.Json are no fun to use. This handy class makes it better.</p>
+</div>
+
+<p>The new WinRT libraries generally make a lot of things easier, faster, and better, but one area that seems <em>harder</em> to work with is JSON data. The classes in the <a href="http://msdn.microsoft.com/en-us/library/windows/apps/xaml/br240639.aspx">Windows.Data.Json</a> namespace are simple, but verbose to use. Consider this example, using the following simple JSON:</p>
+
+<pre><code>[{
+    "identities": {
+        "google": {
+            "userId": "Google:101303958185943883774",
+            "accessToken": "ya29.AHES6ZRqPjKgoFjlp7FeJUK56ca19HzqIlzQQSLIj",
+            "isValid": true,
+            "age": 38
+        }
+    }
+}]
+</code></pre>
+
+<p>To parse this using the built-in classes, it might look like this:</p>
+
+<pre class="code"><code class="csharp"><span class="keyword">var</span> obj = <span class="keyword">new</span> Windows.Data.Json.JsonObject();
+<span class="keyword">if</span> (Windows.Data.Json.JsonValue.TryParse(json, <span class="keyword">out</span> obj))
+{
+    <span class="keyword">var</span> identities = obj.GetArray()[0].GetObject();
+    <span class="keyword">var</span> identity = identities[<span class="string">&quot;identities&quot;</span>].GetObject()[<span class="string">&quot;google&quot;</span>].GetObject();
+    <span class="keyword">var</span> token = identity[<span class="string">&quot;accessToken&quot;</span>].GetString();
+    <span class="keyword">var</span> isValid = identity[<span class="string">&quot;isValid&quot;</span>].GetBoolean();
+    <span class="keyword">var</span> age = identity[<span class="string">&quot;age&quot;</span>].GetNumber();
+}
+</code></pre>
+
+<p>And if you add in checking to see if the properties exist first, the code is even longer. It isnt horrible, but it isnt how we like to deal with JSON normally.</p>
+
+<p>There are great open-source tools out there like the venerable <a href="http://james.newtonking.com/projects/json-net.aspx">Json.NET</a> that make like easier. But sometimes taking a dependency on yet another third-party library isnt desirable or possible. Something so fundamental like JSON parsing should be as easy and painless as possible.</p>
+
+<p>So what if you could just do this:</p>
+
+<pre class="code"><code class="csharp"><span class="keyword">dynamic</span> arr = JsonParser.Parse(json);
+<span class="keyword">var</span> identity = arr[0].identities.google;
+<span class="keyword">var</span> token = identity.accessToken;
+<span class="keyword">var</span> isValid = identity.isValid;
+<span class="keyword">var</span> age = identity.age;
+</code></pre>
+
+<p>That looks nicer and much more inline with how JSON is normally treated in Javascript. The complete code for JsonParser is below - it is just a single small C# class that you can include in your project with no other dependencies. The secret sauce is in the <code>ConvertObject()</code> method; by leveraging a dynamic ExpandoObject, we can access the properties directly. The resulting object also provides a <code>Contains()</code> method so you can easily check for the existence of the property before accessing it.</p>
+
+<p>I am finding this <strong>much</strong> easier and more intuitive to use, so I thought I would share it. Let me know if you try it out and how you like it.</p>
+
+<p>JsonParser.cs source:</p>
+
+<pre class="code"><code class="csharp"><span class="keyword">using</span> System;
+<span class="keyword">using</span> System.Collections.Generic;
+<span class="keyword">using</span> System.Threading.Tasks;
+<span class="keyword">using</span> Windows.Data.Json;
+
+<span class="keyword">namespace</span> Monsters.WindowsStore.Implementations
+{
+    <span class="keyword">public</span> <span class="keyword">class</span> JsonParser
+    {
+        <span class="keyword">public</span> <span class="keyword">static</span> Task&lt;<span class="keyword">dynamic</span>&gt; ParseAsync(<span class="keyword">string</span> json)
+        {
+            <span class="keyword">return</span> Task.Run(() =&gt;
+                {
+                    <span class="keyword">return</span> Parse(json);
+                });
+        }
+
+        <span class="keyword">public</span> <span class="keyword">static</span> Task&lt;<span class="keyword">dynamic</span>&gt; ParseAsync(IJsonValue json)
+        {
+            <span class="keyword">return</span> Task.Run(() =&gt;
+                {
+                    <span class="keyword">return</span> Parse(json);
+                });
+        }
+
+        <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">dynamic</span> Parse(<span class="keyword">string</span> json)
+        {
+            <span class="keyword">var</span> j = Windows.Data.Json.JsonValue.Parse(json);
+            <span class="keyword">return</span> Parse(j);
+        }
+
+        <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">dynamic</span> Parse(IJsonValue json)
+        {
+            <span class="keyword">dynamic</span> obj = Convert(json);
+            <span class="keyword">return</span> obj;
+        }
+
+        <span class="keyword">static</span> <span class="keyword">dynamic</span> Convert(IJsonValue json)
+        {
+            <span class="keyword">dynamic</span> obj = <span class="keyword">null</span>;
+            <span class="keyword">switch</span> (json.ValueType)
+            {
+                <span class="keyword">case</span> JsonValueType.Array:
+                    obj = ConvertArray(json.GetArray());
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> JsonValueType.Boolean:
+                    obj = json.GetBoolean();
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> JsonValueType.Null:
+                    obj = <span class="keyword">null</span>;
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> JsonValueType.Number:
+                    obj = json.GetNumber();
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> JsonValueType.Object:
+                    obj = ConvertObject(json.GetObject());
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> JsonValueType.String:
+                    obj = json.GetString();
+                    <span class="keyword">break</span>;
+            }
+            <span class="keyword">return</span> obj;
+        }
+
+        <span class="keyword">static</span> <span class="keyword">dynamic</span> ConvertArray(JsonArray jsonArray)
+        {
+            <span class="keyword">dynamic</span>[] items = <span class="keyword">new</span> <span class="keyword">dynamic</span>[jsonArray.Count];
+            <span class="keyword">for</span> (<span class="keyword">int</span> i = 0; i &lt; jsonArray.Count; i++)
+            {
+                items[i] = Convert(jsonArray[i]);
+            }
+            <span class="keyword">return</span> items;
+        }
+
+        <span class="keyword">static</span> <span class="keyword">dynamic</span> ConvertObject(JsonObject jsonObject)
+        {
+            <span class="keyword">dynamic</span> obj = <span class="keyword">new</span> System.Dynamic.ExpandoObject();
+            <span class="keyword">var</span> d = (IDictionary&lt;<span class="keyword">string</span>, <span class="keyword">object</span>&gt;)obj;
+
+            obj.Contains = <span class="keyword">new</span> Func&lt;<span class="keyword">string</span>, <span class="keyword">bool</span>&gt;((prop) =&gt;
+                {
+                    <span class="keyword">return</span> d.ContainsKey(prop);
+                });
+            obj.Get = <span class="keyword">new</span> Func&lt;<span class="keyword">string</span>, <span class="keyword">dynamic</span>&gt;((prop) =&gt;
+                {
+                    <span class="keyword">return</span> d[prop];
+                });
+
+            List&lt;<span class="keyword">string</span>&gt; keys = <span class="keyword">new</span> List&lt;<span class="keyword">string</span>&gt;();
+            <span class="keyword">foreach</span>(<span class="keyword">var</span> key <span class="keyword">in</span> jsonObject.Keys)
+            {
+                keys.Add(key);
+            }
+
+            <span class="keyword">int</span> i = 0;
+            <span class="keyword">foreach</span>(<span class="keyword">var</span> item <span class="keyword">in</span> jsonObject.Values)
+            {
+                d.Add(keys[i], Convert(item));
+                i++;
+            }
+            <span class="keyword">return</span> obj;
+        }
+    }
+}
+</code></pre>
+
+		  </div>
+      <div class="span1">
+        &nbsp;
+      </div>
+      <div class="span4">
+          <h3><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="64" style="vertical-align:middle;" /></a> <a href="http://twitter.com/briandunnington">@briandunnington</a></h3>
+          <hr />
+
+              <h6 class="muted">2013.01.09</h6>
+              <h2>WinRT JSON Parser</h2>
+              <p>A nicer way to deal with JSON in WinRT (Windows Store) apps</p>
+              <p><a class="btn" href="/json-parser.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2012.12.19</h6>
+              <h2>Windows 8 Store Apps Color Overrides</h2>
+              <p>Tired of that purple color in your ComboBoxes, ListBoxes, and GridViews? Here is how to change it without retemplating all of the controls.</p>
+              <p><a class="btn" href="/windows8-color-overrides.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2012.12.18</h6>
+              <h2>Xaml VisualStateManager weirdness</h2>
+              <p>Sometimes GoToState() just wont work or works intermittently. Here is a note to myself with the answer.</p>
+              <p><a class="btn" href="/xaml-visualstatemanager-note.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2012.12.12</h6>
+              <h2>Reentrant async locks in .NET</h2>
+              <p>The new async/await keywords in .NET make async programming a snap, but there are some things to watch out for when synchronizing multiple threads.</p>
+              <p><a class="btn" href="/reentrant-async-locks.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2012.12.10</h6>
+              <h2>GridView in a ScrollViewer</h2>
+              <p>How to use a GridView inside of a ScrollViewer in a Windows Store app while still retaining mouse-wheel scrolling and swipe-to-select behavior.</p>
+              <p><a class="btn" href="/gridview-in-a-scrollviewer.html">View details &raquo;</a></p>
+              <hr/>
+
+          <h4><a href="/index.html">More Posts ></a></h4>
+      </div>
+	  </div>
+
+      <footer>
+        <p>&copy; brian dunnington 2013</p>
+      </footer>
+
+    </div> <!-- /container -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
+
+<script src="js/libs/bootstrap/bootstrap.js"></script>
+
+<script src="js/script.js"></script>
+</body>
+</html>
