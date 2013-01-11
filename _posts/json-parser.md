@@ -50,7 +50,7 @@ That looks nicer and much more inline with how JSON is normally treated in Javas
 
 I am finding this __much__ easier and more intuitive to use, so I thought I would share it. Let me know if you try it out and how you like it.
 
-JsonParser.cs source:
+*JsonParser.cs source:*
 
 <pre class="code"><code class="csharp"><span class="keyword">using</span> System;
 <span class="keyword">using</span> System.Collections.Generic;

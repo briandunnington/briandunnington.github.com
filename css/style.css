@@ -20,6 +20,7 @@ blockquote p {
 pre {
     overflow: scroll;
     white-space: pre;
+    border: 1px solid black;
 }
 
 code {
@@ -37,8 +38,9 @@ code {
 }
 
 
-/* pre-formatted code */
-pre {border: 1px solid black;}
+pre {
+    max-height: 600px;
+}
 
 /* C# code in a block */
 /*

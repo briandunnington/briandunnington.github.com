@@ -1,0 +1,544 @@
+<!doctype html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+	<title>brian dunnington - ProgressRing for Windows Phone 8</title>
+	<meta name="description" content="code and computer related tidbits">
+	<meta name="author" content="brian dunnington">
+
+	<meta name="viewport" content="width=device-width">
+
+	<link rel="stylesheet" href="css/bootstrap.css">
+	<style>
+    body {
+      padding-top: 60px;
+      padding-bottom: 40px;
+    }
+    footer {
+      text-align: right;
+      margin-top: 40px;
+    }
+    h1 {
+      margin-bottom: 0.6em;
+    }
+  </style>
+	<link rel="stylesheet" href="css/bootstrap-responsive.css">
+	<link rel="stylesheet" href="css/style.css">
+
+	<!--[if lt IE 9]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<script>window.html5 || document.write('<script src="js/libs/html5.js"><\/script>')</script>
+	<![endif]-->
+</head>
+
+<body>
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="#">brian dunnington</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <li id="linkHome"><a href="/">Home</a></li>
+              <li id="linkAbout"><a href="/about.html">About</a></li>
+              <li id="linkContact"><a href="/contact.html">Contact</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+      <!-- Example row of columns
+      <div class="row">
+        <div class="span4">
+          <h2>Heading</h2>
+           <p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
+          <p><a class="btn" href="#">View details &raquo;</a></p>
+        </div>
+        <div class="span4">
+          <h2>Heading</h2>
+           <p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
+          <p><a class="btn" href="#">View details &raquo;</a></p>
+       </div>
+        <div class="span4">
+          <h2>Heading</h2>
+          <p>Donec sed odio dui. Cras justo odio, dapibus ac facilisis in, egestas eget quam. Vestibulum id ligula porta felis euismod semper. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus.</p>
+          <p><a class="btn" href="#">View details &raquo;</a></p>
+        </div>
+      </div>
+      -->
+
+	  <div class="row">
+      <div class="span1">
+        &nbsp;
+      </div>
+		  <div class="span6">
+			  <div class="hero-unit">
+<h1>ProgressRing for Windows Phone 8</h1>
+<p>A Windows-8-style ProgressRing for Windows Phone 8</p>
+</div>
+
+<p>The <a href="http://msdn.microsoft.com/en-us/library/windows/apps/windows.ui.xaml.controls.progressring">ProgressRing</a> control for Metro (Windows Store style) apps is a great way to show the familiar loading spinner while your app performs some long-running action. But what about Windows Phone 8? There is the <a href="http://msdn.microsoft.com/en-us/library/system.windows.controls.progressbar%28v=vs.95%29.aspx">ProgressBar</a> control (which has been updated for WP8 to <a href="http://www.jeff.wilcox.name/2010/08/performanceprogressbar/">fix some performance issues</a>), but I wanted the round spinny thing instead of the flat movey thing, so I created it.</p>
+
+<p>The code below consists of a <code>.cs</code> file that contains the guts of the control, as well as the <code>&lt;Style&gt;</code> definition. A couple of fun things to note:</p>
+
+<ul>
+<li><p>The <code>&lt;Style&gt;</code> is the exact style copied from the Windows 8 resources, so the control looks and behaves identically</p></li>
+<li><p>Note the check for <code>hasAppliedTemplate</code> - this is required to avoid <a href="/xaml-visualstatemanager-note.html">some wonky behavior</a> that I blogged about recently where <code>VisualStateManager</code> doesnt like to be called before <code>OnApplyTemplate()</code> has been called.</p></li>
+</ul>
+
+<p>Anyway, next time you need some spinning-dots goodness in your WP8 app, give it a try and let me know what you think.</p>
+
+<p><em>ProgressRing.cs</em></p>
+
+<pre class="code"><code class="csharp"><span class="keyword">using</span> System;
+<span class="keyword">using</span> System.Collections.Generic;
+<span class="keyword">using</span> System.Linq;
+<span class="keyword">using</span> System.Text;
+<span class="keyword">using</span> System.Threading.Tasks;
+<span class="keyword">using</span> System.Windows;
+<span class="keyword">using</span> System.Windows.Controls;
+
+<span class="keyword">namespace</span> Monsters.WindowsPhone.Controls
+{
+    <span class="keyword">public</span> <span class="keyword">class</span> ProgressRing : Control
+    {
+        <span class="keyword">bool</span> hasAppliedTemplate = <span class="keyword">false</span>;
+
+        <span class="keyword">public</span> ProgressRing()
+        {
+            <span class="keyword">this</span>.DefaultStyleKey = <span class="keyword">typeof</span>(ProgressRing);
+            TemplateSettings = <span class="keyword">new</span> TemplateSettingValues(60);
+        }
+
+        <span class="keyword">public</span> <span class="keyword">override</span> <span class="keyword">void</span> OnApplyTemplate()
+        {
+            <span class="keyword">base</span>.OnApplyTemplate();
+            hasAppliedTemplate = <span class="keyword">true</span>;
+            UpdateState(<span class="keyword">this</span>.IsActive);
+        }
+
+        <span class="keyword">void</span> UpdateState(<span class="keyword">bool</span> isActive)
+        {
+            <span class="keyword">if</span> (hasAppliedTemplate)
+            {
+                <span class="keyword">string</span> state = isActive ? <span class="string">&quot;Active&quot;</span> : <span class="string">&quot;Inactive&quot;</span>;
+                System.Windows.VisualStateManager.GoToState(<span class="keyword">this</span>, state, <span class="keyword">true</span>);
+            }
+        }
+
+        <span class="keyword">protected</span> <span class="keyword">override</span> System.Windows.Size MeasureOverride(System.Windows.Size availableSize)
+        {
+            <span class="keyword">var</span> width = 100D;
+            <span class="keyword">if</span>(!System.ComponentModel.DesignerProperties.IsInDesignTool)
+                width = <span class="keyword">this</span>.Width != <span class="keyword">double</span>.NaN ? <span class="keyword">this</span>.Width : availableSize.Width;
+            TemplateSettings = <span class="keyword">new</span> TemplateSettingValues(width);
+            <span class="keyword">return</span> <span class="keyword">base</span>.MeasureOverride(availableSize);
+        }
+
+        <span class="keyword">public</span> <span class="keyword">bool</span> IsActive
+        {
+            <span class="keyword">get</span> { <span class="keyword">return</span> (<span class="keyword">bool</span>)GetValue(IsActiveProperty); }
+            <span class="keyword">set</span> { SetValue(IsActiveProperty, <span class="keyword">value</span>); }
+        }
+
+        <span class="comment">// Using a DependencyProperty as the backing store for IsActive.  This enables animation, styling, binding, etc...</span>
+        <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">readonly</span> DependencyProperty IsActiveProperty =
+            DependencyProperty.Register(<span class="string">&quot;IsActive&quot;</span>, <span class="keyword">typeof</span>(<span class="keyword">bool</span>), <span class="keyword">typeof</span>(ProgressRing), <span class="keyword">new</span> PropertyMetadata(<span class="keyword">false</span>, <span class="keyword">new</span> PropertyChangedCallback(IsActiveChanged)));
+
+        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> IsActiveChanged(DependencyObject d, DependencyPropertyChangedEventArgs args)
+        {
+            <span class="keyword">var</span> pr = (ProgressRing) d;
+            <span class="keyword">var</span> isActive = (<span class="keyword">bool</span>)args.NewValue;
+            pr.UpdateState(isActive);
+        }
+
+        <span class="keyword">public</span> TemplateSettingValues TemplateSettings
+        {
+            <span class="keyword">get</span> { <span class="keyword">return</span> (TemplateSettingValues)GetValue(TemplateSettingsProperty); }
+            <span class="keyword">set</span> { SetValue(TemplateSettingsProperty, <span class="keyword">value</span>); }
+        }
+
+        <span class="comment">// Using a DependencyProperty as the backing store for TemplateSettings.  This enables animation, styling, binding, etc...</span>
+        <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">readonly</span> DependencyProperty TemplateSettingsProperty =
+            DependencyProperty.Register(<span class="string">&quot;TemplateSettings&quot;</span>, <span class="keyword">typeof</span>(TemplateSettingValues), <span class="keyword">typeof</span>(ProgressRing), <span class="keyword">new</span> PropertyMetadata(<span class="keyword">new</span> TemplateSettingValues(100)));
+
+
+        <span class="keyword">public</span> <span class="keyword">class</span> TemplateSettingValues : System.Windows.DependencyObject
+        {
+            <span class="keyword">public</span> TemplateSettingValues(<span class="keyword">double</span> width)
+            {
+                MaxSideLength = 400;
+                EllipseDiameter = width/10;
+                EllipseOffset = <span class="keyword">new</span> System.Windows.Thickness(EllipseDiameter);
+            }
+
+            <span class="keyword">public</span> <span class="keyword">double</span> MaxSideLength
+            {
+                <span class="keyword">get</span> { <span class="keyword">return</span> (<span class="keyword">double</span>)GetValue(MaxSideLengthProperty); }
+                <span class="keyword">set</span> { SetValue(MaxSideLengthProperty, <span class="keyword">value</span>); }
+            }
+
+            <span class="comment">// Using a DependencyProperty as the backing store for MaxSideLength.  This enables animation, styling, binding, etc...</span>
+            <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">readonly</span> DependencyProperty MaxSideLengthProperty =
+                DependencyProperty.Register(<span class="string">&quot;MaxSideLength&quot;</span>, <span class="keyword">typeof</span>(<span class="keyword">double</span>), <span class="keyword">typeof</span>(TemplateSettingValues), <span class="keyword">new</span> PropertyMetadata(0D));
+
+            <span class="keyword">public</span> <span class="keyword">double</span> EllipseDiameter
+            {
+                <span class="keyword">get</span> { <span class="keyword">return</span> (<span class="keyword">double</span>)GetValue(EllipseDiameterProperty); }
+                <span class="keyword">set</span> { SetValue(EllipseDiameterProperty, <span class="keyword">value</span>); }
+            }
+
+            <span class="comment">// Using a DependencyProperty as the backing store for EllipseDiameter.  This enables animation, styling, binding, etc...</span>
+            <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">readonly</span> DependencyProperty EllipseDiameterProperty =
+                DependencyProperty.Register(<span class="string">&quot;EllipseDiameter&quot;</span>, <span class="keyword">typeof</span>(<span class="keyword">double</span>), <span class="keyword">typeof</span>(TemplateSettingValues), <span class="keyword">new</span> PropertyMetadata(0D));
+
+            <span class="keyword">public</span> Thickness EllipseOffset
+            {
+                <span class="keyword">get</span> { <span class="keyword">return</span> (Thickness)GetValue(EllipseOffsetProperty); }
+                <span class="keyword">set</span> { SetValue(EllipseOffsetProperty, <span class="keyword">value</span>); }
+            }
+
+            <span class="comment">// Using a DependencyProperty as the backing store for EllipseOffset.  This enables animation, styling, binding, etc...</span>
+            <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">readonly</span> DependencyProperty EllipseOffsetProperty =
+                DependencyProperty.Register(<span class="string">&quot;EllipseOffset&quot;</span>, <span class="keyword">typeof</span>(Thickness), <span class="keyword">typeof</span>(TemplateSettingValues), <span class="keyword">new</span> PropertyMetadata(<span class="keyword">new</span> Thickness()));
+        }
+    }
+}
+</code></pre>
+
+<p><em>ProgressRing Style</em></p>
+
+<pre><code>&lt;!-- Default style for Windows.UI.Xaml.Controls.ProgressRing --&gt;
+&lt;Style TargetType="controls:ProgressRing"&gt;
+    &lt;Setter Property="Foreground" Value="{StaticResource AccentBrush}" /&gt;
+    &lt;Setter Property="IsHitTestVisible" Value="False" /&gt;
+    &lt;Setter Property="HorizontalAlignment" Value="Center" /&gt;
+    &lt;Setter Property="VerticalAlignment" Value="Center" /&gt;
+    &lt;Setter Property="MinHeight" Value="20" /&gt;
+    &lt;Setter Property="MinWidth" Value="20" /&gt;
+    &lt;Setter Property="IsTabStop" Value="False" /&gt;
+    &lt;Setter Property="Template"&gt;
+        &lt;Setter.Value&gt;
+            &lt;ControlTemplate TargetType="controls:ProgressRing"&gt;
+                &lt;Border x:Name="ProgressRingRoot" Background="{TemplateBinding Background}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    BorderBrush="{TemplateBinding BorderBrush}"&gt;
+                    &lt;Border.Resources&gt;
+                        &lt;Style x:Key="ProgressRingEllipseStyle" TargetType="Ellipse"&gt;
+                            &lt;Setter Property="Opacity" Value="0" /&gt;
+                            &lt;Setter Property="HorizontalAlignment" Value="Left" /&gt;
+                            &lt;Setter Property="VerticalAlignment" Value="Top" /&gt;
+                        &lt;/Style&gt;
+                    &lt;/Border.Resources&gt;
+                    &lt;VisualStateManager.VisualStateGroups&gt;
+                        &lt;VisualStateGroup x:Name="SizeStates"&gt;
+                            &lt;VisualState x:Name="Large"&gt;
+                                &lt;Storyboard&gt;
+                                    &lt;ObjectAnimationUsingKeyFrames Duration="0"
+                                                                Storyboard.TargetName="SixthCircle"
+                                                                Storyboard.TargetProperty="Visibility"&gt;
+                                        &lt;DiscreteObjectKeyFrame KeyTime="0"&gt;
+                                            &lt;DiscreteObjectKeyFrame.Value&gt;
+                                                &lt;Visibility&gt;Visible&lt;/Visibility&gt;
+                                            &lt;/DiscreteObjectKeyFrame.Value&gt;
+                                        &lt;/DiscreteObjectKeyFrame&gt;
+                                    &lt;/ObjectAnimationUsingKeyFrames&gt;
+                                &lt;/Storyboard&gt;
+                            &lt;/VisualState&gt;
+                            &lt;VisualState x:Name="Small" /&gt;
+                        &lt;/VisualStateGroup&gt;
+                        &lt;VisualStateGroup x:Name="ActiveStates"&gt;
+                            &lt;VisualState x:Name="Inactive" /&gt;
+                            &lt;VisualState x:Name="Active"&gt;
+                                &lt;Storyboard RepeatBehavior="Forever"&gt;
+                                    &lt;ObjectAnimationUsingKeyFrames Duration="0"
+                                                                Storyboard.TargetName="Ring"
+                                                                Storyboard.TargetProperty="Visibility"&gt;
+                                        &lt;DiscreteObjectKeyFrame KeyTime="0"&gt;
+                                            &lt;DiscreteObjectKeyFrame.Value&gt;
+                                                &lt;Visibility&gt;Visible&lt;/Visibility&gt;
+                                            &lt;/DiscreteObjectKeyFrame.Value&gt;
+                                        &lt;/DiscreteObjectKeyFrame&gt;
+                                    &lt;/ObjectAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E1"
+                                    Storyboard.TargetProperty="Opacity"
+                                    BeginTime="0"&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.21" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.22" Value="0" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.47" Value="0" /&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E2"
+                                    Storyboard.TargetProperty="Opacity"
+                                    BeginTime="00:00:00.167"&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.21" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.22" Value="0" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.47" Value="0" /&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E3"
+                                    Storyboard.TargetProperty="Opacity"
+                                    BeginTime="00:00:00.334"&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.21" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.22" Value="0" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.47" Value="0" /&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E4"
+                                    Storyboard.TargetProperty="Opacity"
+                                    BeginTime="00:00:00.501"&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.21" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.22" Value="0" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.47" Value="0" /&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E5"
+                                    Storyboard.TargetProperty="Opacity"
+                                    BeginTime="00:00:00.668"&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.21" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.22" Value="0" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.47" Value="0" /&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E6"
+                                    Storyboard.TargetProperty="Opacity"
+                                    BeginTime="00:00:00.835"&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.21" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.22" Value="0" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.47" Value="0" /&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E1R"
+                                    BeginTime="0"
+                                    Storyboard.TargetProperty="Angle"&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0" Value="-110" KeySpline="0.13,0.21,0.1,0.7"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:0.433" Value="10" KeySpline="0.02,0.33,0.38,0.77"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.2" Value="93"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.617" Value="205" KeySpline="0.57,0.17,0.95,0.75"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.017" Value="357" KeySpline="0,0.19,0.07,0.72"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.783" Value="439"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:3.217" Value="585" KeySpline="0,0,0.95,0.37"/&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E2R"
+                                    BeginTime="00:00:00.167"
+                                    Storyboard.TargetProperty="Angle"&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0" Value="-116" KeySpline="0.13,0.21,0.1,0.7"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:0.433" Value="4" KeySpline="0.02,0.33,0.38,0.77"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.2" Value="87"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.617" Value="199" KeySpline="0.57,0.17,0.95,0.75"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.017" Value="351" KeySpline="0,0.19,0.07,0.72"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.783" Value="433"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:3.217" Value="579" KeySpline="0,0,0.95,0.37"/&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E3R"
+                                    BeginTime="00:00:00.334"
+                                    Storyboard.TargetProperty="Angle"&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0" Value="-122" KeySpline="0.13,0.21,0.1,0.7"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:0.433" Value="-2" KeySpline="0.02,0.33,0.38,0.77"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.2" Value="81"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.617" Value="193" KeySpline="0.57,0.17,0.95,0.75"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.017" Value="345" KeySpline="0,0.19,0.07,0.72"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.783" Value="427"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:3.217" Value="573" KeySpline="0,0,0.95,0.37"/&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E4R"
+                                    BeginTime="00:00:00.501"
+                                    Storyboard.TargetProperty="Angle"&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0" Value="-128" KeySpline="0.13,0.21,0.1,0.7"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:0.433" Value="-8" KeySpline="0.02,0.33,0.38,0.77"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.2" Value="75"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.617" Value="187" KeySpline="0.57,0.17,0.95,0.75"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.017" Value="339" KeySpline="0,0.19,0.07,0.72"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.783" Value="421"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:3.217" Value="567" KeySpline="0,0,0.95,0.37"/&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E5R"
+                                    BeginTime="00:00:00.668"
+                                    Storyboard.TargetProperty="Angle"&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0" Value="-134" KeySpline="0.13,0.21,0.1,0.7"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:0.433" Value="-14" KeySpline="0.02,0.33,0.38,0.77"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.2" Value="69"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.617" Value="181" KeySpline="0.57,0.17,0.95,0.75"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.017" Value="331" KeySpline="0,0.19,0.07,0.72"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.783" Value="415"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:3.217" Value="561" KeySpline="0,0,0.95,0.37"/&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E6R"
+                                    BeginTime="00:00:00.835"
+                                    Storyboard.TargetProperty="Angle"&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0" Value="-140" KeySpline="0.13,0.21,0.1,0.7"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:0.433" Value="-20" KeySpline="0.02,0.33,0.38,0.77"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.2" Value="63"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.617" Value="175" KeySpline="0.57,0.17,0.95,0.75"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.017" Value="325" KeySpline="0,0.19,0.07,0.72"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.783" Value="409"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:3.217" Value="555" KeySpline="0,0,0.95,0.37"/&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                &lt;/Storyboard&gt;
+                            &lt;/VisualState&gt;
+                        &lt;/VisualStateGroup&gt;
+                    &lt;/VisualStateManager.VisualStateGroups&gt;
+                    &lt;Grid x:Name="Ring"
+                        Margin="{TemplateBinding Padding}"
+                        MaxWidth="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.MaxSideLength}"
+                        MaxHeight="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.MaxSideLength}"
+                        Visibility="Collapsed"
+                        RenderTransformOrigin=".5,.5"
+                        FlowDirection="LeftToRight"&gt;
+                        &lt;Canvas RenderTransformOrigin=".5,.5"&gt;
+                            &lt;Canvas.RenderTransform&gt;
+                                &lt;RotateTransform x:Name="E1R" /&gt;
+                            &lt;/Canvas.RenderTransform&gt;
+                            &lt;Ellipse
+                            x:Name="E1"
+                            Style="{StaticResource ProgressRingEllipseStyle}"
+                            Width="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Height="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Margin="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseOffset}"
+                            Fill="{TemplateBinding Foreground}"/&gt;
+                        &lt;/Canvas&gt;
+                        &lt;Canvas RenderTransformOrigin=".5,.5"&gt;
+                            &lt;Canvas.RenderTransform&gt;
+                                &lt;RotateTransform x:Name="E2R" /&gt;
+                            &lt;/Canvas.RenderTransform&gt;
+                            &lt;Ellipse
+                            x:Name="E2"
+                            Style="{StaticResource ProgressRingEllipseStyle}"
+                            Width="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Height="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Margin="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseOffset}"
+                            Fill="{TemplateBinding Foreground}"/&gt;
+                        &lt;/Canvas&gt;
+                        &lt;Canvas RenderTransformOrigin=".5,.5"&gt;
+                            &lt;Canvas.RenderTransform&gt;
+                                &lt;RotateTransform x:Name="E3R" /&gt;
+                            &lt;/Canvas.RenderTransform&gt;
+                            &lt;Ellipse
+                            x:Name="E3"
+                            Style="{StaticResource ProgressRingEllipseStyle}"
+                            Width="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Height="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Margin="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseOffset}"
+                            Fill="{TemplateBinding Foreground}"/&gt;
+                        &lt;/Canvas&gt;
+                        &lt;Canvas RenderTransformOrigin=".5,.5"&gt;
+                            &lt;Canvas.RenderTransform&gt;
+                                &lt;RotateTransform x:Name="E4R" /&gt;
+                            &lt;/Canvas.RenderTransform&gt;
+                            &lt;Ellipse
+                            x:Name="E4"
+                            Style="{StaticResource ProgressRingEllipseStyle}"
+                            Width="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Height="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Margin="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseOffset}"
+                            Fill="{TemplateBinding Foreground}"/&gt;
+                        &lt;/Canvas&gt;
+                        &lt;Canvas RenderTransformOrigin=".5,.5"&gt;
+                            &lt;Canvas.RenderTransform&gt;
+                                &lt;RotateTransform x:Name="E5R" /&gt;
+                            &lt;/Canvas.RenderTransform&gt;
+                            &lt;Ellipse
+                            x:Name="E5"
+                            Style="{StaticResource ProgressRingEllipseStyle}"
+                            Width="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Height="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Margin="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseOffset}"
+                            Fill="{TemplateBinding Foreground}"/&gt;
+                        &lt;/Canvas&gt;
+                        &lt;Canvas RenderTransformOrigin=".5,.5"
+                            Visibility="Collapsed"
+                            x:Name="SixthCircle"&gt;
+                            &lt;Canvas.RenderTransform&gt;
+                                &lt;RotateTransform x:Name="E6R" /&gt;
+                            &lt;/Canvas.RenderTransform&gt;
+                            &lt;Ellipse
+                            x:Name="E6"
+                            Style="{StaticResource ProgressRingEllipseStyle}"
+                            Width="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Height="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Margin="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseOffset}"
+                            Fill="{TemplateBinding Foreground}"/&gt;
+                        &lt;/Canvas&gt;
+                    &lt;/Grid&gt;
+                &lt;/Border&gt;
+            &lt;/ControlTemplate&gt;
+        &lt;/Setter.Value&gt;
+    &lt;/Setter&gt;
+&lt;/Style&gt;
+</code></pre>
+
+		  </div>
+      <div class="span1">
+        &nbsp;
+      </div>
+      <div class="span4">
+          <h3><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="64" style="vertical-align:middle;" /></a> <a href="http://twitter.com/briandunnington">@briandunnington</a></h3>
+          <hr />
+
+              <h6 class="muted">2013.01.11</h6>
+              <h2>ProgressRing for Windows Phone 8</h2>
+              <p>A Windows-8-style ProgressRing for Windows Phone 8</p>
+              <p><a class="btn" href="/progressring-wp8.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2013.01.09</h6>
+              <h2>WinRT JSON Parser</h2>
+              <p>A nicer way to deal with JSON in WinRT (Windows Store) apps</p>
+              <p><a class="btn" href="/json-parser.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2012.12.19</h6>
+              <h2>Windows 8 Store Apps Color Overrides</h2>
+              <p>Tired of that purple color in your ComboBoxes, ListBoxes, and GridViews? Here is how to change it without retemplating all of the controls.</p>
+              <p><a class="btn" href="/windows8-color-overrides.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2012.12.18</h6>
+              <h2>Xaml VisualStateManager weirdness</h2>
+              <p>Sometimes GoToState() just wont work or works intermittently. Here is a note to myself with the answer.</p>
+              <p><a class="btn" href="/xaml-visualstatemanager-note.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2012.12.12</h6>
+              <h2>Reentrant async locks in .NET</h2>
+              <p>The new async/await keywords in .NET make async programming a snap, but there are some things to watch out for when synchronizing multiple threads.</p>
+              <p><a class="btn" href="/reentrant-async-locks.html">View details &raquo;</a></p>
+              <hr/>
+
+          <h4><a href="/index.html">More Posts ></a></h4>
+      </div>
+	  </div>
+
+      <footer>
+        <p>&copy; brian dunnington 2013</p>
+      </footer>
+
+    </div> <!-- /container -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
+
+<script src="js/libs/bootstrap/bootstrap.js"></script>
+
+<script src="js/script.js"></script>
+</body>
+</html>
