@@ -7,7 +7,7 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 
-	<title>brian dunnington</title>
+	<title>brian dunnington - Assmebly and File Version Information in WinRT</title>
 	<meta name="description" content="code and computer related tidbits">
 	<meta name="author" content="brian dunnington">
 
@@ -48,9 +48,9 @@
           <a class="brand" href="#">brian dunnington</a>
           <div class="nav-collapse">
             <ul class="nav">
-              <li class="active"><a href="/">Home</a></li>
-              <li><a href="/about.html">About</a></li>
-              <li><a href="/contact.html">Contact</a></li>
+              <li id="linkHome"><a href="/">Home</a></li>
+              <li id="linkAbout"><a href="/about.html">About</a></li>
+              <li id="linkContact"><a href="/contact.html">Contact</a></li>
             </ul>
           </div><!--/.nav-collapse -->
         </div>
@@ -84,57 +84,71 @@
         &nbsp;
       </div>
 		  <div class="span6">
-              <h6 class="muted">3/14/2013 12:00:00 AM</h6>
-              <h2>Assmebly and File Version Information in WinRT</h2>
-              <p>How to get the assembly and file version information in WinRT apps</p>
-              <p><a class="btn" href="/winrt-version-info.html">View details &raquo;</a></p>
-              <hr/>
-              <h6 class="muted">1/11/2013 12:00:00 AM</h6>
-              <h2>ProgressRing for Windows Phone 8</h2>
-              <p>A Windows-8-style ProgressRing for Windows Phone 8</p>
-              <p><a class="btn" href="/progressring-wp8.html">View details &raquo;</a></p>
-              <hr/>
-              <h6 class="muted">1/9/2013 12:00:00 AM</h6>
-              <h2>WinRT JSON Parser</h2>
-              <p>A nicer way to deal with JSON in WinRT (Windows Store) apps</p>
-              <p><a class="btn" href="/json-parser.html">View details &raquo;</a></p>
-              <hr/>
-              <h6 class="muted">12/19/2012 12:00:00 AM</h6>
-              <h2>Windows 8 Store Apps Color Overrides</h2>
-              <p>Tired of that purple color in your ComboBoxes, ListBoxes, and GridViews? Here is how to change it without retemplating all of the controls.</p>
-              <p><a class="btn" href="/windows8-color-overrides.html">View details &raquo;</a></p>
-              <hr/>
-              <h6 class="muted">12/18/2012 12:00:00 AM</h6>
-              <h2>Xaml VisualStateManager weirdness</h2>
-              <p>Sometimes GoToState() just wont work or works intermittently. Here is a note to myself with the answer.</p>
-              <p><a class="btn" href="/xaml-visualstatemanager-note.html">View details &raquo;</a></p>
-              <hr/>
-              <h6 class="muted">12/12/2012 12:00:00 AM</h6>
-              <h2>Reentrant async locks in .NET</h2>
-              <p>The new async/await keywords in .NET make async programming a snap, but there are some things to watch out for when synchronizing multiple threads.</p>
-              <p><a class="btn" href="/reentrant-async-locks.html">View details &raquo;</a></p>
-              <hr/>
-              <h6 class="muted">12/10/2012 12:00:00 AM</h6>
-              <h2>GridView in a ScrollViewer</h2>
-              <p>How to use a GridView inside of a ScrollViewer in a Windows Store app while still retaining mouse-wheel scrolling and swipe-to-select behavior.</p>
-              <p><a class="btn" href="/gridview-in-a-scrollviewer.html">View details &raquo;</a></p>
-              <hr/>
-              <h6 class="muted">9/14/2012 12:00:00 AM</h6>
-              <h2>SQLite on WinRT bug</h2>
-              <p>Got some queries that run fine, but if you add a column to the SELECT list or change the ORDER BY stop working? Got queries in a transaction that sometimes fail? Read on for the solution...</p>
-              <p><a class="btn" href="/sqlite-winrt-bug.html">View details &raquo;</a></p>
-              <hr/>
-              <h6 class="muted">3/19/2012 12:00:00 AM</h6>
-              <h2>Hello World!</h2>
-              <p>See what tools are used to build this blog. Markdown, html5boilerplate, Twitter Bootstrap, Github Pages and more.</p>
-              <p><a class="btn" href="/first-post.html">View details &raquo;</a></p>
-              <hr/>
+			  <div class="hero-unit">
+<h1>Assembly and File Version Information in WinRT</h1>
+<p>How to get the assembly and file version information in WinRT apps</p>
+</div>
+
+<p>Short and simple post this time. If you need to get the assembly and file version information in your Windows Store app, here is what you need. Note that the <code>using System.Reflection</code> is important since the <code>GetTypeInfo()</code> method is an extension method in that namespace.</p>
+
+<pre><code class="csharp"><span class="keyword">using</span> System;
+<span class="keyword">using</span> System.Reflection;
+
+<span class="keyword">namespace</span> Example
+{
+    <span class="keyword">public</span> <span class="keyword">class</span> <span class="type">VersionInformation</span>
+    {
+        <span class="keyword">public</span> VersionInformation()
+        {
+            <span class="keyword">var</span> assembly = <span class="keyword">this</span>.GetType().GetTypeInfo().Assembly;
+            <span class="keyword">var</span> assemblyVersion = assembly.GetName().Version.ToString();
+            <span class="keyword">var</span> fileVersion = assembly.GetCustomAttribute&lt;<span class="type">AssemblyFileVersionAttribute</span>&gt;().Version;
+            <span class="keyword">var</span> productVersion = assembly.GetCustomAttribute&lt;<span class="type">AssemblyInformationalVersionAttribute</span>&gt;().InformationalVersion;
+            System.Diagnostics.<span class="type">Debug</span>.WriteLine(<span class="string">&quot;Assembly Version: &quot;</span> + assemblyVersion);
+            System.Diagnostics.<span class="type">Debug</span>.WriteLine(<span class="string">&quot;File Version: &quot;</span> + fileVersion);
+            System.Diagnostics.<span class="type">Debug</span>.WriteLine(<span class="string">&quot;Product Version: &quot;</span> + productVersion);
+        }
+    }
+}
+</code></pre>
+
+<p>Similar, but slightly different than in other versions of .NET since <code>Assembly.GetExecutingAssembly()</code> and <code>System.Diagnostics.FileVersionInfo</code> are not available. Hope that helps somebody out.</p>
+
 		  </div>
       <div class="span1">
         &nbsp;
       </div>
       <div class="span4">
           <h3><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="64" style="vertical-align:middle;" /></a> <a href="http://twitter.com/briandunnington">@briandunnington</a></h3>
+          <hr />
+
+              <h6 class="muted">2013.03.14</h6>
+              <h2>Assmebly and File Version Information in WinRT</h2>
+              <p>How to get the assembly and file version information in WinRT apps</p>
+              <p><a class="btn" href="/winrt-version-info.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2013.01.11</h6>
+              <h2>ProgressRing for Windows Phone 8</h2>
+              <p>A Windows-8-style ProgressRing for Windows Phone 8</p>
+              <p><a class="btn" href="/progressring-wp8.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2013.01.09</h6>
+              <h2>WinRT JSON Parser</h2>
+              <p>A nicer way to deal with JSON in WinRT (Windows Store) apps</p>
+              <p><a class="btn" href="/json-parser.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2012.12.19</h6>
+              <h2>Windows 8 Store Apps Color Overrides</h2>
+              <p>Tired of that purple color in your ComboBoxes, ListBoxes, and GridViews? Here is how to change it without retemplating all of the controls.</p>
+              <p><a class="btn" href="/windows8-color-overrides.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2012.12.18</h6>
+              <h2>Xaml VisualStateManager weirdness</h2>
+              <p>Sometimes GoToState() just wont work or works intermittently. Here is a note to myself with the answer.</p>
+              <p><a class="btn" href="/xaml-visualstatemanager-note.html">View details &raquo;</a></p>
+              <hr/>
+
+          <h4><a href="/index.html">More Posts ></a></h4>
       </div>
 	  </div>
 
