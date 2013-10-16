@@ -7,7 +7,7 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 
-	<title>brian dunnington - WinRT Xaml Image Source Bug</title>
+	<title>brian dunnington - Windows Phone Color Emoji Override</title>
 	<meta name="description" content="code and computer related tidbits">
 	<meta name="author" content="brian dunnington">
 
@@ -85,52 +85,29 @@
       </div>
 		  <div class="span6">
 			  <div class="hero-unit">
-<h1>WinRT Xaml Image Source Bug</h1>
-<p>Following Microsoft's 'Best Practices' advice when using images in Xaml can result in a strange bug.</p>
+<h1>Windows Phone Color Emoji Override</h1>
+<p>What to do when your font glyphs start showing up in multi-color when you dont want them to</p>
 </div>
 
-<p>Using an image in Xaml is pretty easy, right? Just set the <code>Source</code> property and the image shows up.</p>
+<p>I recently released a new game for Windows Phone called <a href="http://windowsphone.com/s?appId=281499cb-f9fe-427f-8906-7fa3a02673ab">Quandry</a>. As part of the design, I was leveraging the font glyphs in <a href="http://www.adamdawes.com/windows8/win8_segoeuisymbol.html">Segoe UI Symbol</a> instead of using images in a few places. The result looked like this:</p>
 
-<pre><code>&lt;Image Source="http://www.domain.net/image.png"&gt;
-</code></pre>
+<p><img src="/images/wp_ss_20131015_0002.png" width="570"></p>
 
-<p>But what if your source image is large and you only want to display a small version of it? Of course the best thing to do is to use a smaller source image, but sometimes you dont/cant control the source. In those cases, your app will download the large image, process it in memory at full resolution, and then render it smaller on screen.</p>
+<p>I was pretty happy with it and didnt give it much more thought after I implemented it. Then Microsoft announced their <a href="https://dev.windowsphone.com/en-us/featured/update3">Windows Phone Preview for Developers</a> program which allows registered developers to install OS updates without waiting for carrier approval and general availability. Cool - I clicked a few buttons and within a few minutes, I was running "Update 3" (formerly knowns as GDR3). I fired up Quandry and noticed something weird:</p>
 
-<p>To alleviate some of the memory and processing hit, Microsoft introduced the <a href="http://msdn.microsoft.com/en-us/library/windows/apps/windows.ui.xaml.media.imaging.bitmapimage.decodepixelwidth">DecodePixelWidth</a> and <a href="http://msdn.microsoft.com/en-us/library/windows/apps/windows.ui.xaml.media.imaging.bitmapimage.decodepixelheight.aspx">DecodePixelHeight</a> properties that allow the image to be processed and cached at the intended resolution. These properties are on the <a href="http://msdn.microsoft.com/en-us/library/windows/apps/br243235.aspx">BitmapImage</a> class and Microsoft offers up a <a href="http://msdn.microsoft.com/en-us/library/aa970269.aspx">helpful example</a> that even explains what is going on:</p>
+<p><img src="/images/wp_ss_20131015_0001.png" width="570"></p>
 
-<pre><code>&lt;!-- Simple image rendering. However, rendering an image this way may not
- result in the best use of application memory. See markup below which
- creates the same end result but using less memory. --&gt;
-&lt;Image Width="200" Source="C:\Documents and Settings\All Users\Documents\My Pictures\Sample Pictures\Water Lilies.jpg"/&gt;
+<p>Some (but not all) of my glyphs had been replaced with colored variants. What the ?</p>
 
-&lt;Image Width="200"&gt;
-  &lt;Image.Source&gt;
-    &lt;!-- To save significant application memory, set the DecodePixelWidth or  
-     DecodePixelHeight of the BitmapImage value of the image source to the desired 
-     height and width of the rendered image. If you don't do this, the application will 
-     cache the image as though it were rendered as its normal size rather then just 
-     the size that is displayed. --&gt;
-    &lt;!-- Note: In order to preserve aspect ratio, only set either DecodePixelWidth
-         or DecodePixelHeight but not both. --&gt;
-    &lt;BitmapImage DecodePixelWidth="200"  
-     UriSource="C:\Documents and Settings\All Users\Documents\My Pictures\Sample Pictures\Water Lilies.jpg" /&gt;
-  &lt;/Image.Source&gt;
-&lt;/Image&gt;
-</code></pre>
+<p>I remembered reading about <a href="http://opentype.info/blog/2013/07/03/color-emoji-in-windows-8-1-the-future-of-color-fonts/">Microsoft's new colored-font proposal</a> awhile back and how it added some new color information to the font tables to enable 'layers' that could be colorized:</p>
 
-<p>Great! Now you are following the best practices and saving memory - what isnt to love?</p>
+<p><img src="http://opentype.info/blog/wp-content/uploads/2013/07/winemoji.png" width="570"/></p>
 
-<p>Let's switch gears for a minute and talk about something else: page caching. In Windows Store apps, you can set the <a href="http://msdn.microsoft.com/en-us/library/windows/apps/windows.ui.xaml.controls.page.navigationcachemode">NavigationCacheMode</a> property of a Page so that the page remains cached in memory even when you navigate away from it. When you navigate back, the page renders immediately without having to rebuild its entire structure. Fine - but what does that have to do with image sources, and when am I going to get to this bug that I mentioned? Right now.</p>
+<p>Neat stuff, but it was breaking my app! I tried a few things to fix the issue, but didnt have much luck. Then I stumbled across a property I had not heard of before: <a href="http://msdn.microsoft.com/en-US/library/windowsphone/develop/system.windows.media.textoptions.displaycoloremoji%28v=vs.105%29.aspx">TextOptions.DisplayColorEmoji</a>. Apparently it is set to <code>true</code> by default, so I set it to <code>false</code> on my affected <code>TextBlock</code> controls and everything was back to normal.</p>
 
-<p>Say you have a page and you mark it with <code>NavigationCacheMode=Enabled</code> (or <code>Required</code>) and on that page you have an image you want to display. But that image can take a while to load, or maybe you are dynamically swapping out the image from time to time. No worries - you simply update the <code>Source</code> property (either directly or via databinding) and the new image pops into place.</p>
+<p>Maybe everybody already knows about this little detail, but I didnt and figured I would share it in case anybody else ran into the same issue.</p>
 
-<p>But what if the image switch happens when the page is not visible on-screen? If you load up the page and then navigate away while the image is still loading, the image loading may complete while the original page is cached in memory but no longer visible on the screen. Oh well - when you navigate back, you will see the updated image, right? Nope.</p>
-
-<p>When you navigate back, most likely you will simply see a black empty space. What? The image must not have loaded. Or maybe it was some kind of cross-thread error since the UI was not visible? Nope and Nope. The image was loaded just fine and no errors were encountered. And the image <strong>is</strong> there - you just can see it.</p>
-
-<p>Using a tool like <a href="http://xamlspy.com/">XamlSpy</a> you can see that the image was indeed rendered, but for some reason is is invisible. I do not know why that is the case, but here is the catch: it only happens if you set your <code>Image.Source</code> declaratively by using a <code>BitmapImage</code>. If you use the normal string source, the image is rendered correctly and everything is peachy; of course you have to give up the benefits of DecodePixelWidth/Height to work around the issue.</p>
-
-<p>This actually cropped up in a real-world app and after much investigation, it was a colleague of mine who figured out the root cause as I was about to tear my hair out. Thanks Mike!</p>
+<p>Shameless plug: Download <a href="http://windowsphone.com/s?appId=281499cb-f9fe-427f-8906-7fa3a02673ab">Quandry</a> from the marketplace and give it a try. If you do, challenge me at <a href="http://twitter.com/briandunnington">@briandunnington</a> and we will have a game.</p>
 
 		  </div>
       <div class="span1">
