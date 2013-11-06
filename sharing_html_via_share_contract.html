@@ -7,7 +7,7 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 
-	<title>brian dunnington - Hello World!</title>
+	<title>brian dunnington - Sharing Html & Images via the Share Contract</title>
 	<meta name="description" content="code and computer related tidbits">
 	<meta name="author" content="brian dunnington">
 
@@ -17,8 +17,8 @@
     <meta name="twitter:card" content="summary">
     <meta name="twitter:site" content="@briandunnington">
     <meta name="twitter:creator" content="@briandunnington">
-    <meta name="twitter:title" content="Hello World!">
-    <meta name="twitter:description" content="See what tools are used to build this blog. Markdown, html5boilerplate, Twitter Bootstrap, Github Pages and more.">
+    <meta name="twitter:title" content="Sharing Html & Images via the Share Contract">
+    <meta name="twitter:description" content="The right way to share html that contains images (and other external resources) via the Share charm.">
     <meta name="twitter:domain" content="http://http://briandunnington.github.io/">
     <meta name="twitter:image" content="https://pbs.twimg.com/profile_images/1989458361/soupbox_bigger.jpg">
 
@@ -93,27 +93,52 @@
         &nbsp;
       </div>
 		  <div class="span6">
-			  <!-- Main hero unit for a primary marketing message or call to action -->
-
-<div class="hero-unit">
-<h1>Hello, world!</h1>
-<p>This is the first post on this blog. It is a bit of an experiment, as I am using several new (and new-to-me) techniques for creating and publishing this content</p>
-<!--<p><a class="btn btn-primary btn-large">Learn more &raquo;</a></p>-->
+			  <div class="hero-unit">
+<h1>Sharing Html & Images via the Share Contract</h1>
+<p>The right way to share html that contains images (and other external resources) via the Share charm.</p>
 </div>
 
-<p>This is the first post on this blog. It is a bit of an experiment, as I am using several new (and new-to-me) techniques for creating and publishing this content. All of the tools are based on standards (formal and de facto) and are freely available.</p>
+<blockquote>
+  <p>tl;dr - Although all of Microsoft's samples indicate that you should use <code>ms-appx:///</code> for external content, you actually need to use <code>ms-appx-web:///</code> or the content won't show up in the receiving app.</p>
+</blockquote>
 
-<p>All of the content is written in <a href="http://daringfireball.net/projects/markdown/">Markdown</a>, a human-readable syntax for formatting text. I am using the free <a href="http://markdownpad.com/">Markdown Pad</a> editor to write the content.</p>
+<p>Just a quick note to myself (and anybody else out there that stumbles upon this) so I remember how to do this correctly next time. When sharing content via the Share charm in Windows 8.x, there are several built-in supported data types, including text, image, links, and html. When sharing html that contains references to external resources (such as images or css) that are part of your app package, you have to handle those resources in a specific way in order for them to be shared properly.</p>
 
-<p>The Markdown files are then ran through a custom tool that I created. The tool scans a directory for Markdown files (.md extension) and then converts the text to HTML (using the <a href="http://code.google.com/p/markdownsharp/">Markdown Sharp</a> library). The resulting HTML is then injected into an HTML template to create the final page. You can see the raw Markdown source used to generate any page by replacing the .html extension with .md (Example: <a href="/_posts/first-post.md">first-post.md</a>).</p>
+<p>Fortunately, Microsoft has a helpful link on MSDN called '<a href="http://msdn.microsoft.com/en-us/library/windows/apps/hh973055.aspx">How to share HTML</a>' that walks you through everything you need to do:</p>
 
-<p>As of this writing (2012.03.19), the template itself is using the <a href="http://html5boilerplate.com/">html5boilerplate</a> library, with a side helping of <a href="http://twitter.github.com/bootstrap/">Twitter Bootstrap</a> thrown in for the UI elements, all generated automatically by <a href="http://www.initializr.com/">Initializr</a>.</p>
+<pre><code class="csharp"><span class="keyword">private</span> <span class="keyword">void</span> RegisterForShare()
+{
+    DataTransferManager dataTransferManager = DataTransferManager.GetForCurrentView();
+    dataTransferManager.DataRequested += <span class="keyword">new</span> TypedEventHandler&lt;DataTransferManager, 
+        DataRequestedEventArgs&gt;(<span class="keyword">this</span>.ShareHtmlHandler);
+}
 
-<p>Finally, the pages are being hosted on <a href="https://github.com/">Github</a> using their <a href="http://pages.github.com/">Pages</a> feature. The static .html files are all version controlled and stored in Github as normal, but Github also makes them browsable.</p>
+<span class="keyword">private</span> <span class="keyword">void</span> ShareHtmlHandler(DataTransferManager sender, DataRequestedEventArgs e)
+{
+    DataRequest request = e.Request;
+    request.Data.Properties.Title = <span class="string">&quot;Share Html Example&quot;</span>;
+    request.Data.Properties.Description = 
+        <span class="string">&quot;Demonstrates how to share an HTML fragment with a local image.&quot;</span>;
 
-<p>Anyway, it sounds like a lot of moving parts, but it really makes things quite easy. Just open up a text editor and write the text without worrying about the HTML formatting too much, then click a button and everything is transformed into standards-compliant HTML magically. A simple push to Github and the pages are all updated with full backups, etc.</p>
+    <span class="keyword">string</span> localImage = <span class="string">&quot;ms-appx:///Assets/Logo.png&quot;</span>;
+    <span class="keyword">string</span> htmlExample = <span class="string">&quot;&lt;p&gt;Here is a local image: &lt;img src=\&quot;&quot;</span> + localImage + <span class="string">&quot;\&quot;&gt;.&lt;/p&gt;&quot;</span>;
+    <span class="keyword">string</span> htmlFormat = HtmlFormatHelper.CreateHtmlFormat(htmlExample);
+    request.Data.SetHtmlFormat(htmlFormat);
 
-<p>Let's see how it goes.</p>
+    <span class="comment">// Because the HTML contains a local image, we need to add it to the ResourceMap.</span>
+    RandomAccessStreamReference streamRef = 
+         RandomAccessStreamReference.CreateFromUri(<span class="keyword">new</span> Uri(localImage));
+    request.Data.ResourceMap[localImage] = streamRef;
+}
+</code></pre>
+
+<p>Simple enough stuff: add the code, fire up your apps, invoke the Share charm, pick a target and your content is shared just like you expected. But actually, it isn't just like you expected. If you follow MS's code sample, your images (or css, etc) won't show up.</p>
+
+<p>I ran into this and figured it has to be something to do with the <a href="http://msdn.microsoft.com/en-us/library/windows/apps/windows.applicationmodel.datatransfer.datapackage.resourcemap.aspx">ResourceMap</a> that, umm...mapped the external resources. =) But I fiddled with it for way too long before deciding that I was going down the wrong path.</p>
+
+<p>After more Googling and trial and error, I finally stumbled up on the solution: you must use <code>ms-appx-web:///</code> as the protocol for external resources that live in your app package and are referenced via shared html.</p>
+
+<p><a href="http://www.jasonfollas.com/blog/post/2012/07/09/Metro-Introducing-the-Local-and-Web-Contexts.aspx">Here is an article</a> that talks about the difference between the 'contexts' that <code>ms-appx:///</code> and <code>ms-appx-web:///</code> run under. The article is more from the perspective of a Windows Store app written in html/js, but the same distinctions apply to managed and unmanaged apps as well. The article has lots of good info, but it never came right out and mentioned my exact problem, so I thought I would write this up so I could find it easily next time.</p>
 
 		  </div>
       <div class="span1">
