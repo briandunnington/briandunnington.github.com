@@ -33,10 +33,13 @@ The solution is to pass the subclassed type as the generic parameter in the GetT
 
 Of course this means that the Mobile Service client will try to insert your data into a table called 'SpecializedItem' (which you probably dont want) so you need to set the table name on the SpecializedItem class (using DataContract(Name="Item") or the JsonContainer or DataTable attributes).
 
-This is probably a pretty rare edge case, but when I searched on the Mobile Services forums, I did see a few other folks encountering the same error so I [reported my findings][bugreport] to the team. They could probably fix it by looking at the base type name if the original type name is not found, but they probably shouldn't do that. Most of the time, you wouldn't need to insert a subclasses type into a base type's table, and if you do, you simply need to decorate the subclassed type with the appropriate DataContract attribute to indicate that you really intended that behavior.
+This is probably a pretty rare edge case, but when I searched on the Mobile Services forums, I did see a few other folks encountering the same error so I [reported my findings][bugreport] to the team. <strike>They could probably fix it by looking at the base type name if the original type name is not found, but they probably shouldn't do that. Most of the time, you wouldn't need to insert a subclasses type into a base type's table, and if you do, you simply need to decorate the subclassed type with the appropriate DataContract attribute to indicate that you really intended that behavior.</strike>
+
+<b>UPDATE:</b> Looks like the team went ahead and fixed this bug: [https://github.com/WindowsAzure/azure-mobile-services/pull/189][fix]
 
 
 [Quandry]: http://www.windowsphone.com/en-us/store/app/quandry/281499cb-f9fe-427f-8906-7fa3a02673ab
 [ams]: http://www.windowsazure.com/en-us/services/mobile-services/
 [sdk]: https://github.com/WindowsAzure/azure-mobile-services
 [bugreport]: http://social.msdn.microsoft.com/Forums/windowsazure/en-US/cacb2a22-ec54-4cdf-9f3c-fe8cf83cde41/bug-report-no-id-member-found-on-type?forum=azuremobile#33f5587f-fc1e-4a2b-99b5-c63c48409191
+[fix]: https://github.com/WindowsAzure/azure-mobile-services/pull/189
