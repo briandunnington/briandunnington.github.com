@@ -1,0 +1,287 @@
+<!doctype html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+	<title>brian dunnington - Run arbitrary code on the UI thread asynchronously</title>
+	<meta name="description" content="code and computer related tidbits">
+	<meta name="author" content="brian dunnington">
+
+	<meta name="viewport" content="width=device-width">
+
+    <!-- Twitter Summary Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@briandunnington">
+    <meta name="twitter:creator" content="@briandunnington">
+    <meta name="twitter:title" content="Run arbitrary code on the UI thread asynchronously">
+    <meta name="twitter:description" content="A gotcha and a solution for easily running async code on the UI thread from a background thread.">
+    <meta name="twitter:domain" content="http://http://briandunnington.github.io/">
+    <meta name="twitter:image" content="https://pbs.twimg.com/profile_images/1989458361/soupbox_bigger.jpg">
+
+	<link rel="stylesheet" href="css/bootstrap.css">
+	<style>
+    body {
+      padding-top: 60px;
+      padding-bottom: 40px;
+    }
+    footer {
+      text-align: right;
+      margin-top: 40px;
+    }
+    h1 {
+      margin-bottom: 0.6em;
+    }
+  </style>
+	<link rel="stylesheet" href="css/bootstrap-responsive.css">
+	<link rel="stylesheet" href="css/style.css">
+
+	<!--[if lt IE 9]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<script>window.html5 || document.write('<script src="js/libs/html5.js"><\/script>')</script>
+	<![endif]-->
+</head>
+
+<body>
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="#"><img src="img/bd_logo.png" style="margin: -8px 0 -14px;" /> : brian dunnington</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <li id="linkHome"><a href="/">Home</a></li>
+              <li id="linkAbout"><a href="/about.html">About</a></li>
+              <li id="linkContact"><a href="/contact.html">Contact</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+      <!-- Example row of columns
+      <div class="row">
+        <div class="span4">
+          <h2>Heading</h2>
+           <p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
+          <p><a class="btn" href="#">View details &raquo;</a></p>
+        </div>
+        <div class="span4">
+          <h2>Heading</h2>
+           <p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
+          <p><a class="btn" href="#">View details &raquo;</a></p>
+       </div>
+        <div class="span4">
+          <h2>Heading</h2>
+          <p>Donec sed odio dui. Cras justo odio, dapibus ac facilisis in, egestas eget quam. Vestibulum id ligula porta felis euismod semper. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus.</p>
+          <p><a class="btn" href="#">View details &raquo;</a></p>
+        </div>
+      </div>
+      -->
+
+	  <div class="row">
+      <div class="span1">
+        &nbsp;
+      </div>
+		  <div class="span6">
+			  <div class="hero-unit">
+<h1>Run arbitrary code on the UI thread asynchronously</h1>
+<p>A gotcha and a solution for easily running async code on the UI thread from a background thread.</p>
+</div>
+
+<p>With the advent of the <code>async</code> and <code>await</code> keywords in .NET, it is super easy to run arbitrary code asynchronously on a background thread. Everybody is familiar with using <code>Task.Run()</code> to do something like this:</p>
+
+<pre><code class="csharp">Debug.WriteLine(<span class="string">&quot;before Task.Run()&quot;</span>);
+<span class="keyword">await</span> Task.Run(<span class="keyword">async</span> () =&gt;
+{
+    Debug.WriteLine(<span class="string">&quot;in Task.Run() - before long running process&quot;</span>);
+    <span class="keyword">await</span> Task.Delay(1000);
+    Debug.WriteLine(<span class="string">&quot;in Task.Run() - after long running process&quot;</span>);
+});
+Debug.WriteLine(<span class="string">&quot;after Task.Run()&quot;</span>);
+</code></pre>
+
+<p>The code is straight-forward. The calling code calls <code>Task.Run()</code> and waits for it to finish, including the <code>await</code>-ed code that is being run inside of the task. As expected, the output is:</p>
+
+<pre>
+before Task.Run()
+in Task.Run() - before long running process
+in Task.Run() - after long running process
+after Task.Run()
+</pre>
+
+<p>So running async code on a background thread is dead easy. What about running async code on the UI thread? It is a common scenario - you have some background thread that reads data or whatever and you need to update some UI based on that operation. The usual tool to use in this case is the CoreDispatcher's <a href="http://msdn.microsoft.com/en-us/library/windows/apps/windows.ui.core.coredispatcher.runasync.aspx">RunAsync()</a> method. If we rewrote our example above, it would look like:</p>
+
+<pre><code class="csharp">Debug.WriteLine(<span class="string">&quot;before Dispatcher.RunAsync()&quot;</span>);
+<span class="keyword">await</span> Dispatcher.RunAsync(CoreDispatcherPriority.Normal, <span class="keyword">async</span> () =&gt;
+{
+    Debug.WriteLine(<span class="string">&quot;in Dispatcher.RunAsync() - before long running process&quot;</span>);
+    <span class="keyword">await</span> Task.Delay(1000);
+    Debug.WriteLine(<span class="string">&quot;in Dispatcher.RunAsync() - after long running process&quot;</span>);
+});
+Debug.WriteLine(<span class="string">&quot;after Dispatcher.RunAsync()&quot;</span>);
+</code></pre>
+
+<p>But if you run this code, you will notice something strange. The output is:</p>
+
+<pre>
+before Dispatcher.RunAsync()
+in Dispatcher.RunAsync() - before long running process
+after Dispatcher.RunAsync()
+in Dispatcher.RunAsync() - after long running process
+</pre>
+
+<p>The outer <code>await</code> returned control to the method before the inner <code>await</code> was complete. Is it a bug in the framework? Nope. The difference is in the argument type passed to <code>Task.Run()</code> and <code>CoreDispatcher.RunAsync()</code>. In <code>Task.Run()</code>, the argument is of type <code>Func&lt;Task&gt;</code> so the resulting <code>Task</code> is also <code>await</code>-ed. But the argument passed to <code>CoreDispatcher.RunAsync()</code> is of type <a href="http://msdn.microsoft.com/en-us/library/windows/apps/windows.ui.core.dispatchedhandler.aspx">DispatchedHandler</a> which is a delegate that returns <code>void</code>. Since it returns <code>void</code>, the inner code block cannot be <code>await</code>-ed and returns immediately, which returns control to the outer block which continues to execute.</p>
+
+<p>So now that you know about this potential pitfall, what should you do about it? Well, the entire point of using the <code>CoreDispatcher</code> in the first place was to emulate <code>Task.Run()</code>'s ability to execute a block of code on another thread (specifically the UI thread). What we really need (and wanted all along) was something like <code>UITask.Run()</code> that takes the same <code>Func&lt;Task&gt;</code> argument and results in the same behavior but on the UI thread instead of a background thread.</p>
+
+<p>So, I present to you the <code>UITask</code> class (full source code at the end of the article). If we rewrite our example:</p>
+
+<pre><code class="csharp">Debug.WriteLine(<span class="string">&quot;before UITask.Run()&quot;</span>);
+<span class="keyword">await</span> UITask.Run(<span class="keyword">async</span> () =&gt;
+{
+    Debug.WriteLine(<span class="string">&quot;in UITask.Run() - before long running process&quot;</span>);
+    <span class="keyword">await</span> Task.Delay(1000);
+    Debug.WriteLine(<span class="string">&quot;in UITask.Run() - after long running process&quot;</span>);
+});
+Debug.WriteLine(<span class="string">&quot;after UITask.Run()&quot;</span>);
+</code></pre>
+
+<p>Now we get the expected output:</p>
+
+<pre>
+before UITask.Run()
+in UITask.Run() - before long running process
+in UITask.Run() - after long running process
+after UITask.Run()
+</pre>
+
+<p>Behind the scenes, the <code>UITask</code> class still relies on the <code>CoreDispatcher</code> to marshal the call back to the UI thread, but it wraps it in a <a href="http://msdn.microsoft.com/en-us/library/dd449174(v=vs.110).aspx">TaskCompletionSource</a> so we can wait until the inner code block is actually done. Note that because it still relies on the <code>CoreDispatcher</code>, you need to intialize <code>UITask</code> with an instance of the <code>CoreDispatcher</code> when you app starts up.</p>
+
+<p>Full source for <code>UITask</code>:</p>
+
+<pre><code class="csharp"><span class="keyword">using</span> System;
+<span class="keyword">using</span> System.Threading.Tasks;
+<span class="keyword">using</span> Windows.UI.Core;
+
+<span class="keyword">namespace</span> UITaskSample
+{
+    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">class</span> UITask
+    {
+        <span class="keyword">static</span> CoreDispatcher dispatcher;
+
+        <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> Initialize(CoreDispatcher dispather)
+        {
+            UITask.dispatcher = dispather;
+        }
+
+        <span class="keyword">public</span> <span class="keyword">static</span> Task Run(Action action)
+        {
+            <span class="keyword">if</span> (dispatcher == <span class="keyword">null</span>)
+                <span class="keyword">throw</span> <span class="keyword">new</span> InvalidOperationException(<span class="string">&quot;UITask must be initialized with a dispatcher before calling Run()&quot;</span>);
+
+            <span class="keyword">var</span> tcs = <span class="keyword">new</span> TaskCompletionSource&lt;<span class="keyword">bool</span>&gt;();
+            <span class="keyword">var</span> ignore = dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =&gt;
+            {
+                <span class="keyword">try</span>
+                {
+                    action();
+                    tcs.TrySetResult(<span class="keyword">true</span>);
+                }
+                <span class="keyword">catch</span> (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+            });
+            <span class="keyword">return</span> tcs.Task;
+        }
+
+        <span class="keyword">public</span> <span class="keyword">static</span> Task Run(Task task)
+        {
+            <span class="keyword">return</span> Run(() =&gt; task);
+        }
+
+        <span class="keyword">public</span> <span class="keyword">static</span> Task Run(Func&lt;Task&gt; taskFunc)
+        {
+            <span class="keyword">if</span> (dispatcher == <span class="keyword">null</span>)
+                <span class="keyword">throw</span> <span class="keyword">new</span> InvalidOperationException(<span class="string">&quot;UITask must be initialized with a dispatcher before calling Run()&quot;</span>);
+
+            <span class="keyword">var</span> tcs = <span class="keyword">new</span> TaskCompletionSource&lt;<span class="keyword">bool</span>&gt;();
+            <span class="keyword">var</span> ignore = dispatcher.RunAsync(CoreDispatcherPriority.Normal, <span class="keyword">async</span> () =&gt;
+            {
+                <span class="keyword">try</span>
+                {
+                    <span class="keyword">await</span> taskFunc();
+                    tcs.TrySetResult(<span class="keyword">true</span>);
+                }
+                <span class="keyword">catch</span> (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+            });
+            <span class="keyword">return</span> tcs.Task;
+        }
+    }
+}
+</code></pre>
+
+		  </div>
+      <div class="span1">
+        &nbsp;
+      </div>
+      <div class="span4">
+          <h3><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="64" style="vertical-align:middle;" /></a> <a href="http://twitter.com/briandunnington">@briandunnington</a></h3>
+          <hr />
+
+              <h6 class="muted">2014.04.03</h6>
+              <h2>Run arbitrary code on the UI thread asynchronously</h2>
+              <p>A gotcha and a solution for easily running async code on the UI thread from a background thread.</p>
+              <p><a class="btn" href="/uitask.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2014.01.06</h6>
+              <h2>Azure Mobile Services  No 'id' member found on type</h2>
+              <p>When using Azure Mobile Services, you can sometimes get an error with the message "No 'id' member found on type" even when your type has an 'id' member. Here is why and how to solve it.</p>
+              <p><a class="btn" href="/azure_mobile_services_no_id.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2013.11.06</h6>
+              <h2>Sharing Html & Images via the Share Contract</h2>
+              <p>The right way to share html that contains images (and other external resources) via the Share charm.</p>
+              <p><a class="btn" href="/sharing_html_via_share_contract.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2013.10.25</h6>
+              <h2>Migrating Scheduled Task Jobs</h2>
+              <p>Finally retiring that old Windows Server 2003 machine? Need to migrate your scheduled tasks? Here is an easy solution.</p>
+              <p><a class="btn" href="/migrate-scheduled-jobs.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2013.10.15</h6>
+              <h2>Windows Phone Color Emoji Override</h2>
+              <p>What to do when your font glyphs start showing up in multi-color when you dont want them to</p>
+              <p><a class="btn" href="/textoptions-displaycoloremoji.html">View details &raquo;</a></p>
+              <hr/>
+
+          <h4><a href="/index.html">More Posts ></a></h4>
+      </div>
+	  </div>
+
+      <footer>
+        <p>&copy; brian dunnington 2013</p>
+      </footer>
+
+    </div> <!-- /container -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
+
+<script src="js/libs/bootstrap/bootstrap.js"></script>
+
+<script src="js/script.js"></script>
+</body>
+</html>
