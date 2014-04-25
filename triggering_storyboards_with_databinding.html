@@ -7,7 +7,7 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 
-	<title>brian dunnington - Assmebly and File Version Information in WinRT</title>
+	<title>brian dunnington - Triggering Storyboards with data binding</title>
 	<meta name="description" content="code and computer related tidbits">
 	<meta name="author" content="brian dunnington">
 
@@ -17,8 +17,8 @@
     <meta name="twitter:card" content="summary">
     <meta name="twitter:site" content="@briandunnington">
     <meta name="twitter:creator" content="@briandunnington">
-    <meta name="twitter:title" content="Assmebly and File Version Information in WinRT">
-    <meta name="twitter:description" content="How to get the assembly and file version information in WinRT apps">
+    <meta name="twitter:title" content="Triggering Storyboards with data binding">
+    <meta name="twitter:description" content="A clean way for your viewmodel's properties to trigger storyboard animations">
     <meta name="twitter:domain" content="http://http://briandunnington.github.io/">
     <meta name="twitter:image" content="https://pbs.twimg.com/profile_images/1989458361/soupbox_bigger.jpg">
 
@@ -94,34 +94,72 @@
       </div>
 		  <div class="span6">
 			  <div class="hero-unit">
-<h1>Assembly and File Version Information in WinRT</h1>
-<p>How to get the assembly and file version information in WinRT apps</p>
+<h1>Triggering Storyboards with data binding</h1>
+<p>A clean way for your viewmodel's properties to trigger storyboard animations</p>
 </div>
 
-<p>Short and simple post this time. If you need to get the assembly and file version information in your Windows Store app, here is what you need. Note that the <code>using System.Reflection</code> is important since the <code>GetTypeInfo()</code> method is an extension method in that namespace.</p>
+<p>Creating animations in XAML is pretty easy using <a href="http://msdn.microsoft.com/en-us/library/ms742868%28v=vs.110%29.aspx">Storyboards</a>, but after you create them, you have to trigger them somehow. There are a bunch of ways to do this, but each has its own shortcomings if you want to trigger your animation based on viewmodel changes:</p>
+
+<p><em>DataTrigger</em> &amp; <em>Trigger</em> - Not supported in WinRT apps so they are non-starters.</p>
+
+<p><em>EventTrigger</em> - Triggers your animation in response to an event. These are still supported in WinRT but they can only hook up to the <code>Loaded</code> event so it is effectively inaccessible from a viewmodel.</p>
+
+<p><em>Storyboard.Begin() method</em> - straight to the point, but not easy to databind to since it is a method.</p>
+
+<p><em>VisualStateManager</em> - This is essentially the replacement for DataTriggers, but again, it requires calling a method (<code>VisualStateManager.GoToState()</code>) to trigger it.</p>
+
+<p><em>Behaviors</em> - Code like <a href="http://dotnetbyexample.blogspot.com/2012/10/a-winrt-behavior-to-start-storyboard-on.html">this</a> can trigger a storyboard using a custom behavior, but (and maybe this is just me) I rarely use behaviors and find them kind of clunky for some reason. Just my opinion.</p>
+
+<p>So where does that leave us? How about this:</p>
+
+<pre><code>&lt;Storyboard common:StoryboardHelper.BeginIf="{Binding IsLoggedIn}"&gt;
+    &lt;DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(CompositeTransform.TranslateY)" Storyboard.TargetName="StartSessionOverlay"&gt;
+        &lt;EasingDoubleKeyFrame KeyTime="0:0:0" Value="640"/&gt;
+        &lt;EasingDoubleKeyFrame KeyTime="0:0:0.3" Value="0"/&gt;
+    &lt;/DoubleAnimationUsingKeyFrames&gt;
+&lt;/Storyboard&gt;
+</code></pre>
+
+<p>Using a custom <a href="http://msdn.microsoft.com/en-us/library/windows/apps/hh965327.aspx">attached property</a>, we can set up a mechanism that allows declarative databinding in the XAML and yet runs arbitrary code behind the scenes. The implementation is straight-forward:</p>
 
 <pre><code class="csharp"><span class="keyword">using</span> System;
-<span class="keyword">using</span> System.Reflection;
+<span class="keyword">using</span> System.Collections.Generic;
+<span class="keyword">using</span> System.Text;
+<span class="keyword">using</span> Windows.UI.Xaml;
+<span class="keyword">using</span> Windows.UI.Xaml.Controls;
+<span class="keyword">using</span> Windows.UI.Xaml.Media.Animation;
 
-<span class="keyword">namespace</span> Example
+<span class="keyword">namespace</span> Demo
 {
-    <span class="keyword">public</span> <span class="keyword">class</span> <span class="type">VersionInformation</span>
+    <span class="keyword">public</span> <span class="keyword">class</span> StoryboardHelper : DependencyObject
     {
-        <span class="keyword">public</span> VersionInformation()
+        <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">bool</span> GetBeginIf(DependencyObject obj)
         {
-            <span class="keyword">var</span> assembly = <span class="keyword">this</span>.GetType().GetTypeInfo().Assembly;
-            <span class="keyword">var</span> assemblyVersion = assembly.GetName().Version.ToString();
-            <span class="keyword">var</span> fileVersion = assembly.GetCustomAttribute&lt;<span class="type">AssemblyFileVersionAttribute</span>&gt;().Version;
-            <span class="keyword">var</span> productVersion = assembly.GetCustomAttribute&lt;<span class="type">AssemblyInformationalVersionAttribute</span>&gt;().InformationalVersion;
-            System.Diagnostics.<span class="type">Debug</span>.WriteLine(<span class="string">&quot;Assembly Version: &quot;</span> + assemblyVersion);
-            System.Diagnostics.<span class="type">Debug</span>.WriteLine(<span class="string">&quot;File Version: &quot;</span> + fileVersion);
-            System.Diagnostics.<span class="type">Debug</span>.WriteLine(<span class="string">&quot;Product Version: &quot;</span> + productVersion);
+            <span class="keyword">return</span> (<span class="keyword">bool</span>)obj.GetValue(BeginIfProperty);
+        }
+
+        <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> SetBeginIf(DependencyObject obj, <span class="keyword">bool</span> <span class="keyword">value</span>)
+        {
+            obj.SetValue(BeginIfProperty, <span class="keyword">value</span>);
+        }
+
+        <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">readonly</span> DependencyProperty BeginIfProperty = DependencyProperty.RegisterAttached(<span class="string">&quot;BeginIf&quot;</span>, <span class="keyword">typeof</span>(<span class="keyword">bool</span>), <span class="keyword">typeof</span>(StoryboardHelper), <span class="keyword">new</span> PropertyMetadata(<span class="keyword">false</span>, BeginIfPropertyChangedCallback));
+
+        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> BeginIfPropertyChangedCallback(DependencyObject s, DependencyPropertyChangedEventArgs e)
+        {
+            <span class="keyword">var</span> storyboard = s <span class="keyword">as</span> Storyboard;
+            <span class="keyword">if</span> (storyboard == <span class="keyword">null</span>)
+                <span class="keyword">throw</span> <span class="keyword">new</span> InvalidOperationException(<span class="string">&quot;This attached property only supports Storyboards.&quot;</span>);
+
+            <span class="keyword">var</span> begin = (<span class="keyword">bool</span>)e.NewValue;
+            <span class="keyword">if</span> (begin) storyboard.Begin();
+            <span class="keyword">else</span> storyboard.Stop();
         }
     }
 }
 </code></pre>
 
-<p>Similar, but slightly different than in other versions of .NET since <code>Assembly.GetExecutingAssembly()</code> and <code>System.Diagnostics.FileVersionInfo</code> are not available. Hope that helps somebody out.</p>
+<p>Attached properties have been solving a lot of little things like this for me lately so I will probably write about them some more in the future.</p>
 
 		  </div>
       <div class="span1">
