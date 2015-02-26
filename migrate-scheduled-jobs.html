@@ -100,7 +100,7 @@
 
 <p>One of our clients is finally migrating from Windows Server 2003 to Windows Server 2012 (don't judge) and I ran into an interesting problem. They have a bunch of jobs set up in the Task Scheduler that need to be migrated over, but the old machine uses a deprecated binary .job file format to store the job data, while the newer machine uses an xml-based file format.</p>
 
-<p>Of course, there is a built-in solution for this problem: the <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/bb736357%28v=vs.85%29.aspx"><code>schtasks</code></a> program now has an <code>/XML</code> switch to export an xml file. However, that version of <code>schtasks</code> only works on the newer OSes, so you can easily convert the scripts on your old machine.</p>
+<p>Of course, there is a built-in solution for this problem: the <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/bb736357%28v=vs.85%29.aspx"><code>schtasks</code></a> program now has an <code>/XML</code> switch to export an xml file. However, that version of <code>schtasks</code> only works on the newer OSes, so you cant easily convert the scripts on your old machine.</p>
 
 <p>Surely Google can help, right? It didnt take long to find several solutions <a href="http://jon.netdork.net/2011/03/08/powershell-and-exporting-windows-scheduled-tasks/">like this</a> that let you specify the remote host name of the older OS. In that case, you can use the newer <code>schtasks</code> (with xml export) but point it at the older machine and everything is easy-peasy.</p>
 

@@ -9,7 +9,7 @@ Summary: Finally retiring that old Windows Server 2003 machine? Need to migrate 
 
 One of our clients is finally migrating from Windows Server 2003 to Windows Server 2012 (don't judge) and I ran into an interesting problem. They have a bunch of jobs set up in the Task Scheduler that need to be migrated over, but the old machine uses a deprecated binary .job file format to store the job data, while the newer machine uses an xml-based file format.
 
-Of course, there is a built-in solution for this problem: the [`schtasks`][schtasks] program now has an `/XML` switch to export an xml file. However, that version of `schtasks` only works on the newer OSes, so you can easily convert the scripts on your old machine.
+Of course, there is a built-in solution for this problem: the [`schtasks`][schtasks] program now has an `/XML` switch to export an xml file. However, that version of `schtasks` only works on the newer OSes, so you cant easily convert the scripts on your old machine.
 
 Surely Google can help, right? It didnt take long to find several solutions [like this][remotemachine] that let you specify the remote host name of the older OS. In that case, you can use the newer `schtasks` (with xml export) but point it at the older machine and everything is easy-peasy.
 
