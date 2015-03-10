@@ -95,15 +95,15 @@
 
 <script src="js/script.js"></script>
 <script>
-@if(@Model.CurrentItem.FileName == "index")
+@if (@Model.CurrentItem.OriginalFileName == "index")
 {
 <text>$("#linkHome").addClass("active");</text>
 }
-@if(@Model.CurrentItem.FileName == "about")
+@if (@Model.CurrentItem.OriginalFileName == "about")
 {
 <text>$("#linkAbout").addClass("active");</text>
 }
-@if(@Model.CurrentItem.FileName == "contact")
+@if (@Model.CurrentItem.OriginalFileName == "contact")
 {
 <text>$("#linkContact").addClass("active");</text>
 }
