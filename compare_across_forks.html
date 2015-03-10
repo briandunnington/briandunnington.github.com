@@ -7,11 +7,20 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 
-	<title>brian dunnington - Contact</title>
+	<title>brian dunnington - Compare Across Forks</title>
 	<meta name="description" content="code and computer related tidbits">
 	<meta name="author" content="brian dunnington">
 
 	<meta name="viewport" content="width=device-width">
+
+    <!-- Twitter Summary Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@briandunnington">
+    <meta name="twitter:creator" content="@briandunnington">
+    <meta name="twitter:title" content="Compare Across Forks">
+    <meta name="twitter:description" content="My new favorite feature on GitHub">
+    <meta name="twitter:domain" content="http://http://briandunnington.github.io/">
+    <meta name="twitter:image" content="https://pbs.twimg.com/profile_images/1989458361/soupbox_bigger.jpg">
 
 	<link rel="stylesheet" href="css/bootstrap.css">
 	<style>
@@ -60,23 +69,27 @@
     <div class="container">
 
 	  <div class="row">
-		  <div class="span7">
-			  <div class="hero-unit">
-<h1>Contact Information</h1>
-<p>How to find me and a few of my projects at various other spots on the the web.</p>
+        <div class="span7">
+            <!-- Main hero unit for a primary marketing message or call to action -->
+
+<div class="hero-unit">
+<h1>Compare Across Forks</h1>
+<p>My new favorite feature on GitHub</p>
 </div>
 
-<h3>Twitter: <a href="https://twitter.com/briandunnington">https://twitter.com/briandunnington</a></h3>
+<p>There are lots of ways to work with Git and GitHub on Windows and I use the <a href="https://windows.github.com/">GitHub for Windows</a> app, <a href="https://code.google.com/p/tortoisegit/">TortoiseGit</a>, and the <a href="http://git-scm.com/docs/gittutorial">command line</a> daily for various tasks. But my current new favorite feature is actually built in to the GitHub website.</p>
 
-<h3>Github: <a href="https://github.com/briandunnington">https://github.com/briandunnington</a></h3>
+<p>Say you have forked a repository, make some changes, and then push them up to your fork. If you made your changes on a new branch, GitHub will take notice and offer up a handy option to create a pull request:</p>
 
-<h3>Growl for Windows: <a href="http://www.growlforwindows.com">http://www.growlforwindows.com</a></h3>
+<p><br><img src="/images/compare_across_forks2.png" width="570"><br><br></p>
 
-<h3>element code project: <a href="http://www.elementcodeproject.com">http://www.elementcodeproject.com</a></h3>
+<p>But if you were a bad kid and pushed your changes on the <code>master</code> branch, GitHub silently shames you and does not offer up the handy link (though it is also useful if you want to create a PR for changes that were not recently made). By using the <code>Compare across forks</code>, you can simply select your fork and your branch and generate the PR quickly and painlessly.</p>
 
-<h3>Personal Blog: <a href="http://www.briandunnington.com">http://www.briandunnington.com</a></h3>
+<p><br><img src="/images/compare_across_forks.png" width="570"><br><br></p>
 
-		  </div>
+<p>I am sure this feature is old news to most folks, but I have been finding it extra useful lately so I thought I would share.</p>
+
+        </div>
       <div class="span1">
         &nbsp;
       </div>
@@ -125,8 +138,5 @@
 <script src="js/libs/bootstrap/bootstrap.js"></script>
 
 <script src="js/script.js"></script>
-<script>
-$("#linkContact").addClass("active");
-</script>
 </body>
 </html>
