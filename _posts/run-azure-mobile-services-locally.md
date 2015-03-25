@@ -27,8 +27,7 @@ In general, the steps required are:
 - Set up Mobile Services to use source control
 - Download the infrastructure files that run your Mobile Services instance
 - Set up Node.js and environment variables to mimic the Azure environment
-- Install 
-- SQL Server Native Client and modify connection strings
+- Install SQL Server Native Client and modify connection strings
 
 #### Set up Mobile Services to use source control
 
