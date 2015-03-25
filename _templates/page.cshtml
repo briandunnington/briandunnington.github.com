@@ -61,9 +61,9 @@
     <div class="container">
 
 	  <div class="row">
-		  <div class="span7">
-			  @Model.CurrentItem.Content
-		  </div>
+        <div class="span7 maincontent">
+            @Model.CurrentItem.Content
+        </div>
       <div class="span1">
         &nbsp;
       </div>
@@ -71,7 +71,8 @@
           <h3><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="64" style="vertical-align:middle;" /></a> <a href="http://twitter.com/briandunnington">@@briandunnington</a></h3>
           <hr />
 
-          @foreach(var post in @Model.Posts.OrderByDescending((p) => p.Date).Take(5)) {
+          @foreach (var post in @Model.Posts.Where((p) => !p.Contains("DRAFT")).OrderByDescending((p) => p.Date).Take(5))
+          {
               <h6 class="muted">@post.Date.ToString("yyyy.MM.dd")</h6>
               <h2>@post.Title</h2>
               <p>@post.Summary</p>

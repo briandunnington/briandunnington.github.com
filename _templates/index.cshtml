@@ -61,8 +61,8 @@
     <div class="container">
 
 	  <div class="row">
-		  <div class="span6">
-          @foreach(var post in @Model.Posts.OrderByDescending((p) => p.Date)) {
+		  <div class="span6 maincontent">
+          @foreach(var post in @Model.Posts.Where((p) => !p.Contains("DRAFT")).OrderByDescending((p) => p.Date)) {
               <h6 class="muted">@post.Date.ToString("yyyy.MM.dd")</h6>
               <h2>@post.Title</h2>
               <p>@post.Summary</p>

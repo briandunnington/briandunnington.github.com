@@ -1,0 +1,287 @@
+<!doctype html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+	<title>brian dunnington - Run Node.js Azure Mobile Services locally</title>
+	<meta name="description" content="code and computer related tidbits">
+	<meta name="author" content="brian dunnington">
+
+	<meta name="viewport" content="width=device-width">
+
+    <!-- Twitter Summary Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@briandunnington">
+    <meta name="twitter:creator" content="@briandunnington">
+    <meta name="twitter:title" content="Run Node.js Azure Mobile Services locally">
+    <meta name="twitter:description" content="Want to unit test or debug your Node.js-based Azure Mobile Service? Here's how.">
+    <meta name="twitter:domain" content="http://http://briandunnington.github.io/">
+    <meta name="twitter:image" content="https://pbs.twimg.com/profile_images/1989458361/soupbox_bigger.jpg">
+
+	<link rel="stylesheet" href="css/bootstrap.css">
+	<style>
+    body {
+      padding-top: 60px;
+      padding-bottom: 40px;
+    }
+    footer {
+      text-align: right;
+      margin-top: 40px;
+    }
+    h1 {
+      margin-bottom: 0.6em;
+    }
+  </style>
+	<link rel="stylesheet" href="css/bootstrap-responsive.css">
+	<link rel="stylesheet" href="css/style.css">
+
+	<!--[if lt IE 9]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<script>window.html5 || document.write('<script src="js/libs/html5.js"><\/script>')</script>
+	<![endif]-->
+</head>
+
+<body>
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/"><img src="img/bd_logo.png" style="margin: -8px 0 -14px;" /> : brian dunnington</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <li id="linkHome"><a href="/">Home</a></li>
+              <li id="linkAbout"><a href="/about.html">About</a></li>
+              <li id="linkContact"><a href="/contact.html">Contact</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+	  <div class="row">
+        <div class="span7 maincontent">
+            <div class="hero-unit">
+<h1>Run Node.js Azure Mobile Services locally</h1>
+<p>Want to unit test or debug your Node.js-based Azure Mobile Service? Here's how.</p>
+</div>
+
+<p><style>
+.maincontent h4 { margin: 16px 0 8px 0; }
+.img img { display: block; margin-bottom: 16px; border: solid 1px #666666; }
+.img span { text-align: center; }
+blockquote p { font-size: 90%; }
+blockquote pre { margin: 10px 0; }
+</style></p>
+
+<p>For spinning up new mobile apps quickly, I am really liking <a href="http://azure.microsoft.com/en-us/services/mobile-services/">Azure Mobile Services</a>. If you aren't familiar with it, it is a Backend-as-a-Service (BaaS) similar to <a href="https://parse.com/">Parse</a>. Like other BaaS options, it does all of the hard work for handling social authentication, data storage, push notifications, and more. The Mobile Services management portal even has a built-in script editor that lets you create a complete backend including database and code completely online.</p>
+
+<p>While the built-in script editor is handy for quick prototyping, anybody building a non-trivial app will quickly run up against its limitations. Most folks would prefer to develop in the editor of their choice with all of the niceties like code completion, interactive debugging, testing support, etc. While it initially only supported <a href="https://nodejs.org/">Node.js</a>, Mobile Services has been updated to allow leveraging .NET using <a href="http://blogs.msdn.com/b/carlosfigueira/archive/2014/04/01/net-runtime-for-azure-mobile-services-first-impressions.aspx">WebApi</a> and if you chose that route, you can build your app locally using Visual Studio and take advantage of all of the benefits of local development and debugging.</p>
+
+<p>However, I often still prefer to use the Node.js backend for its simple-yet-powerful approach. Unfortunately, there is no official way to run and debug locally while using the Node.js backend. But, using a little bit of ingenuity, we can solve that problem.</p>
+
+<p>In general, the steps required are:</p>
+
+<ul>
+<li>Set up Mobile Services to use source control</li>
+<li>Download the infrastructure files that run your Mobile Services instance</li>
+<li>Set up Node.js and environment variables to mimic the Azure environment</li>
+<li>Install </li>
+<li>SQL Server Native Client and modify connection strings</li>
+</ul>
+
+<h4>Set up Mobile Services to use source control</h4>
+
+<p>Even if you don't plan to use source control (but really, why wouldn't you?), you still need to enable source control for your Mobile Service. There are lot of <a href="http://azure.microsoft.com/en-us/documentation/articles/mobile-services-store-scripts-source-control/">guides on how to do this</a> but here are some pictures to make it clear:</p>
+
+<div class="img">
+<img src="images/run-azure-mobile-services-locally-scm1.png"/>
+</div>
+
+<div class="img">
+<img src="images/run-azure-mobile-services-locally-scm2.png"/>
+</div>
+
+<div class="img">
+<img src="images/run-azure-mobile-services-locally-scm3.png"/>
+</div>
+
+<p>Once you have enabled Git on your Mobile Service, go ahead and clone the repository to your local machine:</p>
+
+<pre><code>git clone &lt;your-git-url&gt;
+</code></pre>
+
+<p>Don't worry too much about where you cloned it to because we will need to move the repository in a later step.</p>
+
+<h4>Download Mobile Services infrastructure files</h4>
+
+<p>Behind the scenes, a Mobile Service is just a special type of Azure Website. As such, you can use the <a href="http://blogs.msdn.com/b/benjaminperkins/archive/2014/03/24/using-kudu-with-windows-azure-web-sites.aspx">Kudu</a> tools to inspect and interact with your site. To access your Kudu control panel, navigate to:</p>
+
+<pre><code>https://your-mobile-services-site.scm.azure-mobile.net
+</code></pre>
+
+<p>There is a lot of neat tools provided there so I recommend you poke around a bit. But for now, we are interested in the <code>Debug Console</code>. (I use the Powershell version, but it doesn't really matter for this task.) When you enter the Debug Console, you will also see a directory/file listing. Click the <code>site</code> folder and then click the little download icon next to <code>wwwroot</code>. This will download a .zip file of your entire Mobile Service, including both your user-authored code as well as all of the Node modules and supporting files.</p>
+
+<div class="img">
+<img src="images/run-azure-mobile-services-locally-kudu1.png"/>
+</div>
+
+<p>Unzip the downloaded <code>wwwroot</code> files to your preferred location. Now we want to integrate the cloned repository into the <code>wwwroot</code> files, however; the <code>wwwroot</code> folder contains your user code in a the <code>App_Data\config\scripts</code> but the cloned repository code lives in <code>(your_repository)\service</code>. Go ahead and delete the entire <code>scripts</code> folder from <code>App_Data\config</code> and then copy your cloned repository into the <code>config</code> folder. Open up <code>runtime\core.js</code> and find the <code>getScriptsDirName()</code> function and modify it to return the new path:</p>
+
+<div class="img">
+<img src="images/run-azure-mobile-services-locally-webstorm3.png"/>
+</div>
+
+<p>Now any changes to your local repository will also appear at the correct location inside of the <code>wwwroot</code> folder. (If you were using any custom Node modules that were part of your user files, make sure to run <code>npm install</code> again after deleting the <code>scripts</code> folder and replacing it with your cloned repository folder.)</p>
+
+<h4>Set up Node.js and environment variables to mimic the Azure environment</h4>
+
+<p>Back in the Kudu control panel, click on <code>Environment</code>. You can see a lot of information here, but two important bits are:</p>
+
+<pre><code>64 bit process: False
+</code></pre>
+
+<p>and:</p>
+
+<pre><code>WEBSITE_NODE_DEFAULT_VERSION = 0.8.28
+</code></pre>
+
+<p>This tells you that your Mobile Service is running on a 32-bit (x86) architecture and is running Node.js version 0.8.28. If you don't already have Node installed, you should install this same version, which you can download for your OS <a href="http://nodejs.org/dist/v0.8.28/">from here</a>. If you already have a later version of Node installed, it may work but you will encounter issues with some of the referenced modules. (I did try to use 0.10.36 but after struggling with npm dependencies for an hour, I decided it was not worth the effort).</p>
+
+<hr />
+
+<p><a name="x64"></a></p>
+
+<blockquote>
+  <p>A note about x64: I originally tried to get this running using 64-bit Node but ran into a few hurdles. First, you will need a 64-bit version of the <a href="https://www.npmjs.com/package/msnodesql"><code>msnodesql</code></a> module. You can either <a href="http://tech.pro/tutorial/1848/getting-nodejs--sql-server--azure-to-work-together">compile it yourself</a> (which requires Python and C++ and looks like a pain) or try the <a href="https://www.npmjs.com/package/node-sqlserver-unofficial"><code>node-sqlserver-unofficial</code></a> pre-compiled binaries. I tried the later but no matter what I did, i just kept getting</p>
+
+<pre><code>  Error: [Microsoft][ODBC Driver Manager] Data source name not found and no default driver specified (SqlState: IM002, Code: 0)
+</code></pre>
+  
+  <p>If you can get the SQL dependency sorted out, you will also need to update the <code>tripwire</code> module to use a 64-bit version as well. At that point, it might run, but keep in mind that farther you veer from an identical Azure environment, the more likely you will be to introduce subtle issues.</p>
+</blockquote>
+
+<hr />
+
+<p>Now you have the source code downloaded and Node installed, but you aren't quite done yet. In order to get a debugging environment set up, you need to make sure all of those environment variables are also set up. These instructions are for <a href="https://www.jetbrains.com/webstorm/">WebStorm</a> but your editor of choice probably has a similar set of steps. </p>
+
+<div class="img">
+<img src="images/run-azure-mobile-services-locally-webstorm1.png"/>
+</div>
+
+<p>Set <code>app.js</code> to be the starting point for the Node server. In the <code>Environment Variables</code> section, you need to input all of the Environment Variables as listed in the Kudu control panel. You definitely don't want to retype all of that, but you wont have to. From the Kudu main page, click <code>App Settings</code> and it will dump all of the values out in JSON format. Copy the whole block and head over to <a href="http://jsbeautifier.org/">JsBeautifier</a>, paste it in, and 'beautify' it. Now, paste the formatted JSON into your favorite text editor for some find-and-replace fun. For instance, WebStorm wants the values in the format:</p>
+
+<pre><code>Name=Value
+</code></pre>
+
+<p>So to get your JSON into that format:</p>
+
+<ul>
+<li>Delete the opening and closing { }</li>
+<li>Remove the beginning spaces and quotation mark</li>
+<li>Remove the trailing quotation mark and comma</li>
+<li>Replace the separating spaces and colon with an equal sign</li>
+</ul>
+
+<div class="img">
+<img src="images/run-azure-mobile-services-locally-replace.png"/>
+</div>
+
+<p>After the find-and-replace, copy the whole block of text and paste it back into WebStorm's <code>Environment Variables</code> configuration section.</p>
+
+<div class="img">
+<img src="images/run-azure-mobile-services-locally-webstorm2.png"/>
+</div>
+
+<p>There are two more environment variables that you need to set manually:</p>
+
+<pre><code>HOME=&lt;full-path-to-your-wwwroot&gt;
+PORT=55555
+</code></pre>
+
+<p>(The <code>PORT</code> can be whatever port you want that won't conflict with any other services you already have running.)</p>
+
+<p>At this point, you should be able to start and run the local server. However, any data-access logic will most likely fail until we set up the SQL Server Native Client.</p>
+
+<h4>Install SQL Server Native Client and modify connection string</h4>
+
+<p>In order to connect to the underlying Azure SQL Server database, you need to have the SQL Server Native Client installed. To see if you already have it installed, open the ODBC Data Source Administrator from Control Panel (make sure you open the 32-bit version if applicable). If you have it installed, it will show up on the <code>Drivers</code> tab:</p>
+
+<div class="img">
+<img src="images/run-azure-mobile-services-locally-sql.png"/>
+</div>
+
+<p>If you don't have it, you can get it as part of the <a href="http://www.microsoft.com/en-us/download/details.aspx?id=29065">SQL Server Feature Pack</a> or here is a <a href="http://go.microsoft.com/fwlink/?LinkID=239647&amp;clcid=0x409">direct link</a>. This installs version 11.0 and Azure Mobile Service actually uses version 10.0, but it works fine with version 11.0 as well. You will have to update your connection strings though: simply open up your <code>Environment Variables</code> and update the version number for the following two entries:</p>
+
+<pre><code>MS_SqlConnectionString": "Driver={SQL Server Native Client 10.0};Server=...
+UserConnectionString": "Driver={SQL Server Native Client 10.0};Server=...
+</code></pre>
+
+<p>Now when you run your local instance, any of your data-access logic should be able to talk to the remote Azure SQL Server as well. Keep that in mind when you are debugging/testing - you are communicating with and modifying the live database. Of course, you could update your connection strings to point to a local/test database, but that is outside of the scope of this article.</p>
+
+<h4>Caveats</h4>
+
+<p>Even though your Mobile Service is now running locally, keep in mind that there might be a few things that do not work the same as in production. Social authentication (via Facebook, Twitter, etc) will likely not work since you need to register specific urls with those services (and they will not be able to contact your localhost instance). Push notifications via the Notification Hubs may not work (though there is probably a work-around via changing some environment variables). That said, the point it not to stand up a fully functional replacement but instead to allow you to write unit tests and debug your code locally instead of relying on <code>console.log</code> output and the  inefficient <code>change-commit-test-repeat</code> cycle.</p>
+
+<p>In the end, this seems like a lot of work to get things set up, but after having done it once, it really isn't too hard and the benefits are definitely worth it. <a href="http://twitter.com/briandunnington">Shoot me a message</a> on Twitter if you try this approach and let me know how it goes.</p>
+
+        </div>
+      <div class="span1">
+        &nbsp;
+      </div>
+      <div class="span4">
+          <h3><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="64" style="vertical-align:middle;" /></a> <a href="http://twitter.com/briandunnington">@briandunnington</a></h3>
+          <hr />
+
+              <h6 class="muted">2015.03.10</h6>
+              <h2>Compare Across Forks</h2>
+              <p>My new favorite feature on GitHub</p>
+              <p><a class="btn" href="/compare_across_forks.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2014.04.24</h6>
+              <h2>Triggering Storyboards with data binding</h2>
+              <p>A clean way for your viewmodel's properties to trigger storyboard animations</p>
+              <p><a class="btn" href="/triggering_storyboards_with_databinding.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2014.04.04</h6>
+              <h2>Declare Bluetooth capability for Windows Store and Windows Phone 8.1 apps</h2>
+              <p></p>
+              <p><a class="btn" href="/bluetooth_capability.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2014.04.03</h6>
+              <h2>Run arbitrary code on the UI thread asynchronously</h2>
+              <p>A gotcha and a solution for easily running async code on the UI thread from a background thread.</p>
+              <p><a class="btn" href="/uitask.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2014.01.06</h6>
+              <h2>Azure Mobile Services  No 'id' member found on type</h2>
+              <p>When using Azure Mobile Services, you can sometimes get an error with the message "No 'id' member found on type" even when your type has an 'id' member. Here is why and how to solve it.</p>
+              <p><a class="btn" href="/azure_mobile_services_no_id.html">View details &raquo;</a></p>
+              <hr/>
+
+          <h4><a href="/index.html">More Posts ></a></h4>
+      </div>
+	  </div>
+
+      <footer>
+        <p>&copy; brian dunnington 2013</p>
+      </footer>
+
+    </div> <!-- /container -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
+
+<script src="js/libs/bootstrap/bootstrap.js"></script>
+
+<script src="js/script.js"></script>
+</body>
+</html>

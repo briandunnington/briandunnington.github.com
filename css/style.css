@@ -18,7 +18,7 @@ blockquote p {
 }
 
 pre {
-    overflow: scroll;
+    overflow: auto;
     white-space: pre;
     border: 1px solid black;
 }
