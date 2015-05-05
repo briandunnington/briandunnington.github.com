@@ -1,4 +1,3 @@
-DRAFT: TRUE
 Title: Run Node.js Azure Mobile Services locally
 Date: 2015.03.24
 Summary: Want to unit test or debug your Node.js-based Azure Mobile Service? Here's how.
