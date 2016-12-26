@@ -10,8 +10,12 @@ html {
     overflow-y:scroll;
 }
 
+blockquote {
+    margin: 28px 56px 28px 28px;
+}
+
 blockquote p {
-    font-size: 120%;
+    font-size: 110%;
     font-weight: normal;
     line-height: 140%;
     margin-bottom: 0;
