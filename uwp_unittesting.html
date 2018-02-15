@@ -1,0 +1,324 @@
+<!doctype html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+	<title>brian dunnington - MockMock - A mocking framework for UWP</title>
+	<meta name="description" content="code and computer related tidbits">
+	<meta name="author" content="brian dunnington">
+
+	<meta name="viewport" content="width=device-width">
+
+    <!-- Twitter Summary Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@briandunnington">
+    <meta name="twitter:creator" content="@briandunnington">
+    <meta name="twitter:title" content="MockMock - A mocking framework for UWP">
+    <meta name="twitter:description" content="...or  how to generate classes on the fly when your language doesn't allow it">
+    <meta name="twitter:domain" content="http://http://briandunnington.github.io/">
+    <meta name="twitter:image" content="https://pbs.twimg.com/profile_images/1989458361/soupbox_bigger.jpg">
+
+	<link rel="stylesheet" href="css/bootstrap.css">
+	<style>
+    body {
+      padding-top: 60px;
+      padding-bottom: 40px;
+    }
+    footer {
+      text-align: right;
+      margin-top: 40px;
+    }
+    h1 {
+      margin-bottom: 0.6em;
+    }
+  </style>
+	<link rel="stylesheet" href="css/bootstrap-responsive.css">
+	<link rel="stylesheet" href="css/style.css">
+
+	<!--[if lt IE 9]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<script>window.html5 || document.write('<script src="js/libs/html5.js"><\/script>')</script>
+	<![endif]-->
+</head>
+
+<body>
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/"><img src="img/bd_logo.png" style="margin: -8px 0 -14px;" /> : brian dunnington</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <li id="linkHome"><a href="/">Home</a></li>
+              <li id="linkAbout"><a href="/about.html">About</a></li>
+              <li id="linkContact"><a href="/contact.html">Contact</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+	  <div class="row">
+        <div class="span7 maincontent">
+            <!-- Main hero unit for a primary marketing message or call to action -->
+
+<div class="hero-unit">
+<h1>MockMock - A mocking framework for UWP</h1>
+<p>...or: how to generate classes on the fly when your language doesn't allow it</p>
+</div>
+
+<p>At my current employer, we have made it a point to focus on quality throughout the company. Nowhere is that more important than in the software that we build for our clients. 'Quality' can mean a lot of different things and there are a multitude of factors that go into writing quality software, both tangible and intangible. Before a line of code is written, the story writing, grooming, and estimating process helps set clear goals and expectations. Coding standards and conventions keep everybody on the same page. Continuous integration and a rigid QA process ensure consistent, reliable output. But one tool in our toolkit that we rely on heavily to ensure quality code is <a href="https://en.wikipedia.org/wiki/Test-driven_development">Test Driven Development</a>. By letting the tests drive the code development, we ensure that we are solving the right problems and at the same time increasing developer confidence that code changes will not have unforseen impacts on other parts of the system. </p>
+
+<p>With such a large focus on TDD, a good unit testing process is essential, and one of the key components is a solid mocking framework. By mocking the ancillary components and focusing on the system under test, we ensure that our code is doing what is expected, and just as importantly, not doing anything that isn't expected. As part of the Windows and System Integration practices, we normally rely on the vast library of available .NET mocking libraries available from the community, such as <a href="https://github.com/moq/moq4">Moq</a>, <a href="https://fakeiteasy.github.io/">FakeItEasy</a>, and <a href="https://github.com/telerik/JustMockLite">JustMock</a>. Writing mocks by hand can be both tedious and error-prone, but these tools make creating mocks quick and easy. Behind the scenes, nearly all .NET mocking libraries rely on the language's ability to dynamically produce IL code at runtime, specifically the classes in the <code>System.Reflection.Emit</code> namespace. By leveraging this powerful feature, the mocking libraries can reflect over classes or interfaces and dynamically construct a mock implementation that still satisfies the type-safety requirements of the language while simultaneously allowing for hooks to monitor and instrument the code execution.</p>
+
+<p>However, with the advent of Windows 8 and <del>Metro</del>/<del>Modern</del>/<del>Windows Store</del>/Universal apps, .NET developers suddenly had the new WinRT-based framework to contend with. One of the changes was that the <code>System.Reflection.Emit</code> assemblies were no longer available. This essentially meant that an <a href="http://geekswithblogs.net/mbrit/archive/2012/06/05/say-goodbye-to-system.reflection.emit-any-dynamic-proxy-generation-in-winrt.aspx">entire class of mocking libraries no longer worked</a>. There were a few attempts at workarounds, but none of them provided the simplicity and ease-of-use of the standard tools. Any barrier to quickly and easily writing and running tests undermines the effectiveness of TDD, so we knew that we would need to come up with a solution.</p>
+
+<p>I approached the problem from several vantage points and came up with a few ideas. I tried leveraging the <a href="https://msdn.microsoft.com/en-us/library/dd264736.aspx">dynamic capabilities of the language</a> to create code on the fly, but the language's type safety features would not allow an object to be both dynamic and a valid interface implementation at the same time. I tried creating our unit test projects targeted at the full .NET framework rather than the WinRT subset, and although that allowed us to reference the existing mocking tools, the new testing framework would not allow non-WinRT-based test projects to target a WinRT-based application.</p>
+
+<p>The approach I finally settled on was to leverage the <a href="https://msdn.microsoft.com/en-us/library/bb126445.aspx">Text Template Transformation Toolkit (T4)</a> functionality. T4 essentially lets you create code templates and then execute actual .NET code to generate new output. In our case, I used C# code to generate more C# code as the output, which could then be consumed by our unit test projects. I wrote some code that scanned a list of assemblies for any interfaces, and then reflected over the interface members to determine which fields, properties, methods, and events needed to be implemented. Since we had previously been fond of using Telerik's JustMock Lite library and its <a href="http://c2.com/cgi/wiki?">Arrange/Act/Assert</a> pattern, I decided to output API-compatible replacement mocks. So instead of referencing JustMock Lite and letting it dynamically generate the mocks on the fly, the T4 template was set up to automatically create the mocks at build time which could then be used in the unit tests in the same Arrange/Act/Assert pattern with the same API that developers were familiar with.</p>
+
+<h4>T4 template</h4>
+
+<pre><code>&lt;#@ template debug="false" hostspecific="false" language="C#" #&gt;
+&lt;#@ assembly name="System.Core" #&gt;
+&lt;#@ assembly name="System.Runtime" #&gt;
+&lt;#@ import namespace="System" #&gt;
+&lt;#@ import namespace="System.IO" #&gt;
+&lt;#@ import namespace="System.Text" #&gt;
+&lt;#@ import namespace="System.Reflection" #&gt;
+&lt;#@ import namespace="System.Linq" #&gt;
+&lt;#@ import namespace="System.Collections.Generic" #&gt;
+&lt;#@ output extension=".cs" #&gt;
+
+using System;
+
+namespace Tests.Mocks
+{
+&lt;#
+    var formatTypeName = new Func&lt;Type, string&gt;((type) =&gt; {
+        var typeName = type.ToString();
+        typeName = typeName.Replace("System.Void", "void");
+        typeName = typeName.Replace("`1", "");
+        typeName = typeName.Replace("`2", "");
+        typeName = typeName.Replace("`3", "");
+        typeName = typeName.Replace("[", "&lt;");
+        typeName = typeName.Replace("]", "&gt;");
+        if(typeName.EndsWith("&amp;")) typeName = "out " + typeName.Replace("&amp;", "");
+        return typeName;
+    });
+
+    var anyTypeFromAssembly = typeof(App.Sample);
+    var namespaceBuilder = new StringBuilder();
+    var assembly = Assembly.GetAssembly(anyTypeFromAssembly);
+    var types = assembly.GetTypes();
+    foreach(var type in types)
+    {
+        if(type.IsInterface)
+        {
+            var properties = new List&lt;PropertyInfo&gt;();
+            var methods = new List&lt;MethodInfo&gt;();
+            var events = new List&lt;EventInfo&gt;();
+            var interfaces = new List&lt;Type&gt;();
+            interfaces.Add(type);
+            interfaces.AddRange(type.GetInterfaces());
+            foreach(var i in interfaces)
+            {
+                properties.AddRange(i.GetProperties());
+                methods.AddRange(i.GetMethods());
+                events.AddRange(i.GetEvents());
+            }
+#&gt;
+public class &lt;#= "Mock" + formatTypeName(type).Replace("global::", "").Replace(type.Namespace, "").Substring(2) #&gt; : MockBase&lt;&lt;#= formatTypeName(type) #&gt;&gt;, &lt;#= formatTypeName(type) #&gt;
+{
+&lt;#
+            foreach(var property in properties)
+            {
+#&gt;
+    private &lt;#= formatTypeName(property.PropertyType) #&gt; _&lt;#= property.Name #&gt;;
+    public &lt;#= formatTypeName(property.PropertyType) #&gt; &lt;#= property.Name #&gt; 
+    {
+        get
+        {
+            try
+            {
+                throw new StackTraceHelperForMockingException();
+            }
+            catch(Exception exx)
+            {
+                &lt;#= formatTypeName(property.PropertyType) #&gt; val;
+                RecordProperty&lt;&lt;#= formatTypeName(property.PropertyType) #&gt;&gt;(exx, _&lt;#= property.Name #&gt;, out val);
+                return val;
+            }
+        }
+&lt;#              if(property.CanWrite)
+            {
+#&gt;
+        set
+        {
+            _&lt;#= property.Name #&gt; = value;
+        }
+&lt;#
+                }
+#&gt;
+    }
+&lt;#
+            }
+            foreach(var method in methods)
+            {
+                if(method.Name.StartsWith("get_") || method.Name.StartsWith("set_") || method.Name.StartsWith("remove_") || method.Name.StartsWith("add_")) continue;
+                var parameterList = "";
+                var anonymousObjectMemberList = "(object)null";
+                var outParameterSetters = "";
+                var parameters = method.GetParameters();
+                if(parameters != null &amp;&amp; parameters.Length &gt; 0)
+                {
+                    parameterList = String.Join(", ", parameters.Select((p) =&gt; formatTypeName(p.ParameterType) + " " + p.Name));
+                    anonymousObjectMemberList = "new { " + String.Join(", ", parameters.Select((p) =&gt; p.Name)) + " }";
+                    outParameterSetters = String.Join(" ", parameters.Where((p) =&gt; p.IsOut).Select((p) =&gt; p.Name + " = default(" + p.ParameterType.ToString().Replace("&amp;", "") + ");"));
+                }
+                var hasReturnValue = method.ReturnType.Name == "Void" ? false : true;
+                var returnType = hasReturnValue ? "&lt;" + formatTypeName(method.ReturnType) + "&gt;" : "";
+                var methodName = method.Name;
+                var genericArguments = method.GetGenericArguments();
+                if(genericArguments != null &amp;&amp; genericArguments.Length &gt; 0)
+                {
+                    methodName = methodName + "&lt;" + String.Join(", ", genericArguments.Select((g) =&gt; g.Name)) + "&gt;";
+                }
+#&gt;
+    public &lt;#= formatTypeName(method.ReturnType) #&gt; &lt;#= methodName #&gt;(&lt;#= parameterList #&gt;)
+    {   &lt;#= outParameterSetters #&gt;
+        try
+        {
+            throw new StackTraceHelperForMockingException();
+        }
+        catch(Exception exx)
+        {
+            var obj = &lt;#= anonymousObjectMemberList #&gt;;
+&lt;#
+                if(hasReturnValue)
+                {
+#&gt;
+            &lt;#= formatTypeName(method.ReturnType) #&gt; val;
+            var called = Record&lt;#= returnType #&gt;(exx, obj, out val);
+            return val;
+&lt;#
+                }
+                else
+                {
+#&gt;
+            var called = Record(exx, obj);
+&lt;#
+                }
+#&gt;
+        }
+    }
+&lt;#
+            }
+            foreach(var ev in events)
+            {
+#&gt;
+    public event &lt;#= formatTypeName(ev.EventHandlerType) #&gt; &lt;#= ev.Name #&gt;;
+&lt;#
+            }
+#&gt;
+}
+&lt;#
+        }
+    }
+#&gt;
+}
+</code></pre>
+
+<h4>Example Unit Test</h4>
+
+<pre><code>    public async Task SignUp_returns_UserAuth_for_valid_info()
+    {
+        // arrange
+        string expectedEmail = "test@test.email";
+        string expectedUsername = "testusername";
+        string expectedPassword = "testpassword";
+        var expectedAuthToken = "ABC!@#123";
+        var expectedUserId = 1234;
+        var expectedUserAuth = new UserAuth() { Auth = expectedAuthToken, User = new User() { UserId = expectedUserId } };
+        var mockSessionManager = Mock.Create&lt;ISessionManager&gt;();
+        var mockSession = Mock.Create&lt;ISession&gt;();
+        Mock.Arrange(() =&gt; mockSession.Signup(expectedEmail, expectedPassword, expectedUsername, Arg.AnyString)).Returns(Task.FromResult(expectedUserAuth));
+        Mock.Arrange(() =&gt; mockSessionManager.GetSession()).Returns(Task.FromResult(mockSession));
+
+        // act
+        var userManager = new UserManager(mockSessionManager);
+        var user = await userManager.SignUp(expectedEmail, expectedPassword, expectedUsername, null);
+
+        // assert
+        Assert.IsNotNull(user);
+        Assert.AreEqual(expectedUserId, user.UserId);
+        mockSessionManager.Assert();
+        mockSession.Assert();
+    }
+</code></pre>
+
+<p>When the prerelease bits of Windows 10 and the Universal Windows Platforms (UWP) apps came out, the restriction on <code>System.Reflection.Emit</code> still existed but the custom T4 solution still worked great. By the time the developer tools were RTMed, <code>System.Reflection.Emit</code> had been restored to the framework and was suddenly available again. The system had been working so good for us that I was able to simply replace the T4 code generation with dynamic proxy generation behind the scenes and all of our unit tests continued to work unchanged. In the end, it was great to see Microsoft resurrect the functionality but it was even better knowing that we had solved the problem and come up with an elegant solution to ensure that we continued to be able to produce maintainable, testable, quality software.</p>
+
+<p>PS: The updated code (no longer uses the T4 template technique) is available here: <a href="https://github.com/briandunnington/MockMock">MockMock</a></p>
+
+        </div>
+      <div class="span1">
+        &nbsp;
+      </div>
+      <div class="span4">
+          <h3><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="64" style="vertical-align:middle;" /></a> <a href="http://twitter.com/briandunnington">@briandunnington</a></h3>
+          <hr />
+
+              <h6 class="muted">2016.12.26</h6>
+              <h2>UWP GetHashCode warning</h2>
+              <p>A cautionary tale about making assumptions</p>
+              <p><a class="btn" href="/gethashcode_warning.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2015.08.31</h6>
+              <h2>MockMock - A mocking framework for UWP</h2>
+              <p>...or  how to generate classes on the fly when your language doesn't allow it</p>
+              <p><a class="btn" href="/uwp_unittesting.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2015.03.24</h6>
+              <h2>Run Node.js Azure Mobile Services locally</h2>
+              <p>Want to unit test or debug your Node.js-based Azure Mobile Service? Here's how.</p>
+              <p><a class="btn" href="/run-azure-mobile-services-locally.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2015.03.10</h6>
+              <h2>Compare Across Forks</h2>
+              <p>My new favorite feature on GitHub</p>
+              <p><a class="btn" href="/compare_across_forks.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2014.04.24</h6>
+              <h2>Triggering Storyboards with data binding</h2>
+              <p>A clean way for your viewmodel's properties to trigger storyboard animations</p>
+              <p><a class="btn" href="/triggering_storyboards_with_databinding.html">View details &raquo;</a></p>
+              <hr/>
+
+          <h4><a href="/index.html">More Posts ></a></h4>
+      </div>
+	  </div>
+
+      <footer>
+        <p>&copy; brian dunnington</p>
+      </footer>
+
+    </div> <!-- /container -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
+
+<script src="js/libs/bootstrap/bootstrap.js"></script>
+
+<script src="js/script.js"></script>
+</body>
+</html>

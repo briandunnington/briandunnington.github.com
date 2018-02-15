@@ -68,15 +68,15 @@
 
 <p>This blog is a bit of an experiment, as I am using several new (and new-to-me) techniques for creating and publishing this content. All of the tools are based on standards (formal and de facto) and are freely available.</p>
 
-<p>All of the content is written in <a href="http://daringfireball.net/projects/markdown/">Markdown</a>, a human-readable syntax for formatting text. I am using the free <a href="http://markdownpad.com/">Markdown Pad</a> editor to write the content.</p>
+<p>All of the content is written in <a href="http://daringfireball.net/projects/markdown/">Markdown</a>, a human-readable syntax for formatting text. <s>I am using the free <a href="http://markdownpad.com/">Markdown Pad</a> editor to write the content.</s> <strong><em>[Update]:</em></strong> Now I just write the markdown right inside of <a href="https://code.visualstudio.com/">Visual Studio Code</a> since it has a nice preview function and I am usually already in there anyway.</p>
 
-<p>The Markdown files are then ran through a custom tool that I created. The tool scans a directory for Markdown files (.md extension) and then converts the text to HTML (using the <a href="http://code.google.com/p/markdownsharp/">Markdown Sharp</a> library). The resulting HTML is then injected into a <a href="http://msdn.microsoft.com/en-us/vs2010trainingcourse_aspnetmvc3razor.aspx">Razor</a>-based template using <a href="https://github.com/jlamfers/RazorMachine">RazorMachine</a> to render the final page.</p>
+<p>The Markdown files are then ran through <a href="https://github.com/briandunnington/Nest">Nest</a>, a custom tool that I created. Nest scans a directory for Markdown files (.md extension) and then converts the text to HTML (using the <a href="http://code.google.com/p/markdownsharp/">Markdown Sharp</a> library). The resulting HTML is then injected into a <a href="http://msdn.microsoft.com/en-us/vs2010trainingcourse_aspnetmvc3razor.aspx">Razor</a>-based template using <a href="https://github.com/jlamfers/RazorMachine">RazorMachine</a> to render the final page.</p>
 
-<p>As of this writing (2012.03.19), the template itself is using the <a href="http://html5boilerplate.com/">html5boilerplate</a> library, with a side helping of <a href="http://twitter.github.com/bootstrap/">Twitter Bootstrap</a> thrown in for the UI elements, all generated automatically by <a href="http://www.initializr.com/">Initializr</a>.</p>
+<p>The template itself is using the <a href="http://html5boilerplate.com/">html5boilerplate</a> library, with a side helping of <a href="http://twitter.github.com/bootstrap/">Twitter Bootstrap</a> thrown in for the UI elements, all generated automatically by <a href="http://www.initializr.com/">Initializr</a>.</p>
 
 <p>Finally, the pages are being hosted on <a href="https://github.com/">Github</a> using their <a href="http://pages.github.com/">Pages</a> feature. The static .html files are all version controlled and stored in Github as normal, but Github also makes them browsable.</p>
 
-<p>Anyway, it sounds like a lot of moving parts, but it really makes things quite easy. Just open up a text editor and write the text without worrying about the HTML formatting too much, then click a button and everything is transformed into standards-compliant HTML magically. A simple push to Github and the pages are all updated with full backups, etc.</p>
+<p>Anyway, it sounds like a lot of moving parts, but it really makes things quite easy. Just open up a text editor and write the text without worrying about the HTML formatting too much, then click a button and everything is transformed into standards-compliant HTML magically. A simple <code>git push</code> and the pages are all updated with full backups, etc.</p>
 
         </div>
       <div class="span1">
@@ -90,6 +90,11 @@
               <h2>UWP GetHashCode warning</h2>
               <p>A cautionary tale about making assumptions</p>
               <p><a class="btn" href="/gethashcode_warning.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2015.08.31</h6>
+              <h2>MockMock - A mocking framework for UWP</h2>
+              <p>...or  how to generate classes on the fly when your language doesn't allow it</p>
+              <p><a class="btn" href="/uwp_unittesting.html">View details &raquo;</a></p>
               <hr/>
               <h6 class="muted">2015.03.24</h6>
               <h2>Run Node.js Azure Mobile Services locally</h2>
@@ -105,11 +110,6 @@
               <h2>Triggering Storyboards with data binding</h2>
               <p>A clean way for your viewmodel's properties to trigger storyboard animations</p>
               <p><a class="btn" href="/triggering_storyboards_with_databinding.html">View details &raquo;</a></p>
-              <hr/>
-              <h6 class="muted">2014.04.04</h6>
-              <h2>Declare Bluetooth capability for Windows Store and Windows Phone 8.1 apps</h2>
-              <p></p>
-              <p><a class="btn" href="/bluetooth_capability.html">View details &raquo;</a></p>
               <hr/>
 
           <h4><a href="/index.html">More Posts ></a></h4>
