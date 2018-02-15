@@ -38,6 +38,10 @@ code {
     white-space:pre;
 }
 
+small {
+    font-size: 70%;
+}
+
 .hero-unit {
   padding: 32px;
 }
