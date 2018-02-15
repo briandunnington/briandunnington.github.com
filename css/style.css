@@ -118,7 +118,7 @@ pre code.csharp {
 
 @media (max-width: 768px) {
   .hero-unit {
-    padding: 20px;
+    padding: 26px 20px 20px 20px;
   }
   .hero-unit h1 {
     font-size: 32px;
@@ -128,8 +128,12 @@ pre code.csharp {
     font-size: 16px;
     line-height: 22px;
   }
-  p {
-      font-size: 15px;
-      line-height: 20px;
+  .hero-wrapper .muted {
+    position: absolute;
+    top: 8px;
+    left: 20px;
+  }
+  .hero-button {
+      padding-bottom: 20px;
   }
 }

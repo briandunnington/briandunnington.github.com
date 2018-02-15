@@ -28,6 +28,7 @@
       margin-bottom: 0.6em;
     }
     .hero-wrapper {
+      position: relative;
     }
     .hero-button {
       text-align: right;
@@ -52,6 +53,11 @@
     }
     .row.rest > .span4:nth-child(3n+1) {
       clear: both;
+    }
+    .hero-wrapper .muted {
+      position: absolute;
+      top: 14px;
+      left: 32px;
     }
   </style>
 	<link rel="stylesheet" href="css/bootstrap-responsive.css">
@@ -91,6 +97,7 @@
 		  <div class="span6 maincontent">
           <div class="hero-wrapper">
             @post.Content.Substring(0, @post.Content.IndexOf("</div>") + 6)
+            <h6 class="muted">@post.Date.ToString("yyyy.MM.dd")</h6>
             <div class="hero-button"><a class="btn" href="@post.Link">View details &raquo;</a></div>
           </div>
 		  </div>
