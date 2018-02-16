@@ -1,0 +1,228 @@
+<!doctype html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+	<title>brian dunnington - Redux + Roku = Redoku</title>
+	<meta name="description" content="code and computer related tidbits">
+	<meta name="author" content="brian dunnington">
+
+	<meta name="viewport" content="width=device-width">
+
+    <!-- Twitter Summary Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@briandunnington">
+    <meta name="twitter:creator" content="@briandunnington">
+    <meta name="twitter:title" content="Redux + Roku = Redoku">
+    <meta name="twitter:description" content="Making Roku development less painful by making state changes more predictable">
+    <meta name="twitter:domain" content="http://http://briandunnington.github.io/">
+    <meta name="twitter:image" content="https://pbs.twimg.com/profile_images/1989458361/soupbox_bigger.jpg">
+
+	<link rel="stylesheet" href="css/bootstrap.css">
+	<style>
+    body {
+      padding-top: 60px;
+      padding-bottom: 40px;
+    }
+    footer {
+      text-align: right;
+      margin-top: 40px;
+    }
+    h1 {
+      margin-bottom: 0.6em;
+    }
+  </style>
+	<link rel="stylesheet" href="css/bootstrap-responsive.css">
+	<link rel="stylesheet" href="css/style.css">
+
+	<!--[if lt IE 9]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<script>window.html5 || document.write('<script src="js/libs/html5.js"><\/script>')</script>
+	<![endif]-->
+</head>
+
+<body>
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/"><img src="img/bd_logo.png" style="margin: -8px 0 -14px;" /> : brian dunnington</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <li id="linkHome"><a href="/">Home</a></li>
+              <li id="linkAbout"><a href="/about.html">About</a></li>
+              <li id="linkContact"><a href="/contact.html">Contact</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+	  <div class="row">
+        <div class="span7 maincontent">
+            <div class="hero-unit">
+<h1>Redux + Roku = Redoku</h1>
+<p>Making Roku development less painful by making state changes more predictable</p>
+</div>
+
+<p>If you have done any JS development in the last several years, then you have no doubt encountered <a href="https://redux.js.org/">Redux</a>. From their own description it "helps you write applications that behave consistently". I have been doing a lot of Roku development as well, and one thing that is sorely needed is "more consistency". I liked Redux and the way it solved state management so much that I thought I should bring it over to the BrightScript/Roku world.</p>
+
+<h2>Usage</h2>
+
+<p>In your main() function, construct an associative array that represents your app's
+state structure and initial values. Pass this to <code>RedokuSetInitialState()</code> before
+showing your root Scene.</p>
+
+<p>In your root scene, call <code>RedokuRegisterReducer()</code> for each reducer in your app.
+Note that each reducer should target a 'section' (property) of the overall state,
+and that is the only portion of the state that it will be passed when called.
+Each 'section' that will be handled by a reducer must be an associative array.</p>
+
+<p>Ex: For a 'todos' reducer (<code>RedokuRegisterReducer("todos", todosReducer)</code>, set up
+your state like this:</p>
+
+<pre><code>{
+    todos: {
+        items: [...]
+    },
+    config: {
+    }
+}
+</code></pre>
+
+<p>Not this:</p>
+
+<pre><code>{
+    todos: [...],  'this should not be an array
+    config: {
+    }
+}
+</code></pre>
+
+<p>After you have registered all of your reducers, call <code>RedokuInitialize</code> from your
+root scene to set up the dispatch mechanisms and to trigger the initial reduction
+pass.</p>
+
+<p>Individual components can call any action creator functions to trigger state updates.
+Action creator functions should call <code>RedokuDispatch()</code> with a single action parameter.
+The action parameter should be an associative array with (at minimum) a <code>type</code>
+property and also contain any other properties as appropriate. You can also call
+<code>RedokuDispatch()</code> from a Task node at any point during its execution to report
+asynchronous state changes.</p>
+
+<p>Internally, calls to <code>RedokuDispatch()</code> will result in a call to <code>RedokuRunReducers</code>
+which will loop through all registered reducers and provide them with an opportunity
+to modify the state. If a given reducer does not respond to the action specified,
+simply return the passed-in state parameter. If the reducer needs to modify the state,
+make sure to create a copy of the state before mutating it and returning it. You
+can use <code>RedokuClone()</code> to easily create a copy of the state before modifying it.</p>
+
+<p>If the state changes, <code>m.global.state</code> will be updated. Any components can set
+up an observer on that field and update their UI as appropriate.</p>
+
+<h2>For Redux Javascript Developers <a id="redokuforjs"></a></h2>
+
+<p>If you are familiar with Redux in Javascript, most of the concepts have an analog
+version in Redoku.</p>
+
+<h4>store &amp; createStore()</h4>
+
+<p>You initialize your 'store' by calling <code>RedokuSetInitialState()</code> and
+<code>RedokuInitialize()</code>. The equivalent of <code>store.dispatch()</code> is <code>RedokuDispatch()</code>.
+State is stored in the global context, so the equivalent of <code>store.getState()</code> is
+to access <code>m.global.state</code>. You can set up an observer on <code>m.global.state</code> to be
+notified when it changes.</p>
+
+<h4>reducers</h4>
+
+<p>Redoku reducers are pure functions of the type <code>state =&gt; (state, action)</code> just
+like in Redux. There is no <code>combineReducers()</code> function, but instead you register
+each reducer independently using <code>RedokuRegisterReducer()</code>.</p>
+
+<h4>actions &amp; action creators</h4>
+
+<p>Actions and action creators are exactly the same as in Redux. Actions must have
+a <code>type</code> property along with any other additional data.</p>
+
+<h4>async actions &amp; thunk</h4>
+
+<p>There is no need for <code>thunk</code> or middleware in Redoku to handle async actions.
+Asynchronous logic is handled by Scene Graph Tasks. There are two ways to trigger
+async actions using Tasks:</p>
+
+<ol>
+<li>In the actual Task itself, dispatch your actions directly (when the task is
+  complete or at any point during its execution).</li>
+<li>In your components, spin up the Task and watch for its completion using
+  <code>observeField</code> and when it is complete, dispatch your actions from your
+  component.</li>
+</ol>
+
+<p>In both cases, the actions are just normal synchronous actions fired during/after
+any asynchronous activity.</p>
+
+<p>The full source code is available here: <a href="https://github.com/briandunnington/Redoku">Redoku</a></p>
+
+<p><em>(NOTE: If you like Redux, you probably like <a href="https://reactjs.org/">React</a> as well. Creating a React analog for Roku is quite a bit more complex, but stay tuned for a future blog post.)</em></p>
+
+        </div>
+      <div class="span1">
+        &nbsp;
+      </div>
+      <div class="span4">
+          <h3><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="64" style="vertical-align:middle;" /></a> <a href="http://twitter.com/briandunnington">@briandunnington</a></h3>
+          <hr />
+
+              <h6 class="muted">2017.07.07</h6>
+              <h2>Redux + Roku = Redoku</h2>
+              <p>Making Roku development less painful by making state changes more predictable</p>
+              <p><a class="btn" href="/redoku.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2016.12.26</h6>
+              <h2>UWP GetHashCode warning</h2>
+              <p>A cautionary tale about making assumptions</p>
+              <p><a class="btn" href="/gethashcode_warning.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2015.08.31</h6>
+              <h2>MockMock - A mocking framework for UWP</h2>
+              <p>...or  how to generate classes on the fly when your language doesn't allow it</p>
+              <p><a class="btn" href="/uwp_unittesting.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2015.03.24</h6>
+              <h2>Run Node.js Azure Mobile Services locally</h2>
+              <p>Want to unit test or debug your Node.js-based Azure Mobile Service? Here's how.</p>
+              <p><a class="btn" href="/run-azure-mobile-services-locally.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2015.03.10</h6>
+              <h2>Compare Across Forks</h2>
+              <p>My new favorite feature on GitHub</p>
+              <p><a class="btn" href="/compare_across_forks.html">View details &raquo;</a></p>
+              <hr/>
+
+          <h4><a href="/index.html">More Posts ></a></h4>
+      </div>
+	  </div>
+
+      <footer>
+        <small>&copy; 2012-2018 brian dunnington</small>
+      </footer>
+
+    </div> <!-- /container -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
+
+<script src="js/libs/bootstrap/bootstrap.js"></script>
+
+<script src="js/script.js"></script>
+</body>
+</html>
