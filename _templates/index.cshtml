@@ -4,72 +4,72 @@
 <!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
 <!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
 <!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
-<head>
-	<meta charset="utf-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 
-	<title>brian dunnington</title>
-	<meta name="description" content="code and computer related tidbits">
-	<meta name="author" content="brian dunnington">
+    <title>brian dunnington</title>
+    <meta name="description" content="code and computer related tidbits">
+    <meta name="author" content="brian dunnington">
 
-	<meta name="viewport" content="width=device-width">
+    <meta name="viewport" content="width=device-width">
 
-	<link rel="stylesheet" href="css/bootstrap.css">
-	<style>
-    body {
-      padding-top: 60px;
-      padding-bottom: 40px;
-    }
-    footer {
-      text-align: right;
-      margin-top: 40px;
-    }
-    h1 {
-      margin-bottom: 0.6em;
-    }
-    .hero-wrapper {
-      position: relative;
-    }
-    .hero-button {
-      text-align: right;
-      padding: 0 32px 32px 0;
-      margin-top: -32px;
-    }
-    .featured-home {
-       display: flex;
-    }
-    @@media (max-width: 768px) {
-      .featured-home {
-        flex-direction:column;
+    <link rel="stylesheet" href="css/bootstrap.css">
+    <style>
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
       }
-    }
-    .maincontent {
-      margin-top: 16px !important;
-      background-color: #f5f5f5;
-      flex: 1;
-    }
-    .postgrid {
-      margin-top: 24px !important;
-    }
-    .row.rest > .span4:nth-child(3n+1) {
-      clear: both;
-    }
-    .hero-wrapper .muted {
-      position: absolute;
-      top: 14px;
-      left: 32px;
-    }
-  </style>
-	<link rel="stylesheet" href="css/bootstrap-responsive.css">
-	<link rel="stylesheet" href="css/style.css">
+      footer {
+        text-align: right;
+        margin-top: 40px;
+      }
+      h1 {
+        margin-bottom: 0.6em;
+      }
+      .hero-wrapper {
+        position: relative;
+      }
+      .hero-button {
+        text-align: right;
+        padding: 0 32px 32px 0;
+        margin-top: -32px;
+      }
+      .featured-home {
+        display: flex;
+      }
+      @@media (max-width: 768px) {
+        .featured-home {
+          flex-direction:column;
+        }
+      }
+      .maincontent {
+        margin-top: 16px !important;
+        background-color: #f5f5f5;
+        flex: 1;
+      }
+      .postgrid {
+        margin-top: 24px !important;
+      }
+      .row.rest > .span4:nth-child(3n+1) {
+        clear: both;
+      }
+      .hero-wrapper .muted {
+        position: absolute;
+        top: 14px;
+        left: 32px;
+      }
+    </style>
+    <link rel="stylesheet" href="css/bootstrap-responsive.css">
+    <link rel="stylesheet" href="css/style.css">
 
-	<!--[if lt IE 9]>
-	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-	<script>window.html5 || document.write('<script src="js/libs/html5.js"><\/script>')</script>
-	<![endif]-->
-</head>
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <script>window.html5 || document.write('<script src="js/libs/html5.js"><\/script>')</script>
+    <![endif]-->
+  </head>
 
-<body>
+  <body>
     <div class="navbar navbar-fixed-top">
       <div class="navbar-inner">
         <div class="container">
@@ -91,41 +91,40 @@
     </div>
 
     <div class="container">
-
-	  <div class="row featured-home">
-      @foreach(var post in @Model.Posts.Where((p) => !p.Contains("DRAFT")).OrderByDescending((p) => p.Date).Take(2)) {
-		  <div class="span6 maincontent">
-          <div class="hero-wrapper">
-            @post.Content.Substring(0, @post.Content.IndexOf("</div>") + 6)
-            <h6 class="muted">@post.Date.ToString("yyyy.MM.dd")</h6>
-            <div class="hero-button"><a class="btn" href="@post.Link">View details &raquo;</a></div>
-          </div>
-		  </div>
-      }
-	  </div>
-
-    <div class="row rest">
-        @foreach (var post in @Model.Posts.Where((p) => !p.Contains("DRAFT")).OrderByDescending((p) => p.Date).Skip(2))
-        {
-            <div class="span4 postgrid">
+      <div class="row featured-home">
+        @foreach(var post in @Model.Posts.Where((p) => !p.Contains("DRAFT")).OrderByDescending((p) => p.Date).Take(2)) {
+        <div class="span6 maincontent">
+            <div class="hero-wrapper">
+              <div class="hero-unit">
+                <h1>@post.Title</h1>
+                <p>@post.Summary</p>
+              </div>
               <h6 class="muted">@post.Date.ToString("yyyy.MM.dd")</h6>
-              <h2>@post.Title</h2>
-              <p>@post.Summary</p>
-              <p><a class="btn" href="@post.Link">View details &raquo;</a></p>
+              <div class="hero-button"><a class="btn" href="@post.Link">View details &raquo;</a></div>
             </div>
+        </div>
         }
-    </div>
+      </div>
 
-    <footer>
-      <small>&copy; 2012-@DateTime.Now.Year.ToString() brian dunnington</small>
-    </footer>
+      <div class="row rest">
+          @foreach (var post in @Model.Posts.Where((p) => !p.Contains("DRAFT")).OrderByDescending((p) => p.Date).Skip(2))
+          {
+              <div class="span4 postgrid">
+                <h6 class="muted">@post.Date.ToString("yyyy.MM.dd")</h6>
+                <h2>@post.Title</h2>
+                <p>@post.Summary</p>
+                <p><a class="btn" href="@post.Link">View details &raquo;</a></p>
+              </div>
+          }
+      </div>
 
+      <footer>
+        <small>&copy; 2012-@DateTime.Now.Year.ToString() brian dunnington</small>
+      </footer>
     </div> <!-- /container -->
-<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-<script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
-
-<script src="js/libs/bootstrap/bootstrap.js"></script>
-
-<script src="js/script.js"></script>
-</body>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
+    <script src="js/libs/bootstrap/bootstrap.js"></script>
+    <script src="js/script.js"></script>
+  </body>
 </html>

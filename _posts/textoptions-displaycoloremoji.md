@@ -19,7 +19,7 @@ Some (but not all) of my glyphs had been replaced with colored variants. What th
 
 I remembered reading about [Microsoft's new colored-font proposal][Proposal] awhile back and how it added some new color information to the font tables to enable 'layers' that could be colorized:
 
-<img src="http://opentype.info/blog/wp-content/uploads/2013/07/winemoji.png" width="570"/>
+<img src="https://typography.guru/uploads/monthly_2014_12/winemoji.thumb.png.dff687e77d3a6def714ec60e3a0932e5.png" width="570"/>
 
 Neat stuff, but it was breaking my app! I tried a few things to fix the issue, but didnt have much luck. Then I stumbled across a property I had not heard of before: [TextOptions.DisplayColorEmoji][DisplayColorEmoji]. Apparently it is set to `true` by default, so I set it to `false` on my affected `TextBlock` controls and everything was back to normal.
 

@@ -1,0 +1,234 @@
+<!doctype html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+	<title>brian dunnington - Streaming live drone footage using Azure Media Services</title>
+	<meta name="description" content="code and computer related tidbits">
+	<meta name="author" content="brian dunnington">
+
+	<meta name="viewport" content="width=device-width">
+
+    <!-- Twitter Summary Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@briandunnington">
+    <meta name="twitter:creator" content="@briandunnington">
+    <meta name="twitter:title" content="Streaming live drone footage using Azure Media Services">
+    <meta name="twitter:description" content="Directly from your drone to the world, via the the cloud">
+    <meta name="twitter:domain" content="http://http://briandunnington.github.io/">
+    <meta name="twitter:image" content="https://pbs.twimg.com/profile_images/1989458361/soupbox_bigger.jpg">
+
+	<link rel="stylesheet" href="css/bootstrap.css">
+	<style>
+    body {
+      padding-top: 60px;
+      padding-bottom: 40px;
+    }
+    footer {
+      text-align: right;
+      margin-top: 40px;
+    }
+    h1 {
+      margin-bottom: 0.6em;
+    }
+  </style>
+	<link rel="stylesheet" href="css/bootstrap-responsive.css">
+	<link rel="stylesheet" href="css/style.css">
+
+	<!--[if lt IE 9]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<script>window.html5 || document.write('<script src="js/libs/html5.js"><\/script>')</script>
+	<![endif]-->
+</head>
+
+<body>
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/"><img src="img/bd_logo.png" style="margin: -8px 0 -14px;" /> : brian dunnington</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <li id="linkHome"><a href="/">Home</a></li>
+              <li id="linkAbout"><a href="/about.html">About</a></li>
+              <li id="linkContact"><a href="/contact.html">Contact</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+	  <div class="row">
+        <div class="span7 maincontent">
+            <div class="hero-unit">
+<h1>Streaming live drone footage using Azure Media Services</h1>
+<p>Directly from your drone to the world, via the the cloud</p>
+</div>
+
+<p><style>
+.maincontent h4 { margin: 16px 0 8px 0; }
+.img img { display: block; margin-bottom: 16px; border: solid 1px #666666; }
+.img span { text-align: center; }
+blockquote p { font-size: 90%; }
+blockquote pre { margin: 10px 0; }
+</style></p>
+
+<p>I have a <a href="https://www.dji.com/phantom-3-standard">DJI Phantom 3 Standard</a> drone and love to fly it around. You can get some really amazing shots from all sorts of unique perspectives. </p>
+
+<div class="img">
+<img src="images/dronecast_phantom.jpg"/>
+</div>
+
+<p>Usually, I simply use the DJI GO app to record video during flight and then download it from the SD card later for processing/editing. But DJI also offers the ability to live-stream the video to sites like YouTube and Facebook. That is pretty cool, but I wanted to live-stream the video to a custom site. The DJI GO app does support streaming to a custom RTMP endpoint, and since Azure Media Services allows ingesting live video via RTMP, I figured it would be a great fit.</p>
+
+<p>Microsoft's <a href="https://docs.microsoft.com/en-us/azure/media-services/media-services-portal-creating-live-encoder-enabled-channel">own documentation</a> does an OK job of explaining how to set up live video ingest, but it glosses over a few important bits of info. There are also a couple of gotchas when configuring the drone streaming settings, so here is the complete and accurate steps to stream live video from your drone.</p>
+
+<h3>1. Create a Media Services account</h3>
+
+<div class="img">
+<img src="images/dronecast_createmediaservice.png"/>
+</div>
+
+<h3>2. Create a live streaming channel</h3>
+
+<div class="img">
+<img src="images/dronecast_step1.png"/>
+</div>
+
+<div class="img">
+<img src="images/dronecast_step2.png"/>
+</div>
+
+<div class="img">
+<img src="images/dronecast_step3.png"/>
+</div>
+
+<div class="img">
+<img src="images/dronecast_step4.png"/>
+</div>
+
+<h3>3. Copy the resulting RTMP url</h3>
+
+<div class="img">
+<img src="images/dronecast_rtmpurl.png"/>
+</div>
+
+<h3>4. Create a new live event</h3>
+
+<div class="img">
+<img src="images/dronecast_liveevent.png"/>
+</div>
+
+<h3>5. Enable the Streaming Endpoint</h3>
+
+<div class="img">
+<img src="images/dronecast_enableendpoint.png"/>
+</div>
+
+<h3>6. Start the channel</h3>
+
+<div class="img">
+<img src="images/dronecast_startchannel.png"/>
+</div>
+
+<p>At this point, Azure is ready to ingest the incoming video stream and encode it into multi-bitrate streams that can be consumed by clients.</p>
+
+<p>Over in the DJI GO app...</p>
+
+<h3>1. General Settings > Select Live Broadcast Platform</h3>
+
+<div class="img">
+<img src="images/dronecast_djigo1.png"/>
+</div>
+
+<h3>2. Choose RTMP</h3>
+
+<div class="img">
+<img src="images/dronecast_djigo2.png"/>
+</div>
+
+<h3>3. Enter the RTMP url</h3>
+
+<div class="img">
+<img src="images/dronecast_djigo3.png"/>
+</div>
+
+<p><strong>NOTE:</strong> You must add an additional <code>/mystream</code> to the end of the url that you copied from the Azure portal. The value is not important, but the ingest will not work without the extra path info. </p>
+
+<div class="img">
+<img src="images/dronecast_djigo4.png"/>
+</div>
+
+<div class="img">
+<img src="images/dronecast_djigo5.png"/>
+</div>
+
+<p>When you are live streaming, the DJI GO app will show an indicator in the upper left corner.</p>
+
+<p>At this point, you are broadcasting your live stream to the world. The Azure portal has a handy feature that lets you view the live stream directly in the portal (as well as providing the live stream url).</p>
+
+<div class="img">
+<img src="images/dronecast_liveview.png"/>
+</div>
+
+        </div>
+      <div class="span1">
+        &nbsp;
+      </div>
+      <div class="span4">
+          <h3><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="64" style="vertical-align:middle;" /></a> <a href="http://twitter.com/briandunnington">@briandunnington</a></h3>
+          <hr />
+
+              <h6 class="muted">2018.02.28</h6>
+              <h2>Roll Your Own React</h2>
+              <p>(on Roku, just for an added twist)</p>
+              <p><a class="btn" href="/roact.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2018.02.06</h6>
+              <h2>Streaming live drone footage using Azure Media Services</h2>
+              <p>Directly from your drone to the world, via the the cloud</p>
+              <p><a class="btn" href="/dronecast.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2017.07.07</h6>
+              <h2>Redux + Roku = Redoku</h2>
+              <p>Making Roku development less painful by making state changes more predictable</p>
+              <p><a class="btn" href="/redoku.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2016.12.26</h6>
+              <h2>UWP GetHashCode warning</h2>
+              <p>A cautionary tale about making assumptions</p>
+              <p><a class="btn" href="/gethashcode_warning.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2015.08.31</h6>
+              <h2>MockMock - A mocking framework for UWP</h2>
+              <p>...or  how to generate classes on the fly when your language doesn't allow it</p>
+              <p><a class="btn" href="/uwp_unittesting.html">View details &raquo;</a></p>
+              <hr/>
+
+          <h4><a href="/index.html">More Posts ></a></h4>
+      </div>
+	  </div>
+
+      <footer>
+        <small>&copy; 2012-2018 brian dunnington</small>
+      </footer>
+
+    </div> <!-- /container -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
+
+<script src="js/libs/bootstrap/bootstrap.js"></script>
+
+<script src="js/script.js"></script>
+</body>
+</html>
