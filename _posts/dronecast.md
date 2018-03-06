@@ -1,6 +1,7 @@
 Title: Streaming live drone footage using Azure Media Services
 Date: 2018.02.06
 Summary: Directly from your drone to the world, via the the cloud
+Image: http://briandunnington.github.io/images/dronecast_phantom.jpg
 
 <div class="hero-unit">
 <h1>Streaming live drone footage using Azure Media Services</h1>
