@@ -1,0 +1,520 @@
+
+<!doctype html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+	<title>brian dunnington - Build an Alexa skill using Azure Functions</title>
+	<meta name="description" content="code and computer related tidbits">
+	<meta name="author" content="brian dunnington">
+
+	<meta name="viewport" content="width=device-width">
+
+    <!-- Twitter Summary Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@briandunnington">
+    <meta name="twitter:creator" content="@briandunnington">
+    <meta name="twitter:title" content="Build an Alexa skill using Azure Functions">
+    <meta name="twitter:description" content="Although AWS Lambdas are the default, it is dead simple to use Azure Functions for your Alexa skill as well">
+    <meta name="twitter:domain" content="http://http://briandunnington.github.io/">
+    <meta name="twitter:image" content="http://briandunnington.github.io/images/azure_functions.png">
+
+
+	<link rel="stylesheet" href="css/bootstrap.css">
+	<style>
+    body {
+      padding-top: 60px;
+      padding-bottom: 40px;
+    }
+    footer {
+      text-align: right;
+      margin-top: 40px;
+    }
+    h1 {
+      margin-bottom: 0.6em;
+    }
+  </style>
+	<link rel="stylesheet" href="css/bootstrap-responsive.css">
+	<link rel="stylesheet" href="css/style.css">
+
+	<!--[if lt IE 9]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<script>window.html5 || document.write('<script src="js/libs/html5.js"><\/script>')</script>
+	<![endif]-->
+</head>
+
+<body>
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/"><img src="img/bd_logo.png" style="margin: -8px 0 -14px;" /> : brian dunnington</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <li id="linkHome"><a href="/">Home</a></li>
+              <li id="linkAbout"><a href="/about.html">About</a></li>
+              <li id="linkContact"><a href="/contact.html">Contact</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+	  <div class="row">
+        <div class="span7 maincontent">
+            <div class="hero-unit">
+<h1>Build an Alexa skill using Azure Functions</h1>
+<p>Although AWS Lambdas are the default, it is dead simple to use Azure Functions for your Alexa skill as well</p>
+</div>
+
+<p><style>
+.maincontent h4 { margin: 16px 0 8px 0; }
+.img img { display: block; margin-bottom: 16px; border: solid 1px #666666; }
+.img span { text-align: center; }
+blockquote p { font-size: 90%; }
+blockquote pre { margin: 10px 0; }
+</style></p>
+
+<p>I have an <a href="https://www.amazon.com/gp/product/B01DFKC2SO">Amazon Echo Dot</a> and really enjoy it. I love speaking out to the ether and getting a (sometimes questionable) response back like magic. And with the <a href="https://developer.amazon.com/alexa-skills-kit">Alexa Skills Kit</a>, it is super easy to extend the functionality of what Alexa can do.</p>
+
+<p>I live on an island that is serviced by a ferry, so the very first skill I wrote was called <em>Ferry Godmother</em> and let me ask when the next sailing was along with other useful ferry information. By default, Alexa skills are built on <a href="https://aws.amazon.com/lambda/">AWS Lambdas</a> and it was super easy to whip up a little Node.js script to provide the ferry skill data. Check it out in action below:</p>
+
+<p><audio src="images/alexa_azure_functions_ferrygodmother.mp3" controls>
+  Your browser does not support the <code>audio</code> element.
+</audio></p>
+
+<p>But lately I have had a bit of a crush on <a href="https://azure.microsoft.com/en-us/services/functions/">Azure Functions</a>. From quickly standing up serverless APIs, to providing the 'glue' to <a href="https://azure.microsoft.com/en-us/services/logic-apps/">Azure Logic Apps</a>, they really are easy to set up and use. Like AWS Lambdas, Azure Functions let you use a variety of languages (Lambdas currently support JavaScript, Python, Java, C#, and Go, while Azure Functions support C#, JavaScript, F#, and Java (v2 Preview)), so I decided to write a new Alexa skill using C# and Azure Functions.</p>
+
+<h3>Creating the Azure Function</h3>
+
+<p>For this example, we will build a simple Alexa calculator. Although you can create and code your function directly in the <a href="https://portal.azure.com/">Azure Portal</a>, I am gonna use Visual Studio instead because it:</p>
+
+<ul>
+<li>allows me to use my normal source control workflows</li>
+<li>will deploy the pre-compiled code for faster cold start-up</li>
+<li>is just plain nice!</li>
+</ul>
+
+<p>So <code>File &gt; New</code> and create a new <code>Azure Functions</code> project:</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs1.png"/>
+</div>
+
+<p>Visual Studio will create your new project:</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs2.png"/>
+</div>
+
+<p>But this project is essentially empty, so we need to add a function handler to it. <code>Add &gt; New Item</code> and add a new <code>Azure Function</code> class:</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs3.png"/>
+</div>
+
+<p>VS will prompt you for what kind of event you want to trigger your function. Since Alexa uses plain old HTTP/S, choose <code>Http Trigger</code>. Make sure to set the <code>Access Rights</code> to <code>Anonymous</code> so that Alexa will be allowed to call your function:</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs4.png"/>
+</div>
+
+<p>Your new <code>HttpTrigger</code> function will be created with some boilerplate code:</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs5.png"/>
+</div>
+
+<p>At this point, we are ready to handle the Alexa request, perform whatever logic our skill provides, and return the formatted response. You could leverage a library that makes this nicer (like <a href="https://github.com/timheuer/alexa-skills-dotnet">Alexa.NET</a>), but the Alexa request/response documentation <a href="https://developer.amazon.com/docs/custom-skills/request-and-response-json-reference.html">can be found here</a> so we will just do it the old-fashioned way to show that there is nothing magic about it.</p>
+
+<p>Using the <code>dynamic</code> keyword, we can easily parse the incoming request into a JSON-like object with a single line:</p>
+
+<pre><code>// Get request body
+dynamic data = await req.Content.ReadAsAsync&lt;object&gt;();
+</code></pre>
+
+<p>The Alexa documentation tells us that we can expect either a <code>LaunchRequest</code> (when the skill is opened with no specific request) or an <code>IntentRequest</code> (when a specific request is made), so let's handle both of those cases:</p>
+
+<pre><code>switch (data.request.type)
+{
+    case "IntentRequest":
+
+    case "LaunchRequest":
+
+}
+</code></pre>
+
+<p>For the <code>IntentRequest</code>, we want to check the <code>data.request.intent.name</code> to see which action the user was requesting:</p>
+
+<pre><code>string intentName = data.request.intent.name;
+switch (intentName)
+{
+    case "AddIntent":
+
+    case "SubtractIntent":
+
+}
+</code></pre>
+
+<p>For our simple calculator, we will only allow adding or subtracting two numbers, so we can extract the two numbers from the slots:</p>
+
+<pre><code>var n1 = Convert.ToDouble(data.request.intent.slots["firstnum"].value);
+var n2 = Convert.ToDouble(data.request.intent.slots["secondnum"].value);
+</code></pre>
+
+<p>After we perform the calculation, we need to return the response in a format that Alexa can understand, so let's create a simple helper function to return responses:</p>
+
+<pre><code>private static HttpResponseMessage CreateResponse(HttpRequestMessage req, string title, string text)
+{
+    return req.CreateResponse(HttpStatusCode.OK, new
+    {
+        version = "1.0",
+        sessionAttributes = new { },
+        response = new
+        {
+            outputSpeech = new
+            {
+                type = "PlainText",
+                text = text
+            },
+            card = new
+            {
+                type = "Simple",
+                title = title,
+                content = text
+            },
+            shouldEndSession = false
+        }
+    });
+}
+</code></pre>
+
+<p>Putting it all together, it looks something like:</p>
+
+<pre><code>using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.Azure.WebJobs.Host;
+using System;
+
+namespace AlexaCalculatorSkill
+{
+    public static class Calculator
+    {
+        [FunctionName("Calculator")]
+        public static async Task&lt;HttpResponseMessage&gt; Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)]HttpRequestMessage req, TraceWriter log)
+        {
+            dynamic data = await req.Content.ReadAsAsync&lt;object&gt;();
+            switch (data.request.type.ToString())
+            {
+                case "IntentRequest":
+                    var n1 = Convert.ToDouble(data.request.intent.slots["firstnum"].value);
+                    var n2 = Convert.ToDouble(data.request.intent.slots["secondnum"].value);
+                    var result = 0d;
+                    string intentName = data.request.intent.name;
+                    log.Warning($"intentName={intentName}");
+                    switch (intentName)
+                    {
+                        case "AddIntent":
+                            result = n1 + n2;
+                            return CreateResponse(req, "The answer is:", $"The answer is {result.ToString()}");
+                        case "SubtractIntent":
+                            result = n1 - n2;
+                            return CreateResponse(req, "The answer is:", $"The answer is {result.ToString()}");
+                        default:
+                            return CreateResponse(req, "Oops!", "Sorry, I couldn't understand the question.");
+                    }
+                case "LaunchRequest":
+                default:
+                    log.Info($"Default LaunchRequest made");
+                    return CreateResponse(req, "Welcome to the Alexa Calculator", "Try asking: what is 3 plus 4?");
+            }
+        }
+
+        private static HttpResponseMessage CreateResponse(HttpRequestMessage req, string title, string text)
+        {
+            return req.CreateResponse(HttpStatusCode.OK, new
+            {
+                version = "1.0",
+                sessionAttributes = new { },
+                response = new
+                {
+                    outputSpeech = new
+                    {
+                        type = "PlainText",
+                        text = text
+                    },
+                    card = new
+                    {
+                        type = "Simple",
+                        title = title,
+                        content = text
+                    },
+                    shouldEndSession = false
+                }
+            });
+        }
+    }
+}
+</code></pre>
+
+<p>Another great thing about using Visual Studio to develop our function is that we can test it locally. Just <code>F5 Run</code> the project and the Azure Function test environment will load up.</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs6.png"/>
+</div>
+
+<p>You can use the <code>localhost</code> url to trigger your function. You could use <code>curl</code>, but I like <a href="https://www.getpostman.com/">Postman</a> for this kind of thing. Based on the Alexa request documentation, we can construct a simple request that looks like this:</p>
+
+<pre><code>{
+  "session": {
+    "new": true,
+    "sessionId": "SessionId.a2dd3f0c-6dd2-4612-912f-70d7b1e33529",
+    "application": {
+      "applicationId": "amzn1.ask.skill.&lt;App Id&gt;"
+    },
+    "attributes": {},
+    "user": {
+      "userId": "amzn1.ask.account.&lt;User Id&gt;"
+    }
+  },
+  "request": {
+    "type": "IntentRequest",
+    "requestId": "EdwRequestId.218a12f7-bda2-4d1d-95c7-296813f4213a",
+    "intent": {
+      "name": "AddIntent",
+      "slots": {
+        "firstnum": {
+          "name": "firstnum",
+          "value": "3"
+        },
+        "secondnum": {
+          "name": "secondnum",
+          "value": "4"
+        }
+      }
+    },
+    "locale": "en-US",
+    "timestamp": "2018-03-11T14:23:47Z"
+  },
+  "context": {
+    "AudioPlayer": {
+      "playerActivity": "IDLE"
+    },
+    "System": {
+      "application": {
+        "applicationId": "amzn1.ask.skill.&lt;App Id&gt;"
+      },
+      "user": {
+        "userId": "amzn1.ask.account.&lt;User Id&gt;"
+      },
+      "device": {
+        "supportedInterfaces": {}
+      }
+    }
+  },
+  "version": "1.0"
+}
+</code></pre>
+
+<p>Running it in Postman, you can see that the function is returning the expected response:</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_postman1.png"/>
+</div>
+
+<p>Now that your function is working locally, it is time to push it up to the cloud. Choose <code>Build &gt; Publish</code> and you will be presented with some options. Since this is a new function, choose <code>Create New</code>.</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs7.png"/>
+</div>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs8.png"/>
+</div>
+
+<p>You will be presented with a screen where you can configure your new function and the backing App Service Plan and Azure Storage Account. If this is your first Azure Function, you can go ahead and create new resources (or if you already have Azure resources that you want to use, that is fine as well).</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs9.png"/>
+</div>
+
+<p>After the Azure resources are created, click <code>Publish</code> and Visual Studio will deploy your function up to the cloud.</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs10.png"/>
+</div>
+
+<p>You can copy the<code>Site URL</code> value and update your Postman request to test out your newly deployed function:</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_postman2.png"/>
+</div>
+
+<p>Now that you have your function up and running on Azure, it is time to wire it up to Alexa.</p>
+
+<h3>Creating the Alexa Skill</h3>
+
+<p>To create your skill, log in to the <a href="https://developer.amazon.com/alexa">Alexa console</a> (creating an AWS developer account if you do not already have one). Note that (as of early 2018) there are two different consoles - the 'classic' console and the new 'beta' console. The beta console will replace the classic console soon, so you should be using it to configure your skill. Click <code>Create Skill</code> and you will be prompted for the name of your skill. </p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill1.png"/>
+</div>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill2.png"/>
+</div>
+
+<p>Next up, you will be asked to choose the interaction model for your skill. Since this is a custom skill, select <code>Custom</code> and then click <code>Create Skill</code>. After a few seconds, you will be dropped into the skill builder console.</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill3.png"/>
+</div>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill4.png"/>
+</div>
+
+<p>In the right <code>Skill Builder Checklist</code> column, click <code>1. Invocation Name</code>. This is the name that users will use to trigger your skill (ex: <em>"Alexa, ask Calculator what 3 plus 4 is"</em>). After you enter the invocation name, click <code>Save Model</code>.</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill5.png"/>
+</div>
+
+<p>(Side note: At this point, I think it would be nice if they added a <code>Next</code> button to take you to the next step. You can either click <code>Intents</code> in the left-most column, or use your browsers <code>Back</code> button to return to the <code>Skill Builder Checklist</code> and choose <code>2. Intents, Samples, and Slots</code>.)</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill6.png"/>
+</div>
+
+<p>On the <code>Add Intent</code> page, enter the name of the first type of request that you would like to handle (for this example, we want to allow adding and subtacting, so we will start with the <code>AddIntent</code>).</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill7.png"/>
+</div>
+
+<p>The console will update to show the <code>Sample Utterances</code> screen. This is where you tell Alexa what kinds of things users can say to trigger your skill. Since Alexa does the natural language parsing for you, you simply tell it which parts of the phrase are important (slots) and it will do the work of extracting those values for you. For our <code>AddIntent</code>, we want to allow requests like <em>"what is 3 plus 4?"</em> and each number is an important part, so we will set up our utterances with the appropriate slots.</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill8.png"/>
+</div>
+
+<p>Click the <code>+</code> button to add the utterance, and the console will update. You will notice that your custom slots are now listed below, so be sure to set the <code>Slot Type</code> to the correct value (since we are dealing with numbers, we will choose <code>AMAZON.NUMBER</code>).</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill9.png"/>
+</div>
+
+<p>Add additional variations of the utterance as appropriate.</p>
+
+<blockquote>
+  <p>Here is a tip: Make sure to support direct requests (ex: <em>"what is 3 plus 4?"</em>, but also support case where the user invokes the skill and triggers the action in a single request (ex: <em>"Alexa, ask Calculator what 3 plus 4 is"</em>). Notice the slightly different grammar for each.)</p>
+</blockquote>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill10.png"/>
+</div>
+
+<p>Repeat the process for the <code>SubtractIntent</code>:</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill11.png"/>
+</div>
+
+<p>Be sure to click <code>Save Model</code> to save your changes. After your changes are saved, go ahead and click <code>Build Model</code> as well to have Alexa prepare your skill to be used.</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill12.png"/>
+</div>
+
+<p>The last step is to tell Alexa to use your Azure Function. Click on <code>4. Endpoint</code> to go to the <code>Endpoint</code> screen. There are two choices: use an AWS Lambda, or use a custom HTTPS endpoint. Click <code>HTTPS</code> and enter your Azure Function url. Since your function is hosted as a subdomain of <code>azurewebsites.net</code>, but sure to change the dropdown to <em>My development endpoint is a sub-domain of a domain that has a wildcard certificate from a certificate authority.</em> and then click <code>Save Endpoints</code>.</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill13.png"/>
+</div>
+
+<h3>Try it out</h3>
+
+<p>Now your skill is completely configured and ready to test end-to-end. Click the <code>Test</code> tab and enable testing. You can type or speak your request and on the right side, you can:</p>
+
+<ul>
+<li>see the JSON request that Alexa sent to your skill</li>
+<li>see the JSON response that your skill responded with</li>
+<li>hear Alexa's audio response</li>
+<li>see what would have been displayed on Echo devices with a screen (like the Echo Show)</li>
+</ul>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill14.png"/>
+</div>
+
+<p>That is it! Your skill is up and running and successfully talking to your Azure Function.</p>
+
+<p>If you are a a developer with an Alexa device and you have not played around with writing a skill for it yet - what are you waiting for?</p>
+
+<p><em>(And fret not: a future post will show how to write a Cortana Skill backed by an AWS Lambda function just in case you prefer jelly and peanut butter instead of peanut butter and jelly).</em></p>
+
+        </div>
+      <div class="span1">
+        &nbsp;
+      </div>
+      <div class="span4">
+          <h3><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="64" style="vertical-align:middle;" /></a> <a href="http://twitter.com/briandunnington">@briandunnington</a></h3>
+          <hr />
+
+              <h6 class="muted">2018.03.12</h6>
+              <h2>Build an Alexa skill using Azure Functions</h2>
+              <p>Although AWS Lambdas are the default, it is dead simple to use Azure Functions for your Alexa skill as well</p>
+              <p><a class="btn" href="/use_azure_functions_with_alexa.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2018.02.28</h6>
+              <h2>Roll Your Own React</h2>
+              <p>(on Roku, just for an added twist)</p>
+              <p><a class="btn" href="/roact.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2018.02.06</h6>
+              <h2>Streaming live drone footage using Azure Media Services</h2>
+              <p>Directly from your drone to the world, via the the cloud</p>
+              <p><a class="btn" href="/dronecast.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2017.07.07</h6>
+              <h2>Redux + Roku = Redoku</h2>
+              <p>Making Roku development less painful by making state changes more predictable</p>
+              <p><a class="btn" href="/redoku.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2016.12.26</h6>
+              <h2>UWP GetHashCode warning</h2>
+              <p>A cautionary tale about making assumptions</p>
+              <p><a class="btn" href="/gethashcode_warning.html">View details &raquo;</a></p>
+              <hr/>
+
+          <h4><a href="/index.html">More Posts ></a></h4>
+      </div>
+	  </div>
+
+      <footer>
+        <small>&copy; 2012-2018 brian dunnington</small>
+      </footer>
+
+    </div> <!-- /container -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
+
+<script src="js/libs/bootstrap/bootstrap.js"></script>
+
+<script src="js/script.js"></script>
+</body>
+</html>
