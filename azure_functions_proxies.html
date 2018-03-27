@@ -1,0 +1,213 @@
+
+<!doctype html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+	<title>brian dunnington - The many uses of Azure Functions Proxies</title>
+	<meta name="description" content="code and computer related tidbits">
+	<meta name="author" content="brian dunnington">
+  <link rel="alternate" type="application/rss+xml" title="brian dunnington" href="/rss.xml" />
+
+	<meta name="viewport" content="width=device-width">
+
+    <!-- Twitter Summary Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@briandunnington">
+    <meta name="twitter:creator" content="@briandunnington">
+    <meta name="twitter:title" content="The many uses of Azure Functions Proxies">
+    <meta name="twitter:description" content="Azure Functions Proxies are awesome - here are just a few ways to leverage them">
+    <meta name="twitter:domain" content="http://http://briandunnington.github.io/">
+    <meta name="twitter:image" content="http://briandunnington.github.io/images/azure_functions.png">
+
+
+	<link rel="stylesheet" href="css/bootstrap.css">
+	<style>
+    body {
+      padding-top: 60px;
+      padding-bottom: 40px;
+    }
+    footer {
+      text-align: right;
+      margin-top: 40px;
+    }
+    h1 {
+      margin-bottom: 0.6em;
+    }
+  </style>
+	<link rel="stylesheet" href="css/bootstrap-responsive.css">
+	<link rel="stylesheet" href="css/style.css">
+
+	<!--[if lt IE 9]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<script>window.html5 || document.write('<script src="js/libs/html5.js"><\/script>')</script>
+	<![endif]-->
+</head>
+
+<body>
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/"><img src="img/bd_logo.png" style="margin: -8px 0 -14px;" /> : brian dunnington</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <li id="linkHome"><a href="/">Home</a></li>
+              <li id="linkAbout"><a href="/about.html">About</a></li>
+              <li id="linkContact"><a href="/contact.html">Contact</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+	  <div class="row">
+        <div class="span7 maincontent">
+            <div class="hero-unit">
+<h1>The many uses of Azure Functions Proxies</h1>
+<p>Azure Functions Proxies are awesome - here are just a few ways to leverage them</p>
+</div>
+
+<p><style>
+.maincontent h4 { margin: 16px 0 8px 0; }
+.img img { display: block; margin-bottom: 16px; border: solid 1px #666666; }
+.img span { text-align: center; }
+blockquote p { font-size: 90%; }
+blockquote pre { margin: 10px 0; }
+</style></p>
+
+<p>It is <a href="use_azure_functions_with_alexa.html">no secret</a> that I am loving <a href="https://azure.microsoft.com/en-us/services/functions/">Azure Functions</a> lately. They are super easy to get started with, and they have great tooling and <a href="https://medium.freecodecamp.org/serverless-doesnt-have-to-be-an-infuriating-black-box-b23cca2b2ba2">local debugging</a> experience. Awhile back, the Azure team <a href="https://blogs.msdn.microsoft.com/appserviceteam/2017/11/15/azure-functions-proxies-is-now-generally-available/">announced Azure Functions Proxies</a> which make Azure Functions even more useful. Let's look at just some of the cool uses:</p>
+
+<h3>Creating stubs during development</h3>
+
+<p>This is a very common scenario: you start development of your new app and the front-end folks immediately need to set up the back-end API calls. Since the API is not built yet, you usually have to provide some kind of work-around with local data or mocked calls, but with Azure Functions Proxies, you can set up the real live production endpoint that accepts all of the actual parameters, but temporarily return hard-coded mock data.</p>
+
+<div class="img">
+<img src="images/azure_functions_proxies_stub1.png"/>
+</div>
+
+<div class="img">
+<img src="images/azure_functions_proxies_stub2.png"/>
+</div>
+
+<p>This lets you seamlessly swap out the implementation later when the actual API logic is complete with <em>zero</em> changes to the front-end code (not even updating the url). And since Azure Functions Proxies come with <a href="https://github.com/OAI/OpenAPI-Specification">OpenAPI (Swagger)</a> support out of the box, you can generate your API documenation up-front for an API-first approach.</p>
+
+<div class="img">
+<img src="images/azure_functions_proxies_stub3.png"/>
+</div>
+
+<h3>Testing error cases</h3>
+
+<p>Normally when testing an API consumer, testing special/edge/error cases can be challenging since there is no easy way to force these exceptional cases to occur. But following on with the proxies ability to return mock responses, you can easily set them up to return error responses as well.</p>
+
+<div class="img">
+<img src="images/azure_functions_proxies_stub4.png"/>
+</div>
+
+<div class="img">
+<img src="images/azure_functions_proxies_stub5.png"/>
+</div>
+
+<h3>Present a unified API surface</h3>
+
+<p>Azure Functions Proxies can not only abstract third-party APIs, but also other Azure services. Many Azure services (<a href="https://azure.microsoft.com/en-us/services/logic-apps/">Logic Apps</a>, <a href="https://azure.microsoft.com/en-us/services/storage/">Azure Storage</a>, etc) already provide APIs for accessing them directly, but your code can become littered with a bunch of different urls to track. By putting up a proxy in front of those other services, they can appear as one unified API/endpoint.</p>
+
+<p>Here is a function proxy that calls into an Azure Storage account to fetch an image to represent the current weather:</p>
+
+<div class="img">
+<img src="images/azure_functions_proxies_unified1.png"/>
+</div>
+
+<p>Note that the SAS querystring is handled by the proxy, so instead of having to call this from my app:</p>
+
+<p><code>https://weatherornotb4b8.blob.core.windows.net/images/sunny.png?sv=2015-04-05&amp;st=2015-04-29T22%3A18%3A26Z&amp;se=2015-04-30T02%3A23%3A26Z&amp;sr=b&amp;sp=rw&amp;sip=168.1.5.60-168.1.5.70&amp;spr=https&amp;sig=Z%2FRHIX5Xcg0Mq2rqI3OlWTjEg2tYkboXr1P9ZUXDtkk%3D</code></p>
+
+<p>I can simply call this:</p>
+
+<p><code>https://weatherornot.azurewebsites.net/images/sunny</code></p>
+
+<p>And get this:</p>
+
+<div class="img">
+<img src="images/azure_functions_proxies_unified2.png"/>
+</div>
+
+<p>This also works for other Azure Functions, so if you have broken your logic into a microservice pattern, all of those functions can also appear as a single API.</p>
+
+<h3>BONUS - Abstract &amp; decouple third-party APIs (not yet available)</h3>
+
+<p>There is an <a href="https://github.com/Azure/azure-functions-host/issues/1968">open feature request</a> that would allow access to the backend response body JSON as first-class variables. Once that happens, it would open up a lot of interesting scenarios. One potential awesome use for Azure Functions Proxies would be to abstract integrations with third-party APIs. Let's pretend we were building a weather app and want to leverage an existing public API like <a href="https://openweathermap.org/api">OpenWeatherMap</a>. We could set up our proxy like this:</p>
+
+<div class="img">
+<img src="images/azure_functions_proxies_bonus1.png"/>
+</div>
+
+<p>But as time goes on, we decide we want to change our data source to the <a href="https://developer.here.com/api-explorer/rest/auto_weather/weather-observation-zipcode">Here Weather API</a>. The new API has a completely different response format, even though it represents roughly the same data. Instead of having to update every app, we can simply change the backing implementation since the proxy is acting as an abstraction.</p>
+
+<div class="img">
+<img src="images/azure_functions_proxies_bonus2.png"/>
+</div>
+
+<p>We can update the backend url and the response body transformation to map the new response data to our abstracted response, requiring aboslutely no changes to the app. By using the proxy, it decouples the app (API consumer) from the API implementation details. Win!</p>
+
+        </div>
+      <div class="span1">
+        &nbsp;
+      </div>
+      <div class="span4">
+          <h3><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="64" style="vertical-align:middle;" /></a> <a href="http://twitter.com/briandunnington">@briandunnington</a></h3>
+          <hr />
+
+              <h6 class="muted">2018.03.25</h6>
+              <h2>The many uses of Azure Functions Proxies</h2>
+              <p>Azure Functions Proxies are awesome - here are just a few ways to leverage them</p>
+              <p><a class="btn" href="/azure_functions_proxies.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2018.03.12</h6>
+              <h2>Build an Alexa skill using Azure Functions</h2>
+              <p>Although AWS Lambdas are the default, it is dead simple to use Azure Functions for your Alexa skill as well</p>
+              <p><a class="btn" href="/use_azure_functions_with_alexa.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2018.02.28</h6>
+              <h2>Roll Your Own React</h2>
+              <p>(on Roku, just for an added twist)</p>
+              <p><a class="btn" href="/roact.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2018.02.06</h6>
+              <h2>Streaming live drone footage using Azure Media Services</h2>
+              <p>Directly from your drone to the world, via the the cloud</p>
+              <p><a class="btn" href="/dronecast.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2017.07.07</h6>
+              <h2>Redux + Roku = Redoku</h2>
+              <p>Making Roku development less painful by making state changes more predictable</p>
+              <p><a class="btn" href="/redoku.html">View details &raquo;</a></p>
+              <hr/>
+
+          <h4><a href="/index.html">More Posts ></a></h4>
+      </div>
+	  </div>
+
+      <footer>
+        <small>&copy; 2012-2018 brian dunnington</small>
+      </footer>
+
+    </div> <!-- /container -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
+
+<script src="js/libs/bootstrap/bootstrap.js"></script>
+
+<script src="js/script.js"></script>
+</body>
+</html>
