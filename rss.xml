@@ -1,0 +1,2631 @@
+<?xml version="1.0" ?>
+
+<rss version="2.0">
+    <channel>
+        <title>Brian Dunnington</title>
+        <link>http://briandunnington.github.io</link>
+        <description>RSS feed for website</description>
+        <language>en-us</language>
+        <copyright>Copyright 2012 - 2018 : Brian Dunnington</copyright>
+        <pubDate>Tue, 27 Mar 2018 05:40:36 GMT</pubDate>
+        <lastBuildDate>Tue, 27 Mar 2018 05:40:36 GMT</lastBuildDate>
+
+        <item>
+            <title>Build an Alexa skill using Azure Functions</title>
+            <link>http://briandunnington.github.io/use_azure_functions_with_alexa.html</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Build an Alexa skill using Azure Functions</h1>
+<p>Although AWS Lambdas are the default, it is dead simple to use Azure Functions for your Alexa skill as well</p>
+</div>
+
+<p><style>
+.maincontent h4 { margin: 16px 0 8px 0; }
+.img img { display: block; margin-bottom: 16px; border: solid 1px #666666; }
+.img span { text-align: center; }
+blockquote p { font-size: 90%; }
+blockquote pre { margin: 10px 0; }
+</style></p>
+
+<p>I have an <a href="https://www.amazon.com/gp/product/B01DFKC2SO">Amazon Echo Dot</a> and really enjoy it. I love speaking out to the ether and getting a (sometimes questionable) response back like magic. And with the <a href="https://developer.amazon.com/alexa-skills-kit">Alexa Skills Kit</a>, it is super easy to extend the functionality of what Alexa can do.</p>
+
+<p>I live on an island that is serviced by a ferry, so the very first skill I wrote was called <em>Ferry Godmother</em> and let me ask when the next sailing was along with other useful ferry information. By default, Alexa skills are built on <a href="https://aws.amazon.com/lambda/">AWS Lambdas</a> and it was super easy to whip up a little Node.js script to provide the ferry skill data. Check it out in action below:</p>
+
+<p><audio src="images/alexa_azure_functions_ferrygodmother.mp3" controls>
+  Your browser does not support the <code>audio</code> element.
+</audio></p>
+
+<p>But lately I have had a bit of a crush on <a href="https://azure.microsoft.com/en-us/services/functions/">Azure Functions</a>. From quickly standing up serverless APIs, to providing the 'glue' to <a href="https://azure.microsoft.com/en-us/services/logic-apps/">Azure Logic Apps</a>, they really are easy to set up and use. Like AWS Lambdas, Azure Functions let you use a variety of languages (Lambdas currently support JavaScript, Python, Java, C#, and Go, while Azure Functions support C#, JavaScript, F#, and Java (v2 Preview)), so I decided to write a new Alexa skill using C# and Azure Functions.</p>
+
+<h3>Creating the Azure Function</h3>
+
+<p>For this example, we will build a simple Alexa calculator. Although you can create and code your function directly in the <a href="https://portal.azure.com/">Azure Portal</a>, I am gonna use Visual Studio instead because it:</p>
+
+<ul>
+<li>allows me to use my normal source control workflows</li>
+<li>will deploy the pre-compiled code for faster cold start-up</li>
+<li>is just plain nice!</li>
+</ul>
+
+<p>So <code>File &gt; New</code> and create a new <code>Azure Functions</code> project:</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs1.png"/>
+</div>
+
+<p>Visual Studio will create your new project:</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs2.png"/>
+</div>
+
+<p>But this project is essentially empty, so we need to add a function handler to it. <code>Add &gt; New Item</code> and add a new <code>Azure Function</code> class:</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs3.png"/>
+</div>
+
+<p>VS will prompt you for what kind of event you want to trigger your function. Since Alexa uses plain old HTTP/S, choose <code>Http Trigger</code>. Make sure to set the <code>Access Rights</code> to <code>Anonymous</code> so that Alexa will be allowed to call your function:</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs4.png"/>
+</div>
+
+<p>Your new <code>HttpTrigger</code> function will be created with some boilerplate code:</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs5.png"/>
+</div>
+
+<p>At this point, we are ready to handle the Alexa request, perform whatever logic our skill provides, and return the formatted response. You could leverage a library that makes this nicer (like <a href="https://github.com/timheuer/alexa-skills-dotnet">Alexa.NET</a>), but the Alexa request/response documentation <a href="https://developer.amazon.com/docs/custom-skills/request-and-response-json-reference.html">can be found here</a> so we will just do it the old-fashioned way to show that there is nothing magic about it.</p>
+
+<p>Using the <code>dynamic</code> keyword, we can easily parse the incoming request into a JSON-like object with a single line:</p>
+
+<pre><code>// Get request body
+dynamic data = await req.Content.ReadAsAsync&lt;object&gt;();
+</code></pre>
+
+<p>The Alexa documentation tells us that we can expect either a <code>LaunchRequest</code> (when the skill is opened with no specific request) or an <code>IntentRequest</code> (when a specific request is made), so let's handle both of those cases:</p>
+
+<pre><code>switch (data.request.type)
+{
+    case "IntentRequest":
+
+    case "LaunchRequest":
+
+}
+</code></pre>
+
+<p>For the <code>IntentRequest</code>, we want to check the <code>data.request.intent.name</code> to see which action the user was requesting:</p>
+
+<pre><code>string intentName = data.request.intent.name;
+switch (intentName)
+{
+    case "AddIntent":
+
+    case "SubtractIntent":
+
+}
+</code></pre>
+
+<p>For our simple calculator, we will only allow adding or subtracting two numbers, so we can extract the two numbers from the slots:</p>
+
+<pre><code>var n1 = Convert.ToDouble(data.request.intent.slots["firstnum"].value);
+var n2 = Convert.ToDouble(data.request.intent.slots["secondnum"].value);
+</code></pre>
+
+<p>After we perform the calculation, we need to return the response in a format that Alexa can understand, so let's create a simple helper function to return responses:</p>
+
+<pre><code>private static HttpResponseMessage CreateResponse(HttpRequestMessage req, string title, string text)
+{
+    return req.CreateResponse(HttpStatusCode.OK, new
+    {
+        version = "1.0",
+        sessionAttributes = new { },
+        response = new
+        {
+            outputSpeech = new
+            {
+                type = "PlainText",
+                text = text
+            },
+            card = new
+            {
+                type = "Simple",
+                title = title,
+                content = text
+            },
+            shouldEndSession = false
+        }
+    });
+}
+</code></pre>
+
+<p>Putting it all together, it looks something like:</p>
+
+<pre><code>using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.Azure.WebJobs.Host;
+using System;
+
+namespace AlexaCalculatorSkill
+{
+    public static class Calculator
+    {
+        [FunctionName("Calculator")]
+        public static async Task&lt;HttpResponseMessage&gt; Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)]HttpRequestMessage req, TraceWriter log)
+        {
+            dynamic data = await req.Content.ReadAsAsync&lt;object&gt;();
+            switch (data.request.type.ToString())
+            {
+                case "IntentRequest":
+                    var n1 = Convert.ToDouble(data.request.intent.slots["firstnum"].value);
+                    var n2 = Convert.ToDouble(data.request.intent.slots["secondnum"].value);
+                    var result = 0d;
+                    string intentName = data.request.intent.name;
+                    log.Warning($"intentName={intentName}");
+                    switch (intentName)
+                    {
+                        case "AddIntent":
+                            result = n1 + n2;
+                            return CreateResponse(req, "The answer is:", $"The answer is {result.ToString()}");
+                        case "SubtractIntent":
+                            result = n1 - n2;
+                            return CreateResponse(req, "The answer is:", $"The answer is {result.ToString()}");
+                        default:
+                            return CreateResponse(req, "Oops!", "Sorry, I couldn't understand the question.");
+                    }
+                case "LaunchRequest":
+                default:
+                    log.Info($"Default LaunchRequest made");
+                    return CreateResponse(req, "Welcome to the Alexa Calculator", "Try asking: what is 3 plus 4?");
+            }
+        }
+
+        private static HttpResponseMessage CreateResponse(HttpRequestMessage req, string title, string text)
+        {
+            return req.CreateResponse(HttpStatusCode.OK, new
+            {
+                version = "1.0",
+                sessionAttributes = new { },
+                response = new
+                {
+                    outputSpeech = new
+                    {
+                        type = "PlainText",
+                        text = text
+                    },
+                    card = new
+                    {
+                        type = "Simple",
+                        title = title,
+                        content = text
+                    },
+                    shouldEndSession = false
+                }
+            });
+        }
+    }
+}
+</code></pre>
+
+<p>Another great thing about using Visual Studio to develop our function is that we can test it locally. Just <code>F5 Run</code> the project and the Azure Function test environment will load up.</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs6.png"/>
+</div>
+
+<p>You can use the <code>localhost</code> url to trigger your function. You could use <code>curl</code>, but I like <a href="https://www.getpostman.com/">Postman</a> for this kind of thing. Based on the Alexa request documentation, we can construct a simple request that looks like this:</p>
+
+<pre><code>{
+  "session": {
+    "new": true,
+    "sessionId": "SessionId.a2dd3f0c-6dd2-4612-912f-70d7b1e33529",
+    "application": {
+      "applicationId": "amzn1.ask.skill.&lt;App Id&gt;"
+    },
+    "attributes": {},
+    "user": {
+      "userId": "amzn1.ask.account.&lt;User Id&gt;"
+    }
+  },
+  "request": {
+    "type": "IntentRequest",
+    "requestId": "EdwRequestId.218a12f7-bda2-4d1d-95c7-296813f4213a",
+    "intent": {
+      "name": "AddIntent",
+      "slots": {
+        "firstnum": {
+          "name": "firstnum",
+          "value": "3"
+        },
+        "secondnum": {
+          "name": "secondnum",
+          "value": "4"
+        }
+      }
+    },
+    "locale": "en-US",
+    "timestamp": "2018-03-11T14:23:47Z"
+  },
+  "context": {
+    "AudioPlayer": {
+      "playerActivity": "IDLE"
+    },
+    "System": {
+      "application": {
+        "applicationId": "amzn1.ask.skill.&lt;App Id&gt;"
+      },
+      "user": {
+        "userId": "amzn1.ask.account.&lt;User Id&gt;"
+      },
+      "device": {
+        "supportedInterfaces": {}
+      }
+    }
+  },
+  "version": "1.0"
+}
+</code></pre>
+
+<p>Running it in Postman, you can see that the function is returning the expected response:</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_postman1.png"/>
+</div>
+
+<p>Now that your function is working locally, it is time to push it up to the cloud. Choose <code>Build &gt; Publish</code> and you will be presented with some options. Since this is a new function, choose <code>Create New</code>.</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs7.png"/>
+</div>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs8.png"/>
+</div>
+
+<p>You will be presented with a screen where you can configure your new function and the backing App Service Plan and Azure Storage Account. If this is your first Azure Function, you can go ahead and create new resources (or if you already have Azure resources that you want to use, that is fine as well).</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs9.png"/>
+</div>
+
+<p>After the Azure resources are created, click <code>Publish</code> and Visual Studio will deploy your function up to the cloud.</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_vs10.png"/>
+</div>
+
+<p>You can copy the<code>Site URL</code> value and update your Postman request to test out your newly deployed function:</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_postman2.png"/>
+</div>
+
+<p>Now that you have your function up and running on Azure, it is time to wire it up to Alexa.</p>
+
+<h3>Creating the Alexa Skill</h3>
+
+<p>To create your skill, log in to the <a href="https://developer.amazon.com/alexa">Alexa console</a> (creating an AWS developer account if you do not already have one). Note that (as of early 2018) there are two different consoles - the 'classic' console and the new 'beta' console. The beta console will replace the classic console soon, so you should be using it to configure your skill. Click <code>Create Skill</code> and you will be prompted for the name of your skill. </p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill1.png"/>
+</div>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill2.png"/>
+</div>
+
+<p>Next up, you will be asked to choose the interaction model for your skill. Since this is a custom skill, select <code>Custom</code> and then click <code>Create Skill</code>. After a few seconds, you will be dropped into the skill builder console.</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill3.png"/>
+</div>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill4.png"/>
+</div>
+
+<p>In the right <code>Skill Builder Checklist</code> column, click <code>1. Invocation Name</code>. This is the name that users will use to trigger your skill (ex: <em>"Alexa, ask Calculator what 3 plus 4 is"</em>). After you enter the invocation name, click <code>Save Model</code>.</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill5.png"/>
+</div>
+
+<p>(Side note: At this point, I think it would be nice if they added a <code>Next</code> button to take you to the next step. You can either click <code>Intents</code> in the left-most column, or use your browsers <code>Back</code> button to return to the <code>Skill Builder Checklist</code> and choose <code>2. Intents, Samples, and Slots</code>.)</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill6.png"/>
+</div>
+
+<p>On the <code>Add Intent</code> page, enter the name of the first type of request that you would like to handle (for this example, we want to allow adding and subtacting, so we will start with the <code>AddIntent</code>).</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill7.png"/>
+</div>
+
+<p>The console will update to show the <code>Sample Utterances</code> screen. This is where you tell Alexa what kinds of things users can say to trigger your skill. Since Alexa does the natural language parsing for you, you simply tell it which parts of the phrase are important (slots) and it will do the work of extracting those values for you. For our <code>AddIntent</code>, we want to allow requests like <em>"what is 3 plus 4?"</em> and each number is an important part, so we will set up our utterances with the appropriate slots.</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill8.png"/>
+</div>
+
+<p>Click the <code>+</code> button to add the utterance, and the console will update. You will notice that your custom slots are now listed below, so be sure to set the <code>Slot Type</code> to the correct value (since we are dealing with numbers, we will choose <code>AMAZON.NUMBER</code>).</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill9.png"/>
+</div>
+
+<p>Add additional variations of the utterance as appropriate.</p>
+
+<blockquote>
+  <p>Here is a tip: Make sure to support direct requests (ex: <em>"what is 3 plus 4?"</em>, but also support case where the user invokes the skill and triggers the action in a single request (ex: <em>"Alexa, ask Calculator what 3 plus 4 is"</em>). Notice the slightly different grammar for each.)</p>
+</blockquote>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill10.png"/>
+</div>
+
+<p>Repeat the process for the <code>SubtractIntent</code>:</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill11.png"/>
+</div>
+
+<p>Be sure to click <code>Save Model</code> to save your changes. After your changes are saved, go ahead and click <code>Build Model</code> as well to have Alexa prepare your skill to be used.</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill12.png"/>
+</div>
+
+<p>The last step is to tell Alexa to use your Azure Function. Click on <code>4. Endpoint</code> to go to the <code>Endpoint</code> screen. There are two choices: use an AWS Lambda, or use a custom HTTPS endpoint. Click <code>HTTPS</code> and enter your Azure Function url. Since your function is hosted as a subdomain of <code>azurewebsites.net</code>, but sure to change the dropdown to <em>My development endpoint is a sub-domain of a domain that has a wildcard certificate from a certificate authority.</em> and then click <code>Save Endpoints</code>.</p>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill13.png"/>
+</div>
+
+<h3>Try it out</h3>
+
+<p>Now your skill is completely configured and ready to test end-to-end. Click the <code>Test</code> tab and enable testing. You can type or speak your request and on the right side, you can:</p>
+
+<ul>
+<li>see the JSON request that Alexa sent to your skill</li>
+<li>see the JSON response that your skill responded with</li>
+<li>hear Alexa's audio response</li>
+<li>see what would have been displayed on Echo devices with a screen (like the Echo Show)</li>
+</ul>
+
+<div class="img">
+<img src="images/alexa_azure_functions_skill14.png"/>
+</div>
+
+<p>That is it! Your skill is up and running and successfully talking to your Azure Function.</p>
+
+<p>If you are a a developer with an Alexa device and you have not played around with writing a skill for it yet - what are you waiting for?</p>
+
+<p><em>(And fret not: a future post will show how to write a Cortana Skill backed by an AWS Lambda function just in case you prefer jelly and peanut butter instead of peanut butter and jelly).</em></p>
+
+]]></description>
+            <pubDate>Mon, 12 Mar 2018 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/use_azure_functions_with_alexa.html</guid>
+            <image>http://briandunnington.github.io/images/azure_functions.png</image>
+        </item>
+        <item>
+            <title>Roll Your Own React</title>
+            <link>http://briandunnington.github.io/roact.html</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Roll Your Own React</h1>
+<p>(on Roku, just for an added twist)</p>
+</div>
+
+<p><style>
+.videoWrapper {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 */
+    padding-top: 25px;
+    height: 0;
+    margin-top: 24px;
+}
+.videoWrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+</style></p>
+
+<p>As part of our company Lunch-and-Learn series, I recently gave a talk about rolling your own <a href="https://reactjs.org/">React</a>. As an added twist to make it more fun, I decided to do it all on Roku. The full Roact (Roku + React) source code can be <a href="https://github.com/briandunnington/Roact">found here</a>.</p>
+
+<div class="videoWrapper">
+    <iframe width="560" height="349" src="https://www.youtube.com/embed/hd9AuPQ86fg?rel=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+</div>
+
+]]></description>
+            <pubDate>Wed, 28 Feb 2018 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/roact.html</guid>
+        </item>
+        <item>
+            <title>Streaming live drone footage using Azure Media Services</title>
+            <link>http://briandunnington.github.io/dronecast.html</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Streaming live drone footage using Azure Media Services</h1>
+<p>Directly from your drone to the world, via the the cloud</p>
+</div>
+
+<p><style>
+.maincontent h4 { margin: 16px 0 8px 0; }
+.img img { display: block; margin-bottom: 16px; border: solid 1px #666666; }
+.img span { text-align: center; }
+blockquote p { font-size: 90%; }
+blockquote pre { margin: 10px 0; }
+</style></p>
+
+<p>I have a <a href="https://www.dji.com/phantom-3-standard">DJI Phantom 3 Standard</a> drone and love to fly it around. You can get some really amazing shots from all sorts of unique perspectives. </p>
+
+<div class="img">
+<img src="images/dronecast_phantom.jpg"/>
+</div>
+
+<p>Usually, I simply use the DJI GO app to record video during flight and then download it from the SD card later for processing/editing. But DJI also offers the ability to live-stream the video to sites like YouTube and Facebook. That is pretty cool, but I wanted to live-stream the video to a custom site. The DJI GO app does support streaming to a custom RTMP endpoint, and since Azure Media Services allows ingesting live video via RTMP, I figured it would be a great fit.</p>
+
+<p>Microsoft's <a href="https://docs.microsoft.com/en-us/azure/media-services/media-services-portal-creating-live-encoder-enabled-channel">own documentation</a> does an OK job of explaining how to set up live video ingest, but it glosses over a few important bits of info. There are also a couple of gotchas when configuring the drone streaming settings, so here is the complete and accurate steps to stream live video from your drone.</p>
+
+<h3>1. Create a Media Services account</h3>
+
+<div class="img">
+<img src="images/dronecast_createmediaservice.png"/>
+</div>
+
+<h3>2. Create a live streaming channel</h3>
+
+<div class="img">
+<img src="images/dronecast_step1.png"/>
+</div>
+
+<div class="img">
+<img src="images/dronecast_step2.png"/>
+</div>
+
+<div class="img">
+<img src="images/dronecast_step3.png"/>
+</div>
+
+<div class="img">
+<img src="images/dronecast_step4.png"/>
+</div>
+
+<h3>3. Copy the resulting RTMP url</h3>
+
+<div class="img">
+<img src="images/dronecast_rtmpurl.png"/>
+</div>
+
+<h3>4. Create a new live event</h3>
+
+<div class="img">
+<img src="images/dronecast_liveevent.png"/>
+</div>
+
+<h3>5. Enable the Streaming Endpoint</h3>
+
+<div class="img">
+<img src="images/dronecast_enableendpoint.png"/>
+</div>
+
+<h3>6. Start the channel</h3>
+
+<div class="img">
+<img src="images/dronecast_startchannel.png"/>
+</div>
+
+<p>At this point, Azure is ready to ingest the incoming video stream and encode it into multi-bitrate streams that can be consumed by clients.</p>
+
+<p>Over in the DJI GO app...</p>
+
+<h3>1. General Settings > Select Live Broadcast Platform</h3>
+
+<div class="img">
+<img src="images/dronecast_djigo1.png"/>
+</div>
+
+<h3>2. Choose RTMP</h3>
+
+<div class="img">
+<img src="images/dronecast_djigo2.png"/>
+</div>
+
+<h3>3. Enter the RTMP url</h3>
+
+<div class="img">
+<img src="images/dronecast_djigo3.png"/>
+</div>
+
+<p><strong>NOTE:</strong> You must add an additional <code>/mystream</code> to the end of the url that you copied from the Azure portal. The value is not important, but the ingest will not work without the extra path info. </p>
+
+<div class="img">
+<img src="images/dronecast_djigo4.png"/>
+</div>
+
+<div class="img">
+<img src="images/dronecast_djigo5.png"/>
+</div>
+
+<p>When you are live streaming, the DJI GO app will show an indicator in the upper left corner.</p>
+
+<p>At this point, you are broadcasting your live stream to the world. The Azure portal has a handy feature that lets you view the live stream directly in the portal (as well as providing the live stream url).</p>
+
+<div class="img">
+<img src="images/dronecast_liveview.png"/>
+</div>
+
+]]></description>
+            <pubDate>Tue, 06 Feb 2018 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/dronecast.html</guid>
+            <image>http://briandunnington.github.io/images/dronecast_phantom.jpg</image>
+        </item>
+        <item>
+            <title>Redux + Roku = Redoku</title>
+            <link>http://briandunnington.github.io/redoku.html</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Redux + Roku = Redoku</h1>
+<p>Making Roku development less painful by making state changes more predictable</p>
+</div>
+
+<p>If you have done any JS development in the last several years, then you have no doubt encountered <a href="https://redux.js.org/">Redux</a>. From their own description it "helps you write applications that behave consistently". I have been doing a lot of Roku development as well, and one thing that is sorely needed is "more consistency". I liked Redux and the way it solved state management so much that I thought I should bring it over to the BrightScript/Roku world.</p>
+
+<h2>Usage</h2>
+
+<p>In your main() function, construct an associative array that represents your app's
+state structure and initial values. Pass this to <code>RedokuSetInitialState()</code> before
+showing your root Scene.</p>
+
+<p>In your root scene, call <code>RedokuRegisterReducer()</code> for each reducer in your app.
+Note that each reducer should target a 'section' (property) of the overall state,
+and that is the only portion of the state that it will be passed when called.
+Each 'section' that will be handled by a reducer must be an associative array.</p>
+
+<p>Ex: For a 'todos' reducer (<code>RedokuRegisterReducer("todos", todosReducer)</code>, set up
+your state like this:</p>
+
+<pre><code>{
+    todos: {
+        items: [...]
+    },
+    config: {
+    }
+}
+</code></pre>
+
+<p>Not this:</p>
+
+<pre><code>{
+    todos: [...],  'this should not be an array
+    config: {
+    }
+}
+</code></pre>
+
+<p>After you have registered all of your reducers, call <code>RedokuInitialize</code> from your
+root scene to set up the dispatch mechanisms and to trigger the initial reduction
+pass.</p>
+
+<p>Individual components can call any action creator functions to trigger state updates.
+Action creator functions should call <code>RedokuDispatch()</code> with a single action parameter.
+The action parameter should be an associative array with (at minimum) a <code>type</code>
+property and also contain any other properties as appropriate. You can also call
+<code>RedokuDispatch()</code> from a Task node at any point during its execution to report
+asynchronous state changes.</p>
+
+<p>Internally, calls to <code>RedokuDispatch()</code> will result in a call to <code>RedokuRunReducers</code>
+which will loop through all registered reducers and provide them with an opportunity
+to modify the state. If a given reducer does not respond to the action specified,
+simply return the passed-in state parameter. If the reducer needs to modify the state,
+make sure to create a copy of the state before mutating it and returning it. You
+can use <code>RedokuClone()</code> to easily create a copy of the state before modifying it.</p>
+
+<p>If the state changes, <code>m.global.state</code> will be updated. Any components can set
+up an observer on that field and update their UI as appropriate.</p>
+
+<h2>For Redux Javascript Developers <a id="redokuforjs"></a></h2>
+
+<p>If you are familiar with Redux in Javascript, most of the concepts have an analog
+version in Redoku.</p>
+
+<h4>store &amp; createStore()</h4>
+
+<p>You initialize your 'store' by calling <code>RedokuSetInitialState()</code> and
+<code>RedokuInitialize()</code>. The equivalent of <code>store.dispatch()</code> is <code>RedokuDispatch()</code>.
+State is stored in the global context, so the equivalent of <code>store.getState()</code> is
+to access <code>m.global.state</code>. You can set up an observer on <code>m.global.state</code> to be
+notified when it changes.</p>
+
+<h4>reducers</h4>
+
+<p>Redoku reducers are pure functions of the type <code>state =&gt; (state, action)</code> just
+like in Redux. There is no <code>combineReducers()</code> function, but instead you register
+each reducer independently using <code>RedokuRegisterReducer()</code>.</p>
+
+<h4>actions &amp; action creators</h4>
+
+<p>Actions and action creators are exactly the same as in Redux. Actions must have
+a <code>type</code> property along with any other additional data.</p>
+
+<h4>async actions &amp; thunk</h4>
+
+<p>There is no need for <code>thunk</code> or middleware in Redoku to handle async actions.
+Asynchronous logic is handled by Scene Graph Tasks. There are two ways to trigger
+async actions using Tasks:</p>
+
+<ol>
+<li>In the actual Task itself, dispatch your actions directly (when the task is
+  complete or at any point during its execution).</li>
+<li>In your components, spin up the Task and watch for its completion using
+  <code>observeField</code> and when it is complete, dispatch your actions from your
+  component.</li>
+</ol>
+
+<p>In both cases, the actions are just normal synchronous actions fired during/after
+any asynchronous activity.</p>
+
+<p>The full source code is available here: <a href="https://github.com/briandunnington/Redoku">Redoku</a></p>
+
+<p><em>(NOTE: If you like Redux, you probably like <a href="https://reactjs.org/">React</a> as well. Creating a React analog for Roku is quite a bit more complex, but stay tuned for a future blog post.)</em></p>
+
+]]></description>
+            <pubDate>Fri, 07 Jul 2017 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/redoku.html</guid>
+        </item>
+        <item>
+            <title>UWP GetHashCode warning</title>
+            <link>http://briandunnington.github.io/gethashcode_warning.html</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>UWP GetHashCode warning</h1>
+<p>GetHashCode may not work the way you think it does in UWP apps, and it could be breaking your app.</p>
+</div>
+
+<p>I have a few small apps in the Windows Store that I developed several years ago. For the most part, they just hum along and I 
+don't have to think about them very much. But the other day, I noticed a user review that said <a href="https://www.microsoft.com/en-us/store/p/riverflow/9nblggh0k7d4">riverFLOW</a> was no longer
+working. Since I had not updated the app at all since 2012, it was not suprising. The fix was relatively simple (turns out that
+the USGS, where I get the source data, had changed over to mandatory HTTPS connections and my app was still using the HTTP urls).</p>
+
+<p>However, when preparing to submit an updated package, I noticed that the app was behaving strangely on Windows 10 Mobile devices.
+Favortie rivers were not persisting across app restarts, and pinned rivers were causing the app to crash when launched. I dug into
+it and discovered something shocking (at least to me, at the time): string.GetHashCode was returning different values for the same
+input each time the app was run!</p>
+
+<p>Since the app dated all the way back to the Windows Phone 7 days, it was using the <a href="https://github.com/shawnburke/AgFx">AgFx</a> library which used GetHashCode-generated
+names for the data stored in isolated storage. Since the hash codes were no longer stable across app sessions, the data was effectively
+unretrievable. I found <a href="https://social.msdn.microsoft.com/Forums/sqlserver/en-US/74f88da4-1dec-4700-ad6c-c4b19c8165dc/stringgethashcode-now-returns-different-values-every-time-the-app-is-run-on-a-windows-10-device?forum=wpdevelop">another post</a> by a developer using the same library with the same issues that confirmed my findings.</p>
+
+<p>A quick trip to <a href="https://msdn.microsoft.com/en-us/library/system.string.gethashcode(v=vs.110).aspx">MSDN</a> made it clear that GetHashCode should not have been relied upon in the first place:</p>
+
+<blockquote>
+  <p>The hash code itself is not guaranteed to be stable. Hash codes for identical strings can differ across versions of the .NET Framework and across platforms (such as 32-bit and 64-bit) for a single version of the .NET Framework. <strong>In some cases, they can even differ by application domain</strong>.</p>
+  
+  <p>As a result, hash codes should never be used outside of the application domain in which they were created, they should never be used as key fields in a collection, and <strong>they should never be persisted</strong>. </p>
+</blockquote>
+
+<p>That was probably always the case, but since GetHashCode had always returned the same value for the same input (at least on the same platforms),
+it was surprising to me to see this new behavior. In my case, I didn't even need the filename hashing feature of AgFx since my data already
+had unique names, but I did find <a href="https://gfkeogh.blogspot.com/2016/07/windows-universal-gethashcode.html">this alternative</a> hashing function if you need a stable hash replacement.</p>
+
+<p>Hopefully you all are smarter than me and did not rely on assumptions about implementation details. Just because something has always worked
+one way, don't assume it always will.</p>
+
+]]></description>
+            <pubDate>Mon, 26 Dec 2016 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/gethashcode_warning.html</guid>
+        </item>
+        <item>
+            <title>MockMock - A mocking framework for UWP</title>
+            <link>http://briandunnington.github.io/uwp_unittesting.html</link>
+            <description><![CDATA[
+<!-- Main hero unit for a primary marketing message or call to action -->
+
+<div class="hero-unit">
+<h1>MockMock - A mocking framework for UWP</h1>
+<p>...or: how to generate classes on the fly when your language doesn't allow it</p>
+</div>
+
+<p>At my current employer, we have made it a point to focus on quality throughout the company. Nowhere is that more important than in the software that we build for our clients. 'Quality' can mean a lot of different things and there are a multitude of factors that go into writing quality software, both tangible and intangible. Before a line of code is written, the story writing, grooming, and estimating process helps set clear goals and expectations. Coding standards and conventions keep everybody on the same page. Continuous integration and a rigid QA process ensure consistent, reliable output. But one tool in our toolkit that we rely on heavily to ensure quality code is <a href="https://en.wikipedia.org/wiki/Test-driven_development">Test Driven Development</a>. By letting the tests drive the code development, we ensure that we are solving the right problems and at the same time increasing developer confidence that code changes will not have unforseen impacts on other parts of the system. </p>
+
+<p>With such a large focus on TDD, a good unit testing process is essential, and one of the key components is a solid mocking framework. By mocking the ancillary components and focusing on the system under test, we ensure that our code is doing what is expected, and just as importantly, not doing anything that isn't expected. As part of the Windows and System Integration practices, we normally rely on the vast library of available .NET mocking libraries available from the community, such as <a href="https://github.com/moq/moq4">Moq</a>, <a href="https://fakeiteasy.github.io/">FakeItEasy</a>, and <a href="https://github.com/telerik/JustMockLite">JustMock</a>. Writing mocks by hand can be both tedious and error-prone, but these tools make creating mocks quick and easy. Behind the scenes, nearly all .NET mocking libraries rely on the language's ability to dynamically produce IL code at runtime, specifically the classes in the <code>System.Reflection.Emit</code> namespace. By leveraging this powerful feature, the mocking libraries can reflect over classes or interfaces and dynamically construct a mock implementation that still satisfies the type-safety requirements of the language while simultaneously allowing for hooks to monitor and instrument the code execution.</p>
+
+<p>However, with the advent of Windows 8 and <del>Metro</del>/<del>Modern</del>/<del>Windows Store</del>/Universal apps, .NET developers suddenly had the new WinRT-based framework to contend with. One of the changes was that the <code>System.Reflection.Emit</code> assemblies were no longer available. This essentially meant that an <a href="http://geekswithblogs.net/mbrit/archive/2012/06/05/say-goodbye-to-system.reflection.emit-any-dynamic-proxy-generation-in-winrt.aspx">entire class of mocking libraries no longer worked</a>. There were a few attempts at workarounds, but none of them provided the simplicity and ease-of-use of the standard tools. Any barrier to quickly and easily writing and running tests undermines the effectiveness of TDD, so we knew that we would need to come up with a solution.</p>
+
+<p>I approached the problem from several vantage points and came up with a few ideas. I tried leveraging the <a href="https://msdn.microsoft.com/en-us/library/dd264736.aspx">dynamic capabilities of the language</a> to create code on the fly, but the language's type safety features would not allow an object to be both dynamic and a valid interface implementation at the same time. I tried creating our unit test projects targeted at the full .NET framework rather than the WinRT subset, and although that allowed us to reference the existing mocking tools, the new testing framework would not allow non-WinRT-based test projects to target a WinRT-based application.</p>
+
+<p>The approach I finally settled on was to leverage the <a href="https://msdn.microsoft.com/en-us/library/bb126445.aspx">Text Template Transformation Toolkit (T4)</a> functionality. T4 essentially lets you create code templates and then execute actual .NET code to generate new output. In our case, I used C# code to generate more C# code as the output, which could then be consumed by our unit test projects. I wrote some code that scanned a list of assemblies for any interfaces, and then reflected over the interface members to determine which fields, properties, methods, and events needed to be implemented. Since we had previously been fond of using Telerik's JustMock Lite library and its <a href="http://c2.com/cgi/wiki?">Arrange/Act/Assert</a> pattern, I decided to output API-compatible replacement mocks. So instead of referencing JustMock Lite and letting it dynamically generate the mocks on the fly, the T4 template was set up to automatically create the mocks at build time which could then be used in the unit tests in the same Arrange/Act/Assert pattern with the same API that developers were familiar with.</p>
+
+<h4>T4 template</h4>
+
+<pre><code>&lt;#@ template debug="false" hostspecific="false" language="C#" #&gt;
+&lt;#@ assembly name="System.Core" #&gt;
+&lt;#@ assembly name="System.Runtime" #&gt;
+&lt;#@ import namespace="System" #&gt;
+&lt;#@ import namespace="System.IO" #&gt;
+&lt;#@ import namespace="System.Text" #&gt;
+&lt;#@ import namespace="System.Reflection" #&gt;
+&lt;#@ import namespace="System.Linq" #&gt;
+&lt;#@ import namespace="System.Collections.Generic" #&gt;
+&lt;#@ output extension=".cs" #&gt;
+
+using System;
+
+namespace Tests.Mocks
+{
+&lt;#
+    var formatTypeName = new Func&lt;Type, string&gt;((type) =&gt; {
+        var typeName = type.ToString();
+        typeName = typeName.Replace("System.Void", "void");
+        typeName = typeName.Replace("`1", "");
+        typeName = typeName.Replace("`2", "");
+        typeName = typeName.Replace("`3", "");
+        typeName = typeName.Replace("[", "&lt;");
+        typeName = typeName.Replace("]", "&gt;");
+        if(typeName.EndsWith("&amp;")) typeName = "out " + typeName.Replace("&amp;", "");
+        return typeName;
+    });
+
+    var anyTypeFromAssembly = typeof(App.Sample);
+    var namespaceBuilder = new StringBuilder();
+    var assembly = Assembly.GetAssembly(anyTypeFromAssembly);
+    var types = assembly.GetTypes();
+    foreach(var type in types)
+    {
+        if(type.IsInterface)
+        {
+            var properties = new List&lt;PropertyInfo&gt;();
+            var methods = new List&lt;MethodInfo&gt;();
+            var events = new List&lt;EventInfo&gt;();
+            var interfaces = new List&lt;Type&gt;();
+            interfaces.Add(type);
+            interfaces.AddRange(type.GetInterfaces());
+            foreach(var i in interfaces)
+            {
+                properties.AddRange(i.GetProperties());
+                methods.AddRange(i.GetMethods());
+                events.AddRange(i.GetEvents());
+            }
+#&gt;
+public class &lt;#= "Mock" + formatTypeName(type).Replace("global::", "").Replace(type.Namespace, "").Substring(2) #&gt; : MockBase&lt;&lt;#= formatTypeName(type) #&gt;&gt;, &lt;#= formatTypeName(type) #&gt;
+{
+&lt;#
+            foreach(var property in properties)
+            {
+#&gt;
+    private &lt;#= formatTypeName(property.PropertyType) #&gt; _&lt;#= property.Name #&gt;;
+    public &lt;#= formatTypeName(property.PropertyType) #&gt; &lt;#= property.Name #&gt; 
+    {
+        get
+        {
+            try
+            {
+                throw new StackTraceHelperForMockingException();
+            }
+            catch(Exception exx)
+            {
+                &lt;#= formatTypeName(property.PropertyType) #&gt; val;
+                RecordProperty&lt;&lt;#= formatTypeName(property.PropertyType) #&gt;&gt;(exx, _&lt;#= property.Name #&gt;, out val);
+                return val;
+            }
+        }
+&lt;#              if(property.CanWrite)
+            {
+#&gt;
+        set
+        {
+            _&lt;#= property.Name #&gt; = value;
+        }
+&lt;#
+                }
+#&gt;
+    }
+&lt;#
+            }
+            foreach(var method in methods)
+            {
+                if(method.Name.StartsWith("get_") || method.Name.StartsWith("set_") || method.Name.StartsWith("remove_") || method.Name.StartsWith("add_")) continue;
+                var parameterList = "";
+                var anonymousObjectMemberList = "(object)null";
+                var outParameterSetters = "";
+                var parameters = method.GetParameters();
+                if(parameters != null &amp;&amp; parameters.Length &gt; 0)
+                {
+                    parameterList = String.Join(", ", parameters.Select((p) =&gt; formatTypeName(p.ParameterType) + " " + p.Name));
+                    anonymousObjectMemberList = "new { " + String.Join(", ", parameters.Select((p) =&gt; p.Name)) + " }";
+                    outParameterSetters = String.Join(" ", parameters.Where((p) =&gt; p.IsOut).Select((p) =&gt; p.Name + " = default(" + p.ParameterType.ToString().Replace("&amp;", "") + ");"));
+                }
+                var hasReturnValue = method.ReturnType.Name == "Void" ? false : true;
+                var returnType = hasReturnValue ? "&lt;" + formatTypeName(method.ReturnType) + "&gt;" : "";
+                var methodName = method.Name;
+                var genericArguments = method.GetGenericArguments();
+                if(genericArguments != null &amp;&amp; genericArguments.Length &gt; 0)
+                {
+                    methodName = methodName + "&lt;" + String.Join(", ", genericArguments.Select((g) =&gt; g.Name)) + "&gt;";
+                }
+#&gt;
+    public &lt;#= formatTypeName(method.ReturnType) #&gt; &lt;#= methodName #&gt;(&lt;#= parameterList #&gt;)
+    {   &lt;#= outParameterSetters #&gt;
+        try
+        {
+            throw new StackTraceHelperForMockingException();
+        }
+        catch(Exception exx)
+        {
+            var obj = &lt;#= anonymousObjectMemberList #&gt;;
+&lt;#
+                if(hasReturnValue)
+                {
+#&gt;
+            &lt;#= formatTypeName(method.ReturnType) #&gt; val;
+            var called = Record&lt;#= returnType #&gt;(exx, obj, out val);
+            return val;
+&lt;#
+                }
+                else
+                {
+#&gt;
+            var called = Record(exx, obj);
+&lt;#
+                }
+#&gt;
+        }
+    }
+&lt;#
+            }
+            foreach(var ev in events)
+            {
+#&gt;
+    public event &lt;#= formatTypeName(ev.EventHandlerType) #&gt; &lt;#= ev.Name #&gt;;
+&lt;#
+            }
+#&gt;
+}
+&lt;#
+        }
+    }
+#&gt;
+}
+</code></pre>
+
+<h4>Example Unit Test</h4>
+
+<pre><code>    public async Task SignUp_returns_UserAuth_for_valid_info()
+    {
+        // arrange
+        string expectedEmail = "test@test.email";
+        string expectedUsername = "testusername";
+        string expectedPassword = "testpassword";
+        var expectedAuthToken = "ABC!@#123";
+        var expectedUserId = 1234;
+        var expectedUserAuth = new UserAuth() { Auth = expectedAuthToken, User = new User() { UserId = expectedUserId } };
+        var mockSessionManager = Mock.Create&lt;ISessionManager&gt;();
+        var mockSession = Mock.Create&lt;ISession&gt;();
+        Mock.Arrange(() =&gt; mockSession.Signup(expectedEmail, expectedPassword, expectedUsername, Arg.AnyString)).Returns(Task.FromResult(expectedUserAuth));
+        Mock.Arrange(() =&gt; mockSessionManager.GetSession()).Returns(Task.FromResult(mockSession));
+
+        // act
+        var userManager = new UserManager(mockSessionManager);
+        var user = await userManager.SignUp(expectedEmail, expectedPassword, expectedUsername, null);
+
+        // assert
+        Assert.IsNotNull(user);
+        Assert.AreEqual(expectedUserId, user.UserId);
+        mockSessionManager.Assert();
+        mockSession.Assert();
+    }
+</code></pre>
+
+<p>When the prerelease bits of Windows 10 and the Universal Windows Platforms (UWP) apps came out, the restriction on <code>System.Reflection.Emit</code> still existed but the custom T4 solution still worked great. By the time the developer tools were RTMed, <code>System.Reflection.Emit</code> had been restored to the framework and was suddenly available again. The system had been working so good for us that I was able to simply replace the T4 code generation with dynamic proxy generation behind the scenes and all of our unit tests continued to work unchanged. In the end, it was great to see Microsoft resurrect the functionality but it was even better knowing that we had solved the problem and come up with an elegant solution to ensure that we continued to be able to produce maintainable, testable, quality software.</p>
+
+<p>PS: The updated code (no longer uses the T4 template technique) is available here: <a href="https://github.com/briandunnington/MockMock">MockMock</a></p>
+
+]]></description>
+            <pubDate>Mon, 31 Aug 2015 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/uwp_unittesting.html</guid>
+        </item>
+        <item>
+            <title>Run Node.js Azure Mobile Services locally</title>
+            <link>http://briandunnington.github.io/run-azure-mobile-services-locally.html</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Run Node.js Azure Mobile Services locally</h1>
+<p>Want to unit test or debug your Node.js-based Azure Mobile Service? Here's how.</p>
+</div>
+
+<p><style>
+.maincontent h4 { margin: 16px 0 8px 0; }
+.img img { display: block; margin-bottom: 16px; border: solid 1px #666666; }
+.img span { text-align: center; }
+blockquote p { font-size: 90%; }
+blockquote pre { margin: 10px 0; }
+</style></p>
+
+<p>For spinning up new mobile apps quickly, I am really liking <a href="http://azure.microsoft.com/en-us/services/mobile-services/">Azure Mobile Services</a>. If you aren't familiar with it, it is a Backend-as-a-Service (BaaS) similar to <a href="https://parse.com/">Parse</a>. Like other BaaS options, it does all of the hard work for handling social authentication, data storage, push notifications, and more. The Mobile Services management portal even has a built-in script editor that lets you create a complete backend including database and code completely online.</p>
+
+<p>While the built-in script editor is handy for quick prototyping, anybody building a non-trivial app will quickly run up against its limitations. Most folks would prefer to develop in the editor of their choice with all of the niceties like code completion, interactive debugging, testing support, etc. While it initially only supported <a href="https://nodejs.org/">Node.js</a>, Mobile Services has been updated to allow leveraging .NET using <a href="http://blogs.msdn.com/b/carlosfigueira/archive/2014/04/01/net-runtime-for-azure-mobile-services-first-impressions.aspx">WebApi</a> and if you chose that route, you can build your app locally using Visual Studio and take advantage of all of the benefits of local development and debugging.</p>
+
+<p>However, I often still prefer to use the Node.js backend for its simple-yet-powerful approach. Unfortunately, there is no official way to run and debug locally while using the Node.js backend. But, using a little bit of ingenuity, we can solve that problem.</p>
+
+<p>In general, the steps required are:</p>
+
+<ul>
+<li>Set up Mobile Services to use source control</li>
+<li>Download the infrastructure files that run your Mobile Services instance</li>
+<li>Set up Node.js and environment variables to mimic the Azure environment</li>
+<li>Install SQL Server Native Client and modify connection strings</li>
+</ul>
+
+<h4>Set up Mobile Services to use source control</h4>
+
+<p>Even if you don't plan to use source control (but really, why wouldn't you?), you still need to enable source control for your Mobile Service. There are lot of <a href="http://azure.microsoft.com/en-us/documentation/articles/mobile-services-store-scripts-source-control/">guides on how to do this</a> but here are some pictures to make it clear:</p>
+
+<div class="img">
+<img src="images/run-azure-mobile-services-locally-scm1.png"/>
+</div>
+
+<div class="img">
+<img src="images/run-azure-mobile-services-locally-scm2.png"/>
+</div>
+
+<div class="img">
+<img src="images/run-azure-mobile-services-locally-scm3.png"/>
+</div>
+
+<p>Once you have enabled Git on your Mobile Service, go ahead and clone the repository to your local machine:</p>
+
+<pre><code>git clone &lt;your-git-url&gt;
+</code></pre>
+
+<p>Don't worry too much about where you cloned it to because we will need to move the repository in a later step.</p>
+
+<h4>Download Mobile Services infrastructure files</h4>
+
+<p>Behind the scenes, a Mobile Service is just a special type of Azure Website. As such, you can use the <a href="http://blogs.msdn.com/b/benjaminperkins/archive/2014/03/24/using-kudu-with-windows-azure-web-sites.aspx">Kudu</a> tools to inspect and interact with your site. To access your Kudu control panel, navigate to:</p>
+
+<pre><code>https://your-mobile-services-site.scm.azure-mobile.net
+</code></pre>
+
+<p>There is a lot of neat tools provided there so I recommend you poke around a bit. But for now, we are interested in the <code>Debug Console</code>. (I use the Powershell version, but it doesn't really matter for this task.) When you enter the Debug Console, you will also see a directory/file listing. Click the <code>site</code> folder and then click the little download icon next to <code>wwwroot</code>. This will download a .zip file of your entire Mobile Service, including both your user-authored code as well as all of the Node modules and supporting files.</p>
+
+<div class="img">
+<img src="images/run-azure-mobile-services-locally-kudu1.png"/>
+</div>
+
+<p>Unzip the downloaded <code>wwwroot</code> files to your preferred location. Now we want to integrate the cloned repository into the <code>wwwroot</code> files, however; the <code>wwwroot</code> folder contains your user code in a the <code>App_Data\config\scripts</code> but the cloned repository code lives in <code>(your_repository)\service</code>. Go ahead and delete the entire <code>scripts</code> folder from <code>App_Data\config</code> and then copy your cloned repository into the <code>config</code> folder. Open up <code>runtime\core.js</code> and find the <code>getScriptsDirName()</code> function and modify it to return the new path:</p>
+
+<div class="img">
+<img src="images/run-azure-mobile-services-locally-webstorm3.png"/>
+</div>
+
+<p>Now any changes to your local repository will also appear at the correct location inside of the <code>wwwroot</code> folder. (If you were using any custom Node modules that were part of your user files, make sure to run <code>npm install</code> again after deleting the <code>scripts</code> folder and replacing it with your cloned repository folder.)</p>
+
+<h4>Set up Node.js and environment variables to mimic the Azure environment</h4>
+
+<p>Back in the Kudu control panel, click on <code>Environment</code>. You can see a lot of information here, but two important bits are:</p>
+
+<pre><code>64 bit process: False
+</code></pre>
+
+<p>and:</p>
+
+<pre><code>WEBSITE_NODE_DEFAULT_VERSION = 0.8.28
+</code></pre>
+
+<p>This tells you that your Mobile Service is running on a 32-bit (x86) architecture and is running Node.js version 0.8.28. If you don't already have Node installed, you should install this same version, which you can download for your OS <a href="http://nodejs.org/dist/v0.8.28/">from here</a>. If you already have a later version of Node installed, it may work but you will encounter issues with some of the referenced modules. (I did try to use 0.10.36 but after struggling with npm dependencies for an hour, I decided it was not worth the effort).</p>
+
+<hr />
+
+<p><a name="x64"></a></p>
+
+<blockquote>
+  <p>A note about x64: I originally tried to get this running using 64-bit Node but ran into a few hurdles. First, you will need a 64-bit version of the <a href="https://www.npmjs.com/package/msnodesql"><code>msnodesql</code></a> module. You can either <a href="http://tech.pro/tutorial/1848/getting-nodejs--sql-server--azure-to-work-together">compile it yourself</a> (which requires Python and C++ and looks like a pain) or try the <a href="https://www.npmjs.com/package/node-sqlserver-unofficial"><code>node-sqlserver-unofficial</code></a> pre-compiled binaries. I tried the later but no matter what I did, i just kept getting</p>
+
+<pre><code>  Error: [Microsoft][ODBC Driver Manager] Data source name not found and no default driver specified (SqlState: IM002, Code: 0)
+</code></pre>
+  
+  <p>If you can get the SQL dependency sorted out, you will also need to update the <code>tripwire</code> module to use a 64-bit version as well. At that point, it might run, but keep in mind that farther you veer from an identical Azure environment, the more likely you will be to introduce subtle issues.</p>
+</blockquote>
+
+<hr />
+
+<p>Now you have the source code downloaded and Node installed, but you aren't quite done yet. In order to get a debugging environment set up, you need to make sure all of those environment variables are also set up. These instructions are for <a href="https://www.jetbrains.com/webstorm/">WebStorm</a> but your editor of choice probably has a similar set of steps. </p>
+
+<div class="img">
+<img src="images/run-azure-mobile-services-locally-webstorm1.png"/>
+</div>
+
+<p>Set <code>app.js</code> to be the starting point for the Node server. In the <code>Environment Variables</code> section, you need to input all of the Environment Variables as listed in the Kudu control panel. You definitely don't want to retype all of that, but you wont have to. From the Kudu main page, click <code>App Settings</code> and it will dump all of the values out in JSON format. Copy the whole block and head over to <a href="http://jsbeautifier.org/">JsBeautifier</a>, paste it in, and 'beautify' it. Now, paste the formatted JSON into your favorite text editor for some find-and-replace fun. For instance, WebStorm wants the values in the format:</p>
+
+<pre><code>Name=Value
+</code></pre>
+
+<p>So to get your JSON into that format:</p>
+
+<ul>
+<li>Delete the opening and closing { }</li>
+<li>Remove the beginning spaces and quotation mark</li>
+<li>Remove the trailing quotation mark and comma</li>
+<li>Replace the separating spaces and colon with an equal sign</li>
+</ul>
+
+<div class="img">
+<img src="images/run-azure-mobile-services-locally-replace.png"/>
+</div>
+
+<p>After the find-and-replace, copy the whole block of text and paste it back into WebStorm's <code>Environment Variables</code> configuration section.</p>
+
+<div class="img">
+<img src="images/run-azure-mobile-services-locally-webstorm2.png"/>
+</div>
+
+<p>There are two more environment variables that you need to set manually:</p>
+
+<pre><code>HOME=&lt;full-path-to-your-wwwroot&gt;
+PORT=55555
+</code></pre>
+
+<p>(The <code>PORT</code> can be whatever port you want that won't conflict with any other services you already have running.)</p>
+
+<p>At this point, you should be able to start and run the local server. However, any data-access logic will most likely fail until we set up the SQL Server Native Client.</p>
+
+<h4>Install SQL Server Native Client and modify connection string</h4>
+
+<p>In order to connect to the underlying Azure SQL Server database, you need to have the SQL Server Native Client installed. To see if you already have it installed, open the ODBC Data Source Administrator from Control Panel (make sure you open the 32-bit version if applicable). If you have it installed, it will show up on the <code>Drivers</code> tab:</p>
+
+<div class="img">
+<img src="images/run-azure-mobile-services-locally-sql.png"/>
+</div>
+
+<p>If you don't have it, you can get it as part of the <a href="http://www.microsoft.com/en-us/download/details.aspx?id=29065">SQL Server Feature Pack</a> or here is a <a href="http://go.microsoft.com/fwlink/?LinkID=239647&amp;clcid=0x409">direct link</a>. This installs version 11.0 and Azure Mobile Service actually uses version 10.0, but it works fine with version 11.0 as well. You will have to update your connection strings though: simply open up your <code>Environment Variables</code> and update the version number for the following two entries:</p>
+
+<pre><code>MS_SqlConnectionString": "Driver={SQL Server Native Client 10.0};Server=...
+UserConnectionString": "Driver={SQL Server Native Client 10.0};Server=...
+</code></pre>
+
+<p>Now when you run your local instance, any of your data-access logic should be able to talk to the remote Azure SQL Server as well. Keep that in mind when you are debugging/testing - you are communicating with and modifying the live database. Of course, you could update your connection strings to point to a local/test database, but that is outside of the scope of this article.</p>
+
+<h4>Caveats</h4>
+
+<p>Even though your Mobile Service is now running locally, keep in mind that there might be a few things that do not work the same as in production. Social authentication (via Facebook, Twitter, etc) will likely not work since you need to register specific urls with those services (and they will not be able to contact your localhost instance). Push notifications via the Notification Hubs may not work (though there is probably a work-around via changing some environment variables). That said, the point it not to stand up a fully functional replacement but instead to allow you to write unit tests and debug your code locally instead of relying on <code>console.log</code> output and the  inefficient <code>change-commit-test-repeat</code> cycle.</p>
+
+<p>In the end, this seems like a lot of work to get things set up, but after having done it once, it really isn't too hard and the benefits are definitely worth it. <a href="http://twitter.com/briandunnington">Shoot me a message</a> on Twitter if you try this approach and let me know how it goes.</p>
+
+]]></description>
+            <pubDate>Tue, 24 Mar 2015 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/run-azure-mobile-services-locally.html</guid>
+        </item>
+        <item>
+            <title>Compare Across Forks</title>
+            <link>http://briandunnington.github.io/compare_across_forks.html</link>
+            <description><![CDATA[
+<!-- Main hero unit for a primary marketing message or call to action -->
+
+<div class="hero-unit">
+<h1>Compare Across Forks</h1>
+<p>My new favorite feature on GitHub</p>
+</div>
+
+<p>There are lots of ways to work with Git and GitHub on Windows and I use the <a href="https://windows.github.com/">GitHub for Windows</a> app, <a href="https://code.google.com/p/tortoisegit/">TortoiseGit</a>, and the <a href="http://git-scm.com/docs/gittutorial">command line</a> daily for various tasks. But my current new favorite feature is actually built in to the GitHub website.</p>
+
+<p>Say you have forked a repository, make some changes, and then push them up to your fork. If you made your changes on a new branch, GitHub will take notice and offer up a handy option to create a pull request:</p>
+
+<p><br><img src="/images/compare_across_forks2.png" width="570"><br><br></p>
+
+<p>But if you were a bad kid and pushed your changes on the <code>master</code> branch, GitHub silently shames you and does not offer up the handy link (though it is also useful if you want to create a PR for changes that were not recently made). By using the <code>Compare across forks</code>, you can simply select your fork and your branch and generate the PR quickly and painlessly.</p>
+
+<p><br><img src="/images/compare_across_forks.png" width="570"><br><br></p>
+
+<p>I am sure this feature is old news to most folks, but I have been finding it extra useful lately so I thought I would share.</p>
+
+]]></description>
+            <pubDate>Tue, 10 Mar 2015 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/compare_across_forks.html</guid>
+        </item>
+        <item>
+            <title>Triggering Storyboards with data binding</title>
+            <link>http://briandunnington.github.io/triggering_storyboards_with_databinding.html</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Triggering Storyboards with data binding</h1>
+<p>A clean way for your viewmodel's properties to trigger storyboard animations</p>
+</div>
+
+<p>Creating animations in XAML is pretty easy using <a href="http://msdn.microsoft.com/en-us/library/ms742868%28v=vs.110%29.aspx">Storyboards</a>, but after you create them, you have to trigger them somehow. There are a bunch of ways to do this, but each has its own shortcomings if you want to trigger your animation based on viewmodel changes:</p>
+
+<p><em>DataTrigger</em> &amp; <em>Trigger</em> - Not supported in WinRT apps so they are non-starters.</p>
+
+<p><em>EventTrigger</em> - Triggers your animation in response to an event. These are still supported in WinRT but they can only hook up to the <code>Loaded</code> event so it is effectively inaccessible from a viewmodel.</p>
+
+<p><em>Storyboard.Begin() method</em> - straight to the point, but not easy to databind to since it is a method.</p>
+
+<p><em>VisualStateManager</em> - This is essentially the replacement for DataTriggers, but again, it requires calling a method (<code>VisualStateManager.GoToState()</code>) to trigger it.</p>
+
+<p><em>Behaviors</em> - Code like <a href="http://dotnetbyexample.blogspot.com/2012/10/a-winrt-behavior-to-start-storyboard-on.html">this</a> can trigger a storyboard using a custom behavior, but (and maybe this is just me) I rarely use behaviors and find them kind of clunky for some reason. Just my opinion.</p>
+
+<p>So where does that leave us? How about this:</p>
+
+<pre><code>&lt;Storyboard common:StoryboardHelper.BeginIf="{Binding IsLoggedIn}"&gt;
+    &lt;DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(CompositeTransform.TranslateY)" Storyboard.TargetName="StartSessionOverlay"&gt;
+        &lt;EasingDoubleKeyFrame KeyTime="0:0:0" Value="640"/&gt;
+        &lt;EasingDoubleKeyFrame KeyTime="0:0:0.3" Value="0"/&gt;
+    &lt;/DoubleAnimationUsingKeyFrames&gt;
+&lt;/Storyboard&gt;
+</code></pre>
+
+<p>Using a custom <a href="http://msdn.microsoft.com/en-us/library/windows/apps/hh965327.aspx">attached property</a>, we can set up a mechanism that allows declarative databinding in the XAML and yet runs arbitrary code behind the scenes. The implementation is straight-forward:</p>
+
+<pre><code class="csharp"><span class="keyword">using</span> System;
+<span class="keyword">using</span> System.Collections.Generic;
+<span class="keyword">using</span> System.Text;
+<span class="keyword">using</span> Windows.UI.Xaml;
+<span class="keyword">using</span> Windows.UI.Xaml.Controls;
+<span class="keyword">using</span> Windows.UI.Xaml.Media.Animation;
+
+<span class="keyword">namespace</span> Demo
+{
+    <span class="keyword">public</span> <span class="keyword">class</span> StoryboardHelper : DependencyObject
+    {
+        <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">bool</span> GetBeginIf(DependencyObject obj)
+        {
+            <span class="keyword">return</span> (<span class="keyword">bool</span>)obj.GetValue(BeginIfProperty);
+        }
+
+        <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> SetBeginIf(DependencyObject obj, <span class="keyword">bool</span> <span class="keyword">value</span>)
+        {
+            obj.SetValue(BeginIfProperty, <span class="keyword">value</span>);
+        }
+
+        <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">readonly</span> DependencyProperty BeginIfProperty = DependencyProperty.RegisterAttached(<span class="string">&quot;BeginIf&quot;</span>, <span class="keyword">typeof</span>(<span class="keyword">bool</span>), <span class="keyword">typeof</span>(StoryboardHelper), <span class="keyword">new</span> PropertyMetadata(<span class="keyword">false</span>, BeginIfPropertyChangedCallback));
+
+        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> BeginIfPropertyChangedCallback(DependencyObject s, DependencyPropertyChangedEventArgs e)
+        {
+            <span class="keyword">var</span> storyboard = s <span class="keyword">as</span> Storyboard;
+            <span class="keyword">if</span> (storyboard == <span class="keyword">null</span>)
+                <span class="keyword">throw</span> <span class="keyword">new</span> InvalidOperationException(<span class="string">&quot;This attached property only supports Storyboards.&quot;</span>);
+
+            <span class="keyword">var</span> begin = (<span class="keyword">bool</span>)e.NewValue;
+            <span class="keyword">if</span> (begin) storyboard.Begin();
+            <span class="keyword">else</span> storyboard.Stop();
+        }
+    }
+}
+</code></pre>
+
+<p>Attached properties have been solving a lot of little things like this for me lately so I will probably write about them some more in the future.</p>
+
+]]></description>
+            <pubDate>Thu, 24 Apr 2014 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/triggering_storyboards_with_databinding.html</guid>
+        </item>
+        <item>
+            <title>Declare Bluetooth capability for Windows Store and Windows Phone 8.1 apps</title>
+            <link>http://briandunnington.github.io/bluetooth_capability.html</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Declare Bluetooth capability for Windows Store and Windows Phone 8.1 apps</h1>
+<p></p>
+</div>
+
+<p>If anybody ever needs to communicate with a Bluetooth device from a Windows Store or Windows Phone 8.1 app, you have to manually add the following to your <code>package.appxmanifest</code> file (it cannot be added through any UI):</p>
+
+<pre>
+<span style='color:#a65700; '>&lt;</span><span style='color:#666616; '>m2</span><span style='color:#800080; '>:</span><span style='color:#5f5035; '>DeviceCapability</span> <span style='color:#274796; '>Name</span><span style='color:#808030; '>=</span><span style='color:#0000e6; '>"</span><span style='color:#0000e6; '>bluetooth.rfcomm</span><span style='color:#0000e6; '>"</span><span style='color:#a65700; '>></span>
+    <span style='color:#a65700; '>&lt;</span><span style='color:#666616; '>m2</span><span style='color:#800080; '>:</span><span style='color:#5f5035; '>Device</span> <span style='color:#274796; '>Id</span><span style='color:#808030; '>=</span><span style='color:#0000e6; '>"</span><span style='color:#0000e6; '>any</span><span style='color:#0000e6; '>"</span><span style='color:#a65700; '>></span>
+        <span style='color:#a65700; '>&lt;</span><span style='color:#666616; '>m2</span><span style='color:#800080; '>:</span><span style='color:#5f5035; '>Function</span> <span style='color:#274796; '>Type</span><span style='color:#808030; '>=</span><span style='color:#0000e6; '>"</span><span style='color:#0000e6; '>name:serialPort</span><span style='color:#0000e6; '>"</span> <span style='color:#a65700; '>/></span>
+    <span style='color:#a65700; '>&lt;/</span><span style='color:#666616; '>m2</span><span style='color:#800080; '>:</span><span style='color:#5f5035; '>Device</span><span style='color:#a65700; '>></span>
+<span style='color:#a65700; '>&lt;/</span><span style='color:#666616; '>m2</span><span style='color:#800080; '>:</span><span style='color:#5f5035; '>DeviceCapability</span><span style='color:#a65700; '>></span>
+</pre>
+
+<p>Don't ask how long that took to figure out =)</p>
+
+<p><strong>UPDATE:</strong> I finally found the <a href="http://msdn.microsoft.com/en-us/library/windows/apps/dn263090.aspx">documentation on MSDN</a> for this and it describes the valid values for the various attributes.</p>
+
+]]></description>
+            <pubDate>Fri, 04 Apr 2014 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/bluetooth_capability.html</guid>
+        </item>
+        <item>
+            <title>Run arbitrary code on the UI thread asynchronously</title>
+            <link>http://briandunnington.github.io/uitask.html</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Run arbitrary code on the UI thread asynchronously</h1>
+<p>A gotcha and a solution for easily running async code on the UI thread from a background thread.</p>
+</div>
+
+<p>With the advent of the <code>async</code> and <code>await</code> keywords in .NET, it is super easy to run arbitrary code asynchronously on a background thread. Everybody is familiar with using <code>Task.Run()</code> to do something like this:</p>
+
+<pre><code class="csharp">Debug.WriteLine(<span class="string">&quot;before Task.Run()&quot;</span>);
+<span class="keyword">await</span> Task.Run(<span class="keyword">async</span> () =&gt;
+{
+    Debug.WriteLine(<span class="string">&quot;in Task.Run() - before long running process&quot;</span>);
+    <span class="keyword">await</span> Task.Delay(1000);
+    Debug.WriteLine(<span class="string">&quot;in Task.Run() - after long running process&quot;</span>);
+});
+Debug.WriteLine(<span class="string">&quot;after Task.Run()&quot;</span>);
+</code></pre>
+
+<p>The code is straight-forward. The calling code calls <code>Task.Run()</code> and waits for it to finish, including the <code>await</code>-ed code that is being run inside of the task. As expected, the output is:</p>
+
+<pre>
+before Task.Run()
+in Task.Run() - before long running process
+in Task.Run() - after long running process
+after Task.Run()
+</pre>
+
+<p>So running async code on a background thread is dead easy. What about running async code on the UI thread? It is a common scenario - you have some background thread that reads data or whatever and you need to update some UI based on that operation. The usual tool to use in this case is the CoreDispatcher's <a href="http://msdn.microsoft.com/en-us/library/windows/apps/windows.ui.core.coredispatcher.runasync.aspx">RunAsync()</a> method. If we rewrote our example above, it would look like:</p>
+
+<pre><code class="csharp">Debug.WriteLine(<span class="string">&quot;before Dispatcher.RunAsync()&quot;</span>);
+<span class="keyword">await</span> Dispatcher.RunAsync(CoreDispatcherPriority.Normal, <span class="keyword">async</span> () =&gt;
+{
+    Debug.WriteLine(<span class="string">&quot;in Dispatcher.RunAsync() - before long running process&quot;</span>);
+    <span class="keyword">await</span> Task.Delay(1000);
+    Debug.WriteLine(<span class="string">&quot;in Dispatcher.RunAsync() - after long running process&quot;</span>);
+});
+Debug.WriteLine(<span class="string">&quot;after Dispatcher.RunAsync()&quot;</span>);
+</code></pre>
+
+<p>But if you run this code, you will notice something strange. The output is:</p>
+
+<pre>
+before Dispatcher.RunAsync()
+in Dispatcher.RunAsync() - before long running process
+after Dispatcher.RunAsync()
+in Dispatcher.RunAsync() - after long running process
+</pre>
+
+<p>The outer <code>await</code> returned control to the method before the inner <code>await</code> was complete. Is it a bug in the framework? Nope. The difference is in the argument type passed to <code>Task.Run()</code> and <code>CoreDispatcher.RunAsync()</code>. In <code>Task.Run()</code>, the argument is of type <code>Func&lt;Task&gt;</code> so the resulting <code>Task</code> is also <code>await</code>-ed. But the argument passed to <code>CoreDispatcher.RunAsync()</code> is of type <a href="http://msdn.microsoft.com/en-us/library/windows/apps/windows.ui.core.dispatchedhandler.aspx">DispatchedHandler</a> which is a delegate that returns <code>void</code>. Since it returns <code>void</code>, the inner code block cannot be <code>await</code>-ed and returns immediately, which returns control to the outer block which continues to execute.</p>
+
+<p>So now that you know about this potential pitfall, what should you do about it? Well, the entire point of using the <code>CoreDispatcher</code> in the first place was to emulate <code>Task.Run()</code>'s ability to execute a block of code on another thread (specifically the UI thread). What we really need (and wanted all along) was something like <code>UITask.Run()</code> that takes the same <code>Func&lt;Task&gt;</code> argument and results in the same behavior but on the UI thread instead of a background thread.</p>
+
+<p>So, I present to you the <code>UITask</code> class (full source code at the end of the article). If we rewrite our example:</p>
+
+<pre><code class="csharp">Debug.WriteLine(<span class="string">&quot;before UITask.Run()&quot;</span>);
+<span class="keyword">await</span> UITask.Run(<span class="keyword">async</span> () =&gt;
+{
+    Debug.WriteLine(<span class="string">&quot;in UITask.Run() - before long running process&quot;</span>);
+    <span class="keyword">await</span> Task.Delay(1000);
+    Debug.WriteLine(<span class="string">&quot;in UITask.Run() - after long running process&quot;</span>);
+});
+Debug.WriteLine(<span class="string">&quot;after UITask.Run()&quot;</span>);
+</code></pre>
+
+<p>Now we get the expected output:</p>
+
+<pre>
+before UITask.Run()
+in UITask.Run() - before long running process
+in UITask.Run() - after long running process
+after UITask.Run()
+</pre>
+
+<p>Behind the scenes, the <code>UITask</code> class still relies on the <code>CoreDispatcher</code> to marshal the call back to the UI thread, but it wraps it in a <a href="http://msdn.microsoft.com/en-us/library/dd449174(v=vs.110).aspx">TaskCompletionSource</a> so we can wait until the inner code block is actually done. Note that because it still relies on the <code>CoreDispatcher</code>, you need to intialize <code>UITask</code> with an instance of the <code>CoreDispatcher</code> when you app starts up.</p>
+
+<p>Full source for <code>UITask</code>:</p>
+
+<pre><code class="csharp"><span class="keyword">using</span> System;
+<span class="keyword">using</span> System.Threading.Tasks;
+<span class="keyword">using</span> Windows.UI.Core;
+
+<span class="keyword">namespace</span> UITaskSample
+{
+    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">class</span> UITask
+    {
+        <span class="keyword">static</span> CoreDispatcher dispatcher;
+
+        <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> Initialize(CoreDispatcher dispather)
+        {
+            UITask.dispatcher = dispather;
+        }
+
+        <span class="keyword">public</span> <span class="keyword">static</span> Task Run(Action action)
+        {
+            <span class="keyword">if</span> (dispatcher == <span class="keyword">null</span>)
+                <span class="keyword">throw</span> <span class="keyword">new</span> InvalidOperationException(<span class="string">&quot;UITask must be initialized with a dispatcher before calling Run()&quot;</span>);
+
+            <span class="keyword">var</span> tcs = <span class="keyword">new</span> TaskCompletionSource&lt;<span class="keyword">bool</span>&gt;();
+            <span class="keyword">var</span> ignore = dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =&gt;
+            {
+                <span class="keyword">try</span>
+                {
+                    action();
+                    tcs.TrySetResult(<span class="keyword">true</span>);
+                }
+                <span class="keyword">catch</span> (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+            });
+            <span class="keyword">return</span> tcs.Task;
+        }
+
+        <span class="keyword">public</span> <span class="keyword">static</span> Task Run(Task task)
+        {
+            <span class="keyword">return</span> Run(() =&gt; task);
+        }
+
+        <span class="keyword">public</span> <span class="keyword">static</span> Task Run(Func&lt;Task&gt; taskFunc)
+        {
+            <span class="keyword">if</span> (dispatcher == <span class="keyword">null</span>)
+                <span class="keyword">throw</span> <span class="keyword">new</span> InvalidOperationException(<span class="string">&quot;UITask must be initialized with a dispatcher before calling Run()&quot;</span>);
+
+            <span class="keyword">var</span> tcs = <span class="keyword">new</span> TaskCompletionSource&lt;<span class="keyword">bool</span>&gt;();
+            <span class="keyword">var</span> ignore = dispatcher.RunAsync(CoreDispatcherPriority.Normal, <span class="keyword">async</span> () =&gt;
+            {
+                <span class="keyword">try</span>
+                {
+                    <span class="keyword">await</span> taskFunc();
+                    tcs.TrySetResult(<span class="keyword">true</span>);
+                }
+                <span class="keyword">catch</span> (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+            });
+            <span class="keyword">return</span> tcs.Task;
+        }
+    }
+}
+</code></pre>
+
+]]></description>
+            <pubDate>Thu, 03 Apr 2014 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/uitask.html</guid>
+        </item>
+        <item>
+            <title>Azure Mobile Services: No &#39;id&#39; member found on type</title>
+            <link>http://briandunnington.github.io/azure_mobile_services_no_id.html</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Azure Mobile Services: No 'id' member found on type</h1>
+<p>When using Azure Mobile Services, you can sometimes get an error with the message "No 'id' member found on type" even when your type has an 'id' member. Here is why and how to solve it.</p>
+</div>
+
+<p>While developing my latest Windows Phone app, <a href="http://www.windowsphone.com/en-us/store/app/quandry/281499cb-f9fe-427f-8906-7fa3a02673ab">Quandry</a>, I ran into an issue that took some detective work to figure out, so I thought I would share the solution. I am using the most-excellent <a href="http://www.windowsazure.com/en-us/services/mobile-services/">Azure Mobile Services</a> to handle backend data storage, authentication, and notifications, and if you haven't checked it out yet, you definitely should. Most of the time, it 'just works' and really solves a lot of the recurring things that mobile apps need.</p>
+
+<p>Using Mobile Service for data storage is super easy. You just pass in an instance of your data model class, and the Azure SDK handles serializing it to JSON and sending it over the wire, where it gets stored into a SQL database. To facilitate data storage, each item needs a unique 'id' property. If you try to serialize and send data based on a class with no 'id' property, Azure will complain and remind you to add the property - makes sense.</p>
+
+<p>I had created my model class and was happily saving data to Azure when I started getting an error: "No 'id' member found on type". Hmmm, I had been saving this same object previously and it worked fine. I quadruple checked that the type did indeed have an 'id' member (it did) and I just could not figure it out. Even stranger, sometimes it <em>would</em> work without any code changes, then go back to failing on the next run.</p>
+
+<p>Luckily, the Azure folks have <a href="https://github.com/WindowsAzure/azure-mobile-services">open-sourced their SDK</a> so I cracked it open and took a peek. Stepping through the code, I was able to ascertain what was happening. Normally, you would write something like this:</p>
+
+<p><code>await client.GetTable&lt;Item&gt;().InsertAsync(new Item());</code></p>
+
+<p>In order to know which table to store your data in, the SDK uses the name of the type being passed in - in this case, 'Item'. I determined that the bug only manifests itself when you are using a data model class that inherits from another model class (ex: you have a SpecialItem type that inherits from Item). In this case, you might write:</p>
+
+<p><code>await client.GetTable&lt;Item&gt;().InsertAsync(new SpecialItem());</code></p>
+
+<p>But this will fail. The cause is that the logic to standardize the Id property to lowercase is not run in this scenario. In the CreateProperties method in MobileServiceContractResolver, one of the first things it does is:</p>
+
+<p><code>if (tableNameCache.ContainsKey(type)) {...}</code></p>
+
+<p>However, in this scenario, the tableNameCache does not contain the type, since the table is named 'Item' and the type is 'SpecializedItem'. As such, all of the logic to find the Id property is skipped. Later, in ResolveIdProperty, the Id property cannot be found because it does not match MobileServiceUrlBuilder.IdPropertyName (which is always "id").</p>
+
+<p>The solution is to pass the subclassed type as the generic parameter in the GetTable call like this:</p>
+
+<p><code>await client.GetTable&lt;SpecializedItem&gt;().InsertAsync(new SpecializedItem());</code></p>
+
+<p>Of course this means that the Mobile Service client will try to insert your data into a table called 'SpecializedItem' (which you probably dont want) so you need to set the table name on the SpecializedItem class (using DataContract(Name="Item") or the JsonContainer or DataTable attributes).</p>
+
+<p>This is probably a pretty rare edge case, but when I searched on the Mobile Services forums, I did see a few other folks encountering the same error so I <a href="http://social.msdn.microsoft.com/Forums/windowsazure/en-US/cacb2a22-ec54-4cdf-9f3c-fe8cf83cde41/bug-report-no-id-member-found-on-type?forum=azuremobile#33f5587f-fc1e-4a2b-99b5-c63c48409191">reported my findings</a> to the team. <strike>They could probably fix it by looking at the base type name if the original type name is not found, but they probably shouldn't do that. Most of the time, you wouldn't need to insert a subclasses type into a base type's table, and if you do, you simply need to decorate the subclassed type with the appropriate DataContract attribute to indicate that you really intended that behavior.</strike></p>
+
+<p><b>UPDATE:</b> Looks like the team went ahead and fixed this bug: <a href="https://github.com/WindowsAzure/azure-mobile-services/pull/189">https://github.com/WindowsAzure/azure-mobile-services/pull/189</a></p>
+
+]]></description>
+            <pubDate>Mon, 06 Jan 2014 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/azure_mobile_services_no_id.html</guid>
+        </item>
+        <item>
+            <title>Sharing Html &amp; Images via the Share Contract</title>
+            <link>http://briandunnington.github.io/sharing_html_via_share_contract.html</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Sharing Html & Images via the Share Contract</h1>
+<p>The right way to share html that contains images (and other external resources) via the Share charm.</p>
+</div>
+
+<blockquote>
+  <p>tl;dr - Although all of Microsoft's samples indicate that you should use <code>ms-appx:///</code> for external content, you actually need to use <code>ms-appx-web:///</code> or the content won't show up in the receiving app.</p>
+</blockquote>
+
+<p>Just a quick note to myself (and anybody else out there that stumbles upon this) so I remember how to do this correctly next time. When sharing content via the Share charm in Windows 8.x, there are several built-in supported data types, including text, image, links, and html. When sharing html that contains references to external resources (such as images or css) that are part of your app package, you have to handle those resources in a specific way in order for them to be shared properly.</p>
+
+<p>Fortunately, Microsoft has a helpful link on MSDN called '<a href="http://msdn.microsoft.com/en-us/library/windows/apps/hh973055.aspx">How to share HTML</a>' that walks you through everything you need to do:</p>
+
+<pre><code class="csharp"><span class="keyword">private</span> <span class="keyword">void</span> RegisterForShare()
+{
+    DataTransferManager dataTransferManager = DataTransferManager.GetForCurrentView();
+    dataTransferManager.DataRequested += <span class="keyword">new</span> TypedEventHandler&lt;DataTransferManager, 
+        DataRequestedEventArgs&gt;(<span class="keyword">this</span>.ShareHtmlHandler);
+}
+
+<span class="keyword">private</span> <span class="keyword">void</span> ShareHtmlHandler(DataTransferManager sender, DataRequestedEventArgs e)
+{
+    DataRequest request = e.Request;
+    request.Data.Properties.Title = <span class="string">&quot;Share Html Example&quot;</span>;
+    request.Data.Properties.Description = 
+        <span class="string">&quot;Demonstrates how to share an HTML fragment with a local image.&quot;</span>;
+
+    <span class="keyword">string</span> localImage = <span class="string">&quot;ms-appx:///Assets/Logo.png&quot;</span>;
+    <span class="keyword">string</span> htmlExample = <span class="string">&quot;&lt;p&gt;Here is a local image: &lt;img src=\&quot;&quot;</span> + localImage + <span class="string">&quot;\&quot;&gt;.&lt;/p&gt;&quot;</span>;
+    <span class="keyword">string</span> htmlFormat = HtmlFormatHelper.CreateHtmlFormat(htmlExample);
+    request.Data.SetHtmlFormat(htmlFormat);
+
+    <span class="comment">// Because the HTML contains a local image, we need to add it to the ResourceMap.</span>
+    RandomAccessStreamReference streamRef = 
+         RandomAccessStreamReference.CreateFromUri(<span class="keyword">new</span> Uri(localImage));
+    request.Data.ResourceMap[localImage] = streamRef;
+}
+</code></pre>
+
+<p>Simple enough stuff: add the code, fire up your apps, invoke the Share charm, pick a target and your content is shared just like you expected. But actually, it isn't just like you expected. If you follow MS's code sample, your images (or css, etc) won't show up.</p>
+
+<p>I ran into this and figured it has to be something to do with the <a href="http://msdn.microsoft.com/en-us/library/windows/apps/windows.applicationmodel.datatransfer.datapackage.resourcemap.aspx">ResourceMap</a> that, umm...mapped the external resources. =) But I fiddled with it for way too long before deciding that I was going down the wrong path.</p>
+
+<p>After more Googling and trial and error, I finally stumbled up on the solution: you must use <code>ms-appx-web:///</code> as the protocol for external resources that live in your app package and are referenced via shared html.</p>
+
+<p><a href="http://www.jasonfollas.com/blog/post/2012/07/09/Metro-Introducing-the-Local-and-Web-Contexts.aspx">Here is an article</a> that talks about the difference between the 'contexts' that <code>ms-appx:///</code> and <code>ms-appx-web:///</code> run under. The article is more from the perspective of a Windows Store app written in html/js, but the same distinctions apply to managed and unmanaged apps as well. The article has lots of good info, but it never came right out and mentioned my exact problem, so I thought I would write this up so I could find it easily next time.</p>
+
+]]></description>
+            <pubDate>Wed, 06 Nov 2013 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/sharing_html_via_share_contract.html</guid>
+        </item>
+        <item>
+            <title>Migrating Scheduled Task Jobs</title>
+            <link>http://briandunnington.github.io/migrate-scheduled-jobs.html</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Migrating Scheduled Task Jobs</h1>
+<p>Finally retiring that old Windows Server 2003 machine? Need to migrate your scheduled tasks? Here is an easy solution.</p>
+</div>
+
+<p>One of our clients is finally migrating from Windows Server 2003 to Windows Server 2012 (don't judge) and I ran into an interesting problem. They have a bunch of jobs set up in the Task Scheduler that need to be migrated over, but the old machine uses a deprecated binary .job file format to store the job data, while the newer machine uses an xml-based file format.</p>
+
+<p>Of course, there is a built-in solution for this problem: the <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/bb736357%28v=vs.85%29.aspx"><code>schtasks</code></a> program now has an <code>/XML</code> switch to export an xml file. However, that version of <code>schtasks</code> only works on the newer OSes, so you cant easily convert the scripts on your old machine.</p>
+
+<p>Surely Google can help, right? It didnt take long to find several solutions <a href="http://jon.netdork.net/2011/03/08/powershell-and-exporting-windows-scheduled-tasks/">like this</a> that let you specify the remote host name of the older OS. In that case, you can use the newer <code>schtasks</code> (with xml export) but point it at the older machine and everything is easy-peasy.</p>
+
+<p>But that only works if the two machines are on the same domain and can see each other. In my case, we were moving from one virtual hosting company to another, so the two machines could not interact in this way.</p>
+
+<p>Back to Google and I find a <a href="http://superuser.com/a/596401">long-winded but working solution</a> that requires you to copy the old version of <code>schtasks</code> to the new machine, pipe some directory output to text file, manually create an Excel spreadsheet that gets saved as a <code>.bat</code> file and eventually execute <code>schtasks</code> on a copy of the old jobs. Whew - there had to be a better way! So I whipped one up.</p>
+
+<pre><code class="csharp"><span class="keyword">class</span> Program
+    {
+        <span class="keyword">static</span> <span class="keyword">void</span> Main(<span class="keyword">string</span>[] args)
+        {
+            Console.WriteLine(<span class="string">&quot;username:&quot;</span>);
+            <span class="keyword">var</span> username = Console.ReadLine();
+            Console.WriteLine(<span class="string">&quot;password:&quot;</span>);
+            <span class="keyword">var</span> password = Console.ReadLine();
+            <span class="keyword">var</span> files = Directory.GetFiles(@<span class="string">&quot;c:\windows\tasks&quot;</span>, <span class="string">&quot;*.job&quot;</span>);
+            <span class="keyword">if</span> (files == <span class="keyword">null</span> || files.Count() == 0)
+            {
+                Console.WriteLine(<span class="string">&quot;No .job files found to process&quot;</span>);
+            }
+            <span class="keyword">else</span>
+            {
+                <span class="keyword">foreach</span> (<span class="keyword">var</span> file <span class="keyword">in</span> files)
+                {
+                    <span class="keyword">var</span> fileNameWithoutExtension = Path.GetFileNameWithoutExtension(file);
+                    <span class="keyword">var</span> arguments = String.Format(<span class="string">&quot;/change /TN {0} /RU {1} /RP {2}&quot;</span>, fileNameWithoutExtension, username, password);
+                    <span class="keyword">var</span> psi = <span class="keyword">new</span> ProcessStartInfo(@<span class="string">&quot;schtasksXP&quot;</span>, arguments);
+                    psi.UseShellExecute = <span class="keyword">false</span>;
+                    Console.WriteLine(psi.FileName + <span class="string">&quot; &quot;</span> + psi.Arguments);
+                    <span class="keyword">var</span> p = Process.Start(psi);
+                    p.WaitForExit();
+                }
+            }
+            Console.WriteLine(<span class="string">&quot;DONE&quot;</span>);
+            Console.WriteLine(<span class="string">&quot;Press any key to continue...&quot;</span>);
+            Console.ReadKey();
+        }
+    }
+</code></pre>
+
+<p>To use it:</p>
+
+<ul>
+<li>Copy your old .job files to <code>C:\Windows\Tasks</code> on the new machine</li>
+<li>Download the .zip file and unzip the contents to a folder</li>
+<li>Run <code>TaskScheduleJobConverter.exe</code> which will prompt you for a username &amp; password to be used to execute the imported jobs</li>
+</ul>
+
+<p>When the script completes, all of the old jobs will have been converted and imported into the new machine's Task Scheduler.</p>
+
+<p><a href="/downloads/TaskScheduleJobConverter.zip">Download the program</a></p>
+
+]]></description>
+            <pubDate>Fri, 25 Oct 2013 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/migrate-scheduled-jobs.html</guid>
+        </item>
+        <item>
+            <title>Windows Phone Color Emoji Override</title>
+            <link>http://briandunnington.github.io/textoptions-displaycoloremoji.html</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Windows Phone Color Emoji Override</h1>
+<p>What to do when your font glyphs start showing up in multi-color when you dont want them to</p>
+</div>
+
+<p>I recently released a new game for Windows Phone called <a href="http://windowsphone.com/s?appId=281499cb-f9fe-427f-8906-7fa3a02673ab">Quandry</a>. As part of the design, I was leveraging the font glyphs in <a href="http://www.adamdawes.com/windows8/win8_segoeuisymbol.html">Segoe UI Symbol</a> instead of using images in a few places. The result looked like this:</p>
+
+<p><img src="/images/wp_ss_20131015_0002.png" width="570"></p>
+
+<p>I was pretty happy with it and didnt give it much more thought after I implemented it. Then Microsoft announced their <a href="https://dev.windowsphone.com/en-us/featured/update3">Windows Phone Preview for Developers</a> program which allows registered developers to install OS updates without waiting for carrier approval and general availability. Cool - I clicked a few buttons and within a few minutes, I was running "Update 3" (formerly knowns as GDR3). I fired up Quandry and noticed something weird:</p>
+
+<p><img src="/images/wp_ss_20131015_0001.png" width="570"></p>
+
+<p>Some (but not all) of my glyphs had been replaced with colored variants. What the ?</p>
+
+<p>I remembered reading about <a href="http://opentype.info/blog/2013/07/03/color-emoji-in-windows-8-1-the-future-of-color-fonts/">Microsoft's new colored-font proposal</a> awhile back and how it added some new color information to the font tables to enable 'layers' that could be colorized:</p>
+
+<p><img src="https://typography.guru/uploads/monthly_2014_12/winemoji.thumb.png.dff687e77d3a6def714ec60e3a0932e5.png" width="570"/></p>
+
+<p>Neat stuff, but it was breaking my app! I tried a few things to fix the issue, but didnt have much luck. Then I stumbled across a property I had not heard of before: <a href="http://msdn.microsoft.com/en-US/library/windowsphone/develop/system.windows.media.textoptions.displaycoloremoji%28v=vs.105%29.aspx">TextOptions.DisplayColorEmoji</a>. Apparently it is set to <code>true</code> by default, so I set it to <code>false</code> on my affected <code>TextBlock</code> controls and everything was back to normal.</p>
+
+<p>Maybe everybody already knows about this little detail, but I didnt and figured I would share it in case anybody else ran into the same issue.</p>
+
+<p>Shameless plug: Download <a href="http://windowsphone.com/s?appId=281499cb-f9fe-427f-8906-7fa3a02673ab">Quandry</a> from the marketplace and give it a try. If you do, challenge me at <a href="http://twitter.com/briandunnington">@briandunnington</a> and we will have a game.</p>
+
+]]></description>
+            <pubDate>Tue, 15 Oct 2013 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/textoptions-displaycoloremoji.html</guid>
+        </item>
+        <item>
+            <title>WinRT Xaml Image Source Bug</title>
+            <link>http://briandunnington.github.io/winrt-xaml-image-source-bug.html</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>WinRT Xaml Image Source Bug</h1>
+<p>Following Microsoft's 'Best Practices' advice when using images in Xaml can result in a strange bug.</p>
+</div>
+
+<p>Using an image in Xaml is pretty easy, right? Just set the <code>Source</code> property and the image shows up.</p>
+
+<pre><code>&lt;Image Source="http://www.domain.net/image.png"&gt;
+</code></pre>
+
+<p>But what if your source image is large and you only want to display a small version of it? Of course the best thing to do is to use a smaller source image, but sometimes you dont/cant control the source. In those cases, your app will download the large image, process it in memory at full resolution, and then render it smaller on screen.</p>
+
+<p>To alleviate some of the memory and processing hit, Microsoft introduced the <a href="http://msdn.microsoft.com/en-us/library/windows/apps/windows.ui.xaml.media.imaging.bitmapimage.decodepixelwidth">DecodePixelWidth</a> and <a href="http://msdn.microsoft.com/en-us/library/windows/apps/windows.ui.xaml.media.imaging.bitmapimage.decodepixelheight.aspx">DecodePixelHeight</a> properties that allow the image to be processed and cached at the intended resolution. These properties are on the <a href="http://msdn.microsoft.com/en-us/library/windows/apps/br243235.aspx">BitmapImage</a> class and Microsoft offers up a <a href="http://msdn.microsoft.com/en-us/library/aa970269.aspx">helpful example</a> that even explains what is going on:</p>
+
+<pre><code>&lt;!-- Simple image rendering. However, rendering an image this way may not
+ result in the best use of application memory. See markup below which
+ creates the same end result but using less memory. --&gt;
+&lt;Image Width="200" Source="C:\Documents and Settings\All Users\Documents\My Pictures\Sample Pictures\Water Lilies.jpg"/&gt;
+
+&lt;Image Width="200"&gt;
+  &lt;Image.Source&gt;
+    &lt;!-- To save significant application memory, set the DecodePixelWidth or  
+     DecodePixelHeight of the BitmapImage value of the image source to the desired 
+     height and width of the rendered image. If you don't do this, the application will 
+     cache the image as though it were rendered as its normal size rather then just 
+     the size that is displayed. --&gt;
+    &lt;!-- Note: In order to preserve aspect ratio, only set either DecodePixelWidth
+         or DecodePixelHeight but not both. --&gt;
+    &lt;BitmapImage DecodePixelWidth="200"  
+     UriSource="C:\Documents and Settings\All Users\Documents\My Pictures\Sample Pictures\Water Lilies.jpg" /&gt;
+  &lt;/Image.Source&gt;
+&lt;/Image&gt;
+</code></pre>
+
+<p>Great! Now you are following the best practices and saving memory - what isnt to love?</p>
+
+<p>Let's switch gears for a minute and talk about something else: page caching. In Windows Store apps, you can set the <a href="http://msdn.microsoft.com/en-us/library/windows/apps/windows.ui.xaml.controls.page.navigationcachemode">NavigationCacheMode</a> property of a Page so that the page remains cached in memory even when you navigate away from it. When you navigate back, the page renders immediately without having to rebuild its entire structure. Fine - but what does that have to do with image sources, and when am I going to get to this bug that I mentioned? Right now.</p>
+
+<p>Say you have a page and you mark it with <code>NavigationCacheMode=Enabled</code> (or <code>Required</code>) and on that page you have an image you want to display. But that image can take a while to load, or maybe you are dynamically swapping out the image from time to time. No worries - you simply update the <code>Source</code> property (either directly or via databinding) and the new image pops into place.</p>
+
+<p>But what if the image switch happens when the page is not visible on-screen? If you load up the page and then navigate away while the image is still loading, the image loading may complete while the original page is cached in memory but no longer visible on the screen. Oh well - when you navigate back, you will see the updated image, right? Nope.</p>
+
+<p>When you navigate back, most likely you will simply see a black empty space. What? The image must not have loaded. Or maybe it was some kind of cross-thread error since the UI was not visible? Nope and Nope. The image was loaded just fine and no errors were encountered. And the image <strong>is</strong> there - you just can see it.</p>
+
+<p>Using a tool like <a href="http://xamlspy.com/">XamlSpy</a> you can see that the image was indeed rendered, but for some reason is is invisible. I do not know why that is the case, but here is the catch: it only happens if you set your <code>Image.Source</code> declaratively by using a <code>BitmapImage</code>. If you use the normal string source, the image is rendered correctly and everything is peachy; of course you have to give up the benefits of DecodePixelWidth/Height to work around the issue.</p>
+
+<p>This actually cropped up in a real-world app and after much investigation, it was a colleague of mine who figured out the root cause as I was about to tear my hair out. Thanks Mike!</p>
+
+]]></description>
+            <pubDate>Thu, 13 Jun 2013 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/winrt-xaml-image-source-bug.html</guid>
+        </item>
+        <item>
+            <title>Assmebly and File Version Information in WinRT</title>
+            <link>http://briandunnington.github.io/winrt-version-info.html</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Assembly and File Version Information in WinRT</h1>
+<p>How to get the assembly and file version information in WinRT apps</p>
+</div>
+
+<p>Short and simple post this time. If you need to get the assembly and file version information in your Windows Store app, here is what you need. Note that the <code>using System.Reflection</code> is important since the <code>GetTypeInfo()</code> method is an extension method in that namespace.</p>
+
+<pre><code class="csharp"><span class="keyword">using</span> System;
+<span class="keyword">using</span> System.Reflection;
+
+<span class="keyword">namespace</span> Example
+{
+    <span class="keyword">public</span> <span class="keyword">class</span> <span class="type">VersionInformation</span>
+    {
+        <span class="keyword">public</span> VersionInformation()
+        {
+            <span class="keyword">var</span> assembly = <span class="keyword">this</span>.GetType().GetTypeInfo().Assembly;
+            <span class="keyword">var</span> assemblyVersion = assembly.GetName().Version.ToString();
+            <span class="keyword">var</span> fileVersion = assembly.GetCustomAttribute&lt;<span class="type">AssemblyFileVersionAttribute</span>&gt;().Version;
+            <span class="keyword">var</span> productVersion = assembly.GetCustomAttribute&lt;<span class="type">AssemblyInformationalVersionAttribute</span>&gt;().InformationalVersion;
+            System.Diagnostics.<span class="type">Debug</span>.WriteLine(<span class="string">&quot;Assembly Version: &quot;</span> + assemblyVersion);
+            System.Diagnostics.<span class="type">Debug</span>.WriteLine(<span class="string">&quot;File Version: &quot;</span> + fileVersion);
+            System.Diagnostics.<span class="type">Debug</span>.WriteLine(<span class="string">&quot;Product Version: &quot;</span> + productVersion);
+        }
+    }
+}
+</code></pre>
+
+<p>Similar, but slightly different than in other versions of .NET since <code>Assembly.GetExecutingAssembly()</code> and <code>System.Diagnostics.FileVersionInfo</code> are not available. Hope that helps somebody out.</p>
+
+]]></description>
+            <pubDate>Thu, 14 Mar 2013 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/winrt-version-info.html</guid>
+        </item>
+        <item>
+            <title>ProgressRing for Windows Phone 8</title>
+            <link>http://briandunnington.github.io/progressring-wp8.html</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>ProgressRing for Windows Phone 8</h1>
+<p>A Windows-8-style ProgressRing for Windows Phone 8</p>
+</div>
+
+<p>The <a href="http://msdn.microsoft.com/en-us/library/windows/apps/windows.ui.xaml.controls.progressring">ProgressRing</a> control for Metro (Windows Store style) apps is a great way to show the familiar loading spinner while your app performs some long-running action. But what about Windows Phone 8? There is the <a href="http://msdn.microsoft.com/en-us/library/system.windows.controls.progressbar%28v=vs.95%29.aspx">ProgressBar</a> control (which has been updated for WP8 to <a href="http://www.jeff.wilcox.name/2010/08/performanceprogressbar/">fix some performance issues</a>), but I wanted the round spinny thing instead of the flat movey thing, so I created it.</p>
+
+<p>The code below consists of a <code>.cs</code> file that contains the guts of the control, as well as the <code>&lt;Style&gt;</code> definition. A couple of fun things to note:</p>
+
+<ul>
+<li><p>The <code>&lt;Style&gt;</code> is the exact style copied from the Windows 8 resources, so the control looks and behaves identically</p></li>
+<li><p>Note the check for <code>hasAppliedTemplate</code> - this is required to avoid <a href="/xaml-visualstatemanager-note.html">some wonky behavior</a> that I blogged about recently where <code>VisualStateManager</code> doesnt like to be called before <code>OnApplyTemplate()</code> has been called.</p></li>
+</ul>
+
+<p>Anyway, next time you need some spinning-dots goodness in your WP8 app, give it a try and let me know what you think.</p>
+
+<p><em>ProgressRing.cs</em></p>
+
+<pre class="code"><code class="csharp"><span class="keyword">using</span> System;
+<span class="keyword">using</span> System.Collections.Generic;
+<span class="keyword">using</span> System.Linq;
+<span class="keyword">using</span> System.Text;
+<span class="keyword">using</span> System.Threading.Tasks;
+<span class="keyword">using</span> System.Windows;
+<span class="keyword">using</span> System.Windows.Controls;
+
+<span class="keyword">namespace</span> Monsters.WindowsPhone.Controls
+{
+    <span class="keyword">public</span> <span class="keyword">class</span> ProgressRing : Control
+    {
+        <span class="keyword">bool</span> hasAppliedTemplate = <span class="keyword">false</span>;
+
+        <span class="keyword">public</span> ProgressRing()
+        {
+            <span class="keyword">this</span>.DefaultStyleKey = <span class="keyword">typeof</span>(ProgressRing);
+            TemplateSettings = <span class="keyword">new</span> TemplateSettingValues(60);
+        }
+
+        <span class="keyword">public</span> <span class="keyword">override</span> <span class="keyword">void</span> OnApplyTemplate()
+        {
+            <span class="keyword">base</span>.OnApplyTemplate();
+            hasAppliedTemplate = <span class="keyword">true</span>;
+            UpdateState(<span class="keyword">this</span>.IsActive);
+        }
+
+        <span class="keyword">void</span> UpdateState(<span class="keyword">bool</span> isActive)
+        {
+            <span class="keyword">if</span> (hasAppliedTemplate)
+            {
+                <span class="keyword">string</span> state = isActive ? <span class="string">&quot;Active&quot;</span> : <span class="string">&quot;Inactive&quot;</span>;
+                System.Windows.VisualStateManager.GoToState(<span class="keyword">this</span>, state, <span class="keyword">true</span>);
+            }
+        }
+
+        <span class="keyword">protected</span> <span class="keyword">override</span> System.Windows.Size MeasureOverride(System.Windows.Size availableSize)
+        {
+            <span class="keyword">var</span> width = 100D;
+            <span class="keyword">if</span>(!System.ComponentModel.DesignerProperties.IsInDesignTool)
+                width = <span class="keyword">this</span>.Width != <span class="keyword">double</span>.NaN ? <span class="keyword">this</span>.Width : availableSize.Width;
+            TemplateSettings = <span class="keyword">new</span> TemplateSettingValues(width);
+            <span class="keyword">return</span> <span class="keyword">base</span>.MeasureOverride(availableSize);
+        }
+
+        <span class="keyword">public</span> <span class="keyword">bool</span> IsActive
+        {
+            <span class="keyword">get</span> { <span class="keyword">return</span> (<span class="keyword">bool</span>)GetValue(IsActiveProperty); }
+            <span class="keyword">set</span> { SetValue(IsActiveProperty, <span class="keyword">value</span>); }
+        }
+
+        <span class="comment">// Using a DependencyProperty as the backing store for IsActive.  This enables animation, styling, binding, etc...</span>
+        <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">readonly</span> DependencyProperty IsActiveProperty =
+            DependencyProperty.Register(<span class="string">&quot;IsActive&quot;</span>, <span class="keyword">typeof</span>(<span class="keyword">bool</span>), <span class="keyword">typeof</span>(ProgressRing), <span class="keyword">new</span> PropertyMetadata(<span class="keyword">false</span>, <span class="keyword">new</span> PropertyChangedCallback(IsActiveChanged)));
+
+        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> IsActiveChanged(DependencyObject d, DependencyPropertyChangedEventArgs args)
+        {
+            <span class="keyword">var</span> pr = (ProgressRing) d;
+            <span class="keyword">var</span> isActive = (<span class="keyword">bool</span>)args.NewValue;
+            pr.UpdateState(isActive);
+        }
+
+        <span class="keyword">public</span> TemplateSettingValues TemplateSettings
+        {
+            <span class="keyword">get</span> { <span class="keyword">return</span> (TemplateSettingValues)GetValue(TemplateSettingsProperty); }
+            <span class="keyword">set</span> { SetValue(TemplateSettingsProperty, <span class="keyword">value</span>); }
+        }
+
+        <span class="comment">// Using a DependencyProperty as the backing store for TemplateSettings.  This enables animation, styling, binding, etc...</span>
+        <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">readonly</span> DependencyProperty TemplateSettingsProperty =
+            DependencyProperty.Register(<span class="string">&quot;TemplateSettings&quot;</span>, <span class="keyword">typeof</span>(TemplateSettingValues), <span class="keyword">typeof</span>(ProgressRing), <span class="keyword">new</span> PropertyMetadata(<span class="keyword">new</span> TemplateSettingValues(100)));
+
+
+        <span class="keyword">public</span> <span class="keyword">class</span> TemplateSettingValues : System.Windows.DependencyObject
+        {
+            <span class="keyword">public</span> TemplateSettingValues(<span class="keyword">double</span> width)
+            {
+                MaxSideLength = 400;
+                EllipseDiameter = width/10;
+                EllipseOffset = <span class="keyword">new</span> System.Windows.Thickness(EllipseDiameter);
+            }
+
+            <span class="keyword">public</span> <span class="keyword">double</span> MaxSideLength
+            {
+                <span class="keyword">get</span> { <span class="keyword">return</span> (<span class="keyword">double</span>)GetValue(MaxSideLengthProperty); }
+                <span class="keyword">set</span> { SetValue(MaxSideLengthProperty, <span class="keyword">value</span>); }
+            }
+
+            <span class="comment">// Using a DependencyProperty as the backing store for MaxSideLength.  This enables animation, styling, binding, etc...</span>
+            <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">readonly</span> DependencyProperty MaxSideLengthProperty =
+                DependencyProperty.Register(<span class="string">&quot;MaxSideLength&quot;</span>, <span class="keyword">typeof</span>(<span class="keyword">double</span>), <span class="keyword">typeof</span>(TemplateSettingValues), <span class="keyword">new</span> PropertyMetadata(0D));
+
+            <span class="keyword">public</span> <span class="keyword">double</span> EllipseDiameter
+            {
+                <span class="keyword">get</span> { <span class="keyword">return</span> (<span class="keyword">double</span>)GetValue(EllipseDiameterProperty); }
+                <span class="keyword">set</span> { SetValue(EllipseDiameterProperty, <span class="keyword">value</span>); }
+            }
+
+            <span class="comment">// Using a DependencyProperty as the backing store for EllipseDiameter.  This enables animation, styling, binding, etc...</span>
+            <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">readonly</span> DependencyProperty EllipseDiameterProperty =
+                DependencyProperty.Register(<span class="string">&quot;EllipseDiameter&quot;</span>, <span class="keyword">typeof</span>(<span class="keyword">double</span>), <span class="keyword">typeof</span>(TemplateSettingValues), <span class="keyword">new</span> PropertyMetadata(0D));
+
+            <span class="keyword">public</span> Thickness EllipseOffset
+            {
+                <span class="keyword">get</span> { <span class="keyword">return</span> (Thickness)GetValue(EllipseOffsetProperty); }
+                <span class="keyword">set</span> { SetValue(EllipseOffsetProperty, <span class="keyword">value</span>); }
+            }
+
+            <span class="comment">// Using a DependencyProperty as the backing store for EllipseOffset.  This enables animation, styling, binding, etc...</span>
+            <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">readonly</span> DependencyProperty EllipseOffsetProperty =
+                DependencyProperty.Register(<span class="string">&quot;EllipseOffset&quot;</span>, <span class="keyword">typeof</span>(Thickness), <span class="keyword">typeof</span>(TemplateSettingValues), <span class="keyword">new</span> PropertyMetadata(<span class="keyword">new</span> Thickness()));
+        }
+    }
+}
+</code></pre>
+
+<p><em>ProgressRing Style</em></p>
+
+<pre><code>&lt;!-- Default style for Windows.UI.Xaml.Controls.ProgressRing --&gt;
+&lt;Style TargetType="controls:ProgressRing"&gt;
+    &lt;Setter Property="Foreground" Value="{StaticResource AccentBrush}" /&gt;
+    &lt;Setter Property="IsHitTestVisible" Value="False" /&gt;
+    &lt;Setter Property="HorizontalAlignment" Value="Center" /&gt;
+    &lt;Setter Property="VerticalAlignment" Value="Center" /&gt;
+    &lt;Setter Property="MinHeight" Value="20" /&gt;
+    &lt;Setter Property="MinWidth" Value="20" /&gt;
+    &lt;Setter Property="IsTabStop" Value="False" /&gt;
+    &lt;Setter Property="Template"&gt;
+        &lt;Setter.Value&gt;
+            &lt;ControlTemplate TargetType="controls:ProgressRing"&gt;
+                &lt;Border x:Name="ProgressRingRoot" Background="{TemplateBinding Background}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    BorderBrush="{TemplateBinding BorderBrush}"&gt;
+                    &lt;Border.Resources&gt;
+                        &lt;Style x:Key="ProgressRingEllipseStyle" TargetType="Ellipse"&gt;
+                            &lt;Setter Property="Opacity" Value="0" /&gt;
+                            &lt;Setter Property="HorizontalAlignment" Value="Left" /&gt;
+                            &lt;Setter Property="VerticalAlignment" Value="Top" /&gt;
+                        &lt;/Style&gt;
+                    &lt;/Border.Resources&gt;
+                    &lt;VisualStateManager.VisualStateGroups&gt;
+                        &lt;VisualStateGroup x:Name="SizeStates"&gt;
+                            &lt;VisualState x:Name="Large"&gt;
+                                &lt;Storyboard&gt;
+                                    &lt;ObjectAnimationUsingKeyFrames Duration="0"
+                                                                Storyboard.TargetName="SixthCircle"
+                                                                Storyboard.TargetProperty="Visibility"&gt;
+                                        &lt;DiscreteObjectKeyFrame KeyTime="0"&gt;
+                                            &lt;DiscreteObjectKeyFrame.Value&gt;
+                                                &lt;Visibility&gt;Visible&lt;/Visibility&gt;
+                                            &lt;/DiscreteObjectKeyFrame.Value&gt;
+                                        &lt;/DiscreteObjectKeyFrame&gt;
+                                    &lt;/ObjectAnimationUsingKeyFrames&gt;
+                                &lt;/Storyboard&gt;
+                            &lt;/VisualState&gt;
+                            &lt;VisualState x:Name="Small" /&gt;
+                        &lt;/VisualStateGroup&gt;
+                        &lt;VisualStateGroup x:Name="ActiveStates"&gt;
+                            &lt;VisualState x:Name="Inactive" /&gt;
+                            &lt;VisualState x:Name="Active"&gt;
+                                &lt;Storyboard RepeatBehavior="Forever"&gt;
+                                    &lt;ObjectAnimationUsingKeyFrames Duration="0"
+                                                                Storyboard.TargetName="Ring"
+                                                                Storyboard.TargetProperty="Visibility"&gt;
+                                        &lt;DiscreteObjectKeyFrame KeyTime="0"&gt;
+                                            &lt;DiscreteObjectKeyFrame.Value&gt;
+                                                &lt;Visibility&gt;Visible&lt;/Visibility&gt;
+                                            &lt;/DiscreteObjectKeyFrame.Value&gt;
+                                        &lt;/DiscreteObjectKeyFrame&gt;
+                                    &lt;/ObjectAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E1"
+                                    Storyboard.TargetProperty="Opacity"
+                                    BeginTime="0"&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.21" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.22" Value="0" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.47" Value="0" /&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E2"
+                                    Storyboard.TargetProperty="Opacity"
+                                    BeginTime="00:00:00.167"&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.21" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.22" Value="0" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.47" Value="0" /&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E3"
+                                    Storyboard.TargetProperty="Opacity"
+                                    BeginTime="00:00:00.334"&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.21" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.22" Value="0" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.47" Value="0" /&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E4"
+                                    Storyboard.TargetProperty="Opacity"
+                                    BeginTime="00:00:00.501"&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.21" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.22" Value="0" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.47" Value="0" /&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E5"
+                                    Storyboard.TargetProperty="Opacity"
+                                    BeginTime="00:00:00.668"&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.21" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.22" Value="0" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.47" Value="0" /&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E6"
+                                    Storyboard.TargetProperty="Opacity"
+                                    BeginTime="00:00:00.835"&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.21" Value="1" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.22" Value="0" /&gt;
+                                        &lt;DiscreteDoubleKeyFrame KeyTime="0:0:3.47" Value="0" /&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E1R"
+                                    BeginTime="0"
+                                    Storyboard.TargetProperty="Angle"&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0" Value="-110" KeySpline="0.13,0.21,0.1,0.7"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:0.433" Value="10" KeySpline="0.02,0.33,0.38,0.77"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.2" Value="93"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.617" Value="205" KeySpline="0.57,0.17,0.95,0.75"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.017" Value="357" KeySpline="0,0.19,0.07,0.72"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.783" Value="439"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:3.217" Value="585" KeySpline="0,0,0.95,0.37"/&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E2R"
+                                    BeginTime="00:00:00.167"
+                                    Storyboard.TargetProperty="Angle"&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0" Value="-116" KeySpline="0.13,0.21,0.1,0.7"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:0.433" Value="4" KeySpline="0.02,0.33,0.38,0.77"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.2" Value="87"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.617" Value="199" KeySpline="0.57,0.17,0.95,0.75"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.017" Value="351" KeySpline="0,0.19,0.07,0.72"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.783" Value="433"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:3.217" Value="579" KeySpline="0,0,0.95,0.37"/&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E3R"
+                                    BeginTime="00:00:00.334"
+                                    Storyboard.TargetProperty="Angle"&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0" Value="-122" KeySpline="0.13,0.21,0.1,0.7"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:0.433" Value="-2" KeySpline="0.02,0.33,0.38,0.77"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.2" Value="81"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.617" Value="193" KeySpline="0.57,0.17,0.95,0.75"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.017" Value="345" KeySpline="0,0.19,0.07,0.72"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.783" Value="427"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:3.217" Value="573" KeySpline="0,0,0.95,0.37"/&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E4R"
+                                    BeginTime="00:00:00.501"
+                                    Storyboard.TargetProperty="Angle"&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0" Value="-128" KeySpline="0.13,0.21,0.1,0.7"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:0.433" Value="-8" KeySpline="0.02,0.33,0.38,0.77"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.2" Value="75"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.617" Value="187" KeySpline="0.57,0.17,0.95,0.75"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.017" Value="339" KeySpline="0,0.19,0.07,0.72"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.783" Value="421"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:3.217" Value="567" KeySpline="0,0,0.95,0.37"/&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E5R"
+                                    BeginTime="00:00:00.668"
+                                    Storyboard.TargetProperty="Angle"&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0" Value="-134" KeySpline="0.13,0.21,0.1,0.7"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:0.433" Value="-14" KeySpline="0.02,0.33,0.38,0.77"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.2" Value="69"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.617" Value="181" KeySpline="0.57,0.17,0.95,0.75"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.017" Value="331" KeySpline="0,0.19,0.07,0.72"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.783" Value="415"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:3.217" Value="561" KeySpline="0,0,0.95,0.37"/&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                    &lt;DoubleAnimationUsingKeyFrames
+                                    Storyboard.TargetName="E6R"
+                                    BeginTime="00:00:00.835"
+                                    Storyboard.TargetProperty="Angle"&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0" Value="-140" KeySpline="0.13,0.21,0.1,0.7"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:0.433" Value="-20" KeySpline="0.02,0.33,0.38,0.77"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.2" Value="63"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:1.617" Value="175" KeySpline="0.57,0.17,0.95,0.75"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.017" Value="325" KeySpline="0,0.19,0.07,0.72"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:2.783" Value="409"/&gt;
+                                        &lt;SplineDoubleKeyFrame KeyTime="0:0:3.217" Value="555" KeySpline="0,0,0.95,0.37"/&gt;
+                                    &lt;/DoubleAnimationUsingKeyFrames&gt;
+                                &lt;/Storyboard&gt;
+                            &lt;/VisualState&gt;
+                        &lt;/VisualStateGroup&gt;
+                    &lt;/VisualStateManager.VisualStateGroups&gt;
+                    &lt;Grid x:Name="Ring"
+                        Margin="{TemplateBinding Padding}"
+                        MaxWidth="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.MaxSideLength}"
+                        MaxHeight="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.MaxSideLength}"
+                        Visibility="Collapsed"
+                        RenderTransformOrigin=".5,.5"
+                        FlowDirection="LeftToRight"&gt;
+                        &lt;Canvas RenderTransformOrigin=".5,.5"&gt;
+                            &lt;Canvas.RenderTransform&gt;
+                                &lt;RotateTransform x:Name="E1R" /&gt;
+                            &lt;/Canvas.RenderTransform&gt;
+                            &lt;Ellipse
+                            x:Name="E1"
+                            Style="{StaticResource ProgressRingEllipseStyle}"
+                            Width="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Height="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Margin="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseOffset}"
+                            Fill="{TemplateBinding Foreground}"/&gt;
+                        &lt;/Canvas&gt;
+                        &lt;Canvas RenderTransformOrigin=".5,.5"&gt;
+                            &lt;Canvas.RenderTransform&gt;
+                                &lt;RotateTransform x:Name="E2R" /&gt;
+                            &lt;/Canvas.RenderTransform&gt;
+                            &lt;Ellipse
+                            x:Name="E2"
+                            Style="{StaticResource ProgressRingEllipseStyle}"
+                            Width="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Height="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Margin="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseOffset}"
+                            Fill="{TemplateBinding Foreground}"/&gt;
+                        &lt;/Canvas&gt;
+                        &lt;Canvas RenderTransformOrigin=".5,.5"&gt;
+                            &lt;Canvas.RenderTransform&gt;
+                                &lt;RotateTransform x:Name="E3R" /&gt;
+                            &lt;/Canvas.RenderTransform&gt;
+                            &lt;Ellipse
+                            x:Name="E3"
+                            Style="{StaticResource ProgressRingEllipseStyle}"
+                            Width="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Height="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Margin="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseOffset}"
+                            Fill="{TemplateBinding Foreground}"/&gt;
+                        &lt;/Canvas&gt;
+                        &lt;Canvas RenderTransformOrigin=".5,.5"&gt;
+                            &lt;Canvas.RenderTransform&gt;
+                                &lt;RotateTransform x:Name="E4R" /&gt;
+                            &lt;/Canvas.RenderTransform&gt;
+                            &lt;Ellipse
+                            x:Name="E4"
+                            Style="{StaticResource ProgressRingEllipseStyle}"
+                            Width="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Height="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Margin="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseOffset}"
+                            Fill="{TemplateBinding Foreground}"/&gt;
+                        &lt;/Canvas&gt;
+                        &lt;Canvas RenderTransformOrigin=".5,.5"&gt;
+                            &lt;Canvas.RenderTransform&gt;
+                                &lt;RotateTransform x:Name="E5R" /&gt;
+                            &lt;/Canvas.RenderTransform&gt;
+                            &lt;Ellipse
+                            x:Name="E5"
+                            Style="{StaticResource ProgressRingEllipseStyle}"
+                            Width="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Height="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Margin="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseOffset}"
+                            Fill="{TemplateBinding Foreground}"/&gt;
+                        &lt;/Canvas&gt;
+                        &lt;Canvas RenderTransformOrigin=".5,.5"
+                            Visibility="Collapsed"
+                            x:Name="SixthCircle"&gt;
+                            &lt;Canvas.RenderTransform&gt;
+                                &lt;RotateTransform x:Name="E6R" /&gt;
+                            &lt;/Canvas.RenderTransform&gt;
+                            &lt;Ellipse
+                            x:Name="E6"
+                            Style="{StaticResource ProgressRingEllipseStyle}"
+                            Width="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Height="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseDiameter}"
+                            Margin="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.EllipseOffset}"
+                            Fill="{TemplateBinding Foreground}"/&gt;
+                        &lt;/Canvas&gt;
+                    &lt;/Grid&gt;
+                &lt;/Border&gt;
+            &lt;/ControlTemplate&gt;
+        &lt;/Setter.Value&gt;
+    &lt;/Setter&gt;
+&lt;/Style&gt;
+</code></pre>
+
+]]></description>
+            <pubDate>Fri, 11 Jan 2013 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/progressring-wp8.html</guid>
+        </item>
+        <item>
+            <title>WinRT JSON Parser</title>
+            <link>http://briandunnington.github.io/json-parser.html</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>WinRT JSON Parser</h1>
+<p>The classes in Windows.Data.Json are no fun to use. This handy class makes it better.</p>
+</div>
+
+<p>The new WinRT libraries generally make a lot of things easier, faster, and better, but one area that seems <em>harder</em> to work with is JSON data. The classes in the <a href="http://msdn.microsoft.com/en-us/library/windows/apps/xaml/br240639.aspx">Windows.Data.Json</a> namespace are simple, but verbose to use. Consider this example, using the following simple JSON:</p>
+
+<pre><code>[{
+    "identities": {
+        "google": {
+            "userId": "Google:101303958185943883774",
+            "accessToken": "ya29.AHES6ZRqPjKgoFjlp7FeJUK56ca19HzqIlzQQSLIj",
+            "isValid": true,
+            "age": 38
+        }
+    }
+}]
+</code></pre>
+
+<p>To parse this using the built-in classes, it might look like this:</p>
+
+<pre class="code"><code class="csharp"><span class="keyword">var</span> obj = <span class="keyword">new</span> Windows.Data.Json.JsonObject();
+<span class="keyword">if</span> (Windows.Data.Json.JsonValue.TryParse(json, <span class="keyword">out</span> obj))
+{
+    <span class="keyword">var</span> identities = obj.GetArray()[0].GetObject();
+    <span class="keyword">var</span> identity = identities[<span class="string">&quot;identities&quot;</span>].GetObject()[<span class="string">&quot;google&quot;</span>].GetObject();
+    <span class="keyword">var</span> token = identity[<span class="string">&quot;accessToken&quot;</span>].GetString();
+    <span class="keyword">var</span> isValid = identity[<span class="string">&quot;isValid&quot;</span>].GetBoolean();
+    <span class="keyword">var</span> age = identity[<span class="string">&quot;age&quot;</span>].GetNumber();
+}
+</code></pre>
+
+<p>And if you add in checking to see if the properties exist first, the code is even longer. It isnt horrible, but it isnt how we like to deal with JSON normally.</p>
+
+<p>There are great open-source tools out there like the venerable <a href="http://james.newtonking.com/projects/json-net.aspx">Json.NET</a> that make like easier. But sometimes taking a dependency on yet another third-party library isnt desirable or possible. Something so fundamental like JSON parsing should be as easy and painless as possible.</p>
+
+<p>So what if you could just do this:</p>
+
+<pre class="code"><code class="csharp"><span class="keyword">dynamic</span> arr = JsonParser.Parse(json);
+<span class="keyword">var</span> identity = arr[0].identities.google;
+<span class="keyword">var</span> token = identity.accessToken;
+<span class="keyword">var</span> isValid = identity.isValid;
+<span class="keyword">var</span> age = identity.age;
+</code></pre>
+
+<p>That looks nicer and much more inline with how JSON is normally treated in Javascript. The complete code for JsonParser is below - it is just a single small C# class that you can include in your project with no other dependencies. The secret sauce is in the <code>ConvertObject()</code> method; by leveraging a dynamic ExpandoObject, we can access the properties directly. The resulting object also provides a <code>Contains()</code> method so you can easily check for the existence of the property before accessing it.</p>
+
+<p>I am finding this <strong>much</strong> easier and more intuitive to use, so I thought I would share it. Let me know if you try it out and how you like it.</p>
+
+<p><em>JsonParser.cs source:</em></p>
+
+<pre class="code"><code class="csharp"><span class="keyword">using</span> System;
+<span class="keyword">using</span> System.Collections.Generic;
+<span class="keyword">using</span> System.Threading.Tasks;
+<span class="keyword">using</span> Windows.Data.Json;
+
+<span class="keyword">namespace</span> Monsters.WindowsStore.Implementations
+{
+    <span class="keyword">public</span> <span class="keyword">class</span> JsonParser
+    {
+        <span class="keyword">public</span> <span class="keyword">static</span> Task&lt;<span class="keyword">dynamic</span>&gt; ParseAsync(<span class="keyword">string</span> json)
+        {
+            <span class="keyword">return</span> Task.Run(() =&gt;
+                {
+                    <span class="keyword">return</span> Parse(json);
+                });
+        }
+
+        <span class="keyword">public</span> <span class="keyword">static</span> Task&lt;<span class="keyword">dynamic</span>&gt; ParseAsync(IJsonValue json)
+        {
+            <span class="keyword">return</span> Task.Run(() =&gt;
+                {
+                    <span class="keyword">return</span> Parse(json);
+                });
+        }
+
+        <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">dynamic</span> Parse(<span class="keyword">string</span> json)
+        {
+            <span class="keyword">var</span> j = Windows.Data.Json.JsonValue.Parse(json);
+            <span class="keyword">return</span> Parse(j);
+        }
+
+        <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">dynamic</span> Parse(IJsonValue json)
+        {
+            <span class="keyword">dynamic</span> obj = Convert(json);
+            <span class="keyword">return</span> obj;
+        }
+
+        <span class="keyword">static</span> <span class="keyword">dynamic</span> Convert(IJsonValue json)
+        {
+            <span class="keyword">dynamic</span> obj = <span class="keyword">null</span>;
+            <span class="keyword">switch</span> (json.ValueType)
+            {
+                <span class="keyword">case</span> JsonValueType.Array:
+                    obj = ConvertArray(json.GetArray());
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> JsonValueType.Boolean:
+                    obj = json.GetBoolean();
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> JsonValueType.Null:
+                    obj = <span class="keyword">null</span>;
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> JsonValueType.Number:
+                    obj = json.GetNumber();
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> JsonValueType.Object:
+                    obj = ConvertObject(json.GetObject());
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> JsonValueType.String:
+                    obj = json.GetString();
+                    <span class="keyword">break</span>;
+            }
+            <span class="keyword">return</span> obj;
+        }
+
+        <span class="keyword">static</span> <span class="keyword">dynamic</span> ConvertArray(JsonArray jsonArray)
+        {
+            <span class="keyword">dynamic</span>[] items = <span class="keyword">new</span> <span class="keyword">dynamic</span>[jsonArray.Count];
+            <span class="keyword">for</span> (<span class="keyword">int</span> i = 0; i &lt; jsonArray.Count; i++)
+            {
+                items[i] = Convert(jsonArray[i]);
+            }
+            <span class="keyword">return</span> items;
+        }
+
+        <span class="keyword">static</span> <span class="keyword">dynamic</span> ConvertObject(JsonObject jsonObject)
+        {
+            <span class="keyword">dynamic</span> obj = <span class="keyword">new</span> System.Dynamic.ExpandoObject();
+            <span class="keyword">var</span> d = (IDictionary&lt;<span class="keyword">string</span>, <span class="keyword">object</span>&gt;)obj;
+
+            obj.Contains = <span class="keyword">new</span> Func&lt;<span class="keyword">string</span>, <span class="keyword">bool</span>&gt;((prop) =&gt;
+                {
+                    <span class="keyword">return</span> d.ContainsKey(prop);
+                });
+            obj.Get = <span class="keyword">new</span> Func&lt;<span class="keyword">string</span>, <span class="keyword">dynamic</span>&gt;((prop) =&gt;
+                {
+                    <span class="keyword">return</span> d[prop];
+                });
+
+            List&lt;<span class="keyword">string</span>&gt; keys = <span class="keyword">new</span> List&lt;<span class="keyword">string</span>&gt;();
+            <span class="keyword">foreach</span>(<span class="keyword">var</span> key <span class="keyword">in</span> jsonObject.Keys)
+            {
+                keys.Add(key);
+            }
+
+            <span class="keyword">int</span> i = 0;
+            <span class="keyword">foreach</span>(<span class="keyword">var</span> item <span class="keyword">in</span> jsonObject.Values)
+            {
+                d.Add(keys[i], Convert(item));
+                i++;
+            }
+            <span class="keyword">return</span> obj;
+        }
+    }
+}
+</code></pre>
+
+]]></description>
+            <pubDate>Wed, 09 Jan 2013 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/json-parser.html</guid>
+        </item>
+        <item>
+            <title>Windows 8 Store Apps Color Overrides</title>
+            <link>http://briandunnington.github.io/windows8-color-overrides.html</link>
+            <description><![CDATA[
+<!-- Main hero unit for a primary marketing message or call to action -->
+
+<div class="hero-unit">
+<h1>Windows 8 Store Apps Color Overrides</h1>
+<p>Tired of that purple color in your ComboBoxes, ListBoxes, and GridViews? Here is how to change it without retemplating all of the controls.</p>
+<!--<p><a class="btn btn-primary btn-large">Learn more &raquo;</a></p>-->
+</div>
+
+<p>So your Windows 8 Store (née Metro) is coming along and you are trying to polish up the look and feel. However, that annoying purple highlight color keeps popping up in unexpected places, like the background for selected items in ComboBoxes and ListBoxes, or in the border for selected items in a GridView. </p>
+
+<p><img src="http://1wpf.files.wordpress.com/2012/06/example.png" alt="Purple" /></p>
+
+<p>Purple might work for some apps, but you are a perfectionist and you gotta have the exact shade of green that matches your logo. Some of the controls expose properties that let you set the color in your xaml and you could set up a <code>&lt;Style&gt;</code> rule to apply them, but then you have to always remember to apply the style and some of the controls don't even expose the necessary properties to override the color, so what to do?</p>
+
+<p>Maybe everybody out there other than me already knows this, but the list of pre-defined control colors can be found at:
+<code>%PROGRAMFILES(x86)%\Windows Kits\8.0\Include\WinRT\Xaml\Design\generic.xaml</code></p>
+
+<p>In there, there are a few different sections for the Dark theme, Light theme, and High-Contrast theme. Looking through any of them, you can see a section called:</p>
+
+<pre><code>&lt;!--
+******************************************************************
+DEFAULT COMMON CONTROL COLORS
+******************************************************************
+--&gt;;
+</code></pre>
+
+<p>That section contains a long list of all of the colors used by the built-in controls. Most of them are various shades and opacities of black or white and should be good for most apps. But I went through and pulled out all of the items that defined a purplish color so you can easily see which items to override:</p>
+
+<pre><code>&lt;!-- Purple system brushes --&gt;
+&lt;SolidColorBrush x:Key="ComboBoxItemSelectedBackgroundThemeBrush" Color="#FF4617B4" /&gt;
+&lt;SolidColorBrush x:Key="ComboBoxItemSelectedPointerOverBackgroundThemeBrush" Color="#FF5F37BE" /&gt;
+&lt;SolidColorBrush x:Key="ComboBoxSelectedBackgroundThemeBrush" Color="#FF4617B4" /&gt;
+&lt;SolidColorBrush x:Key="ComboBoxSelectedPointerOverBackgroundThemeBrush" Color="#FF5F37BE" /&gt;
+&lt;SolidColorBrush x:Key="HyperlinkForegroundThemeBrush" Color="#FF9C72FF" /&gt;
+&lt;SolidColorBrush x:Key="HyperlinkPointerOverForegroundThemeBrush" Color="#CC9C72FF" /&gt;
+&lt;SolidColorBrush x:Key="HyperlinkPressedForegroundThemeBrush" Color="#999C72FF" /&gt;
+&lt;SolidColorBrush x:Key="ListBoxItemSelectedBackgroundThemeBrush" Color="#FF4617B4" /&gt;
+&lt;SolidColorBrush x:Key="ListBoxItemSelectedPointerOverBackgroundThemeBrush" Color="#FF5F37BE" /&gt;
+&lt;SolidColorBrush x:Key="ListViewItemDragBackgroundThemeBrush" Color="#994617B4" /&gt;
+&lt;SolidColorBrush x:Key="ListViewItemSelectedBackgroundThemeBrush" Color="#FF4617B4" /&gt;
+&lt;SolidColorBrush x:Key="ListViewItemSelectedPointerOverBackgroundThemeBrush" Color="#FF5F37BE" /&gt;
+&lt;SolidColorBrush x:Key="ListViewItemSelectedPointerOverBorderThemeBrush" Color="#FF5F37BE" /&gt;
+&lt;SolidColorBrush x:Key="ProgressBarForegroundThemeBrush" Color="#FF5B2EC5" /&gt;
+&lt;SolidColorBrush x:Key="ProgressBarIndeterminateForegroundThemeBrush" Color="#FF8A57FF" /&gt;
+&lt;SolidColorBrush x:Key="SliderTrackDecreaseBackgroundThemeBrush" Color="#FF5B2EC5" /&gt;
+&lt;SolidColorBrush x:Key="SliderTrackDecreasePointerOverBackgroundThemeBrush" Color="#FF724BCD" /&gt;
+&lt;SolidColorBrush x:Key="SliderTrackDecreasePressedBackgroundThemeBrush" Color="#FF8152EF" /&gt;
+&lt;SolidColorBrush x:Key="ToggleSwitchCurtainBackgroundThemeBrush" Color="#FF5729C1" /&gt;
+&lt;SolidColorBrush x:Key="ToggleSwitchCurtainPointerOverBackgroundThemeBrush" Color="#FF6E46CA" /&gt;
+&lt;SolidColorBrush x:Key="ToggleSwitchCurtainPressedBackgroundThemeBrush" Color="#FF7E4FEC" /&gt;
+</code></pre>
+
+<p>In order to make sure these get set before any control templates that use them, I simply added them to their own ResourceDictionary xaml file and included it directly above the <code>Common\StandardStyles.xaml</code> in <code>App.xaml.cs</code>:</p>
+
+<pre><code>&lt;ResourceDictionary.MergedDictionaries&gt;
+    &lt;ResourceDictionary Source="Common/ColorOverrides.xaml"/&gt;
+
+    &lt;!-- 
+        Styles that define common aspects of the platform look and feel
+        Required by Visual Studio project and item templates
+        --&gt;
+    &lt;ResourceDictionary Source="Common/StandardStyles.xaml"/&gt;
+&lt;/ResourceDictionary.MergedDictionaries&gt;
+</code></pre>
+
+<p>Hope that helps somebody check of that one last to-do item so they can submit their app, sit back, and start raking in the millions =)</p>
+
+]]></description>
+            <pubDate>Wed, 19 Dec 2012 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/windows8-color-overrides.html</guid>
+        </item>
+        <item>
+            <title>Xaml VisualStateManager weirdness</title>
+            <link>http://briandunnington.github.io/xaml-visualstatemanager-note.html</link>
+            <description><![CDATA[
+<!-- Main hero unit for a primary marketing message or call to action -->
+
+<div class="hero-unit">
+<h1>Xaml VisualStateManager weirdness</h1>
+<p>Sometimes GoToState() just wont work or works intermittently. Here is a note to myself with the answer.</p>
+<!--<p><a class="btn btn-primary btn-large">Learn more &raquo;</a></p>-->
+</div>
+
+<p>This is more a note to my future self, but maybe some other folks will find it helpful as well.</p>
+
+<p>Recently, I was developing a custom templated control in a Windows Phone app and the template defined several VisualStates. In the control's code, I used the <a href="http://msdn.microsoft.com/en-us/library/dd991369.aspx"><code>VisualStateManager.GoToState()</code></a> method to switch between the states when necessary. However, sometimes the state would not change. It wasnt reproducible consistently - sometimes it would change states back and forth just fine, and other times it would not change states at all.</p>
+
+<p>After much debugging, lots of trial-and-error, and finally a bit of a revelation, I discovered the root cause:</p>
+
+<blockquote>
+  <p>If you call <code>VisualStateManager.GoToState()</code> before <code>OnApplyTemplate()</code> has ran, it seems to corrupt the VisualStateManager and subsequent attempts to change state will become erratic.</p>
+</blockquote>
+
+<p>In my particular case, I had bound some properties in the template to <a href="http://msdn.microsoft.com/en-us/library/ms752914.aspx">DependencyProperties</a> in the control and was using the <a href="http://msdn.microsoft.com/en-us/library/system.windows.propertychangedcallback.aspx">PropertyChangedCallback</a> to update the visual state. However, this meant that databound values were set on the control early in its lifecycle and causes this issue to occur.</p>
+
+<p>The fix for me was to simply ignore any calls to my internal <code>UpdateState()</code> method until <code>OnApplyTemplate()</code> had been called and then to update the state based on the current property values:</p>
+
+<pre><code>public override void OnApplyTemplate()
+{
+    base.OnApplyTemplate();
+    hasLoaded = true;
+    UpdateState(this.IsActive);
+}
+
+void UpdateState(bool isActive)
+{
+    if (hasLoaded)
+    {
+        string state = isActive ? "Active" : "Inactive";
+        System.Windows.VisualStateManager.GoToState(this, state, true);
+    }
+}
+</code></pre>
+
+]]></description>
+            <pubDate>Tue, 18 Dec 2012 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/xaml-visualstatemanager-note.html</guid>
+        </item>
+        <item>
+            <title>Reentrant async locks in .NET</title>
+            <link>http://briandunnington.github.io/reentrant-async-locks.html</link>
+            <description><![CDATA[
+<!-- Main hero unit for a primary marketing message or call to action -->
+
+<div class="hero-unit">
+<h1>Reentrant async locks in .NET</h1>
+<p>The new async/await keywords in .NET make async programming a snap, but there are some things to watch out for when synchronizing multiple threads.</p>
+<!--<p><a class="btn btn-primary btn-large">Learn more &raquo;</a></p>-->
+</div>
+
+<p>So you have had your head down coding up your awesome new <a href="http://www.windowsstore.com/">Windows Store</a> and <a href="https://dev.windowsphone.com/">Windows Phone</a> apps, and the new <code>async/await</code> keywords are making life a lot easier. No more frankenstein code of callbacks and Invokes() littering up your beautiful codebase.</p>
+
+<p>Now you need to load some data for use in your app. Could come from a webservice, or maybe a long-running local database query. Or maybe you have some initialization code that you want to ensure only runs once, even when multiple threads are involved. In the olden-days, you would wrap a <code>lock</code> statement around the critical sections and be on your merry way, but you know that <code>await</code> is <a href="http://msdn.microsoft.com/en-us/library/vstudio/hh156528.aspx">not allowed inside of a lock statement</a> and that <a href="http://stackoverflow.com/a/7612714/373799">it would be a bad idea</a> if they were.</p>
+
+<p>There are a couple of <a href="http://nitoasync.codeplex.com/">great async libraries</a> out there, and maybe you have even been reading <a href="http://blogs.msdn.com/b/pfxteam/archive/2012/02/12/10266988.aspx">Stephen Toub</a> and written your own async locking mechanism. There are a few <a href="http://blogs.msdn.com/b/pfxteam/archive/2011/01/13/10115163.aspx">well-known issues</a> (and some <a href="http://nitoprograms.blogspot.com/2012/12/dont-block-in-asynchronous-code.html">lesser-known</a> as well) that can cause deadlocks and you have been diligent to avoid them. Your app is humming along nicely until - BAM! - it suddenly it locks up. What gives?</p>
+
+<p>One possible cause is that the same thread tried to obtain the lock multiple times. Unlike the <code>lock</code> keyword, async locks built on top of <a href="http://msdn.microsoft.com/en-us/library/system.threading.semaphoreslim.aspx">SemaphoreSlim</a> and other async-aware synchronization primitives <strong>are not reentrant</strong>.</p>
+
+<p>It may seem like it would be easy to spot the culprit - just dont call <code>LockAsync()</code> inside another <code>LockAsync()</code> block, but it is often much more complicated than that. The code you had inside of your async lock may have called out to some other code (and maybe some other code, and other, etc) and eventually <em>that</em> code tries to obtain the same lock. It could be in another method or class altogether, or only on certain code paths, making it very hard to track down.</p>
+
+<h3>A solution?</h3>
+
+<p>So if async locks are not natively reentrant, the obvious first thought would be to try to make them reentrant so that they act exactly like the <code>lock</code> keyword, which is what we are trying to mimic. This is actually a bit tricky to do, though it can be done. By tracking which threads have obtained the lock (using the <a href="http://msdn.microsoft.com/en-us/library/system.environment.currentmanagedthreadid.aspx">System.Environment.CurrentManagedThreadId</a>), you can elect to allow reentrant threads to by-pass the <code>WaitAsync</code> (or whatever mechanism you are using). Now you write some code like this:</p>
+
+<pre><code>    async void Button_Click(object sender, EventArgs e)
+    {
+        // wrap this critical section so we dont have file collisions
+        using (new AsyncLock.LockAsync())
+        {
+            await WriteToFile("test");
+        }
+    }
+
+    async Task WriteToFile(string text)
+    {
+        // wrap this critical section so we dont have file collisions
+        using (new AsyncLock.LockAsync())
+        {
+            // write to a file or do some other long-running action
+            await Task.Delay(5000);
+        }
+    }
+</code></pre>
+
+<p>Even though Button_Click obtains the lock and then calls WriteToFile, which also tries to obtain the lock, the inner lock request will be granted and the code will work as expected. Perfect - just what we wanted.</p>
+
+<p>Or is it? In reality, it turns out that we don't want to mimic the <code>lock</code> semantics exactly. Consider a simple app with two buttons and the following codebehind:</p>
+
+<pre><code>    async void Button1_Click(object sender, EventArgs e)
+    {
+        // wrap this critical section so we dont have file collisions
+        using (new AsyncLock.LockAsync())
+        {
+            // write to a file or do some other long-running action
+            await Task.Delay(5000);
+        }
+    }
+
+    async void Button2_Click(object sender, EventArgs e)
+    {
+        // wrap this critical section so we dont have file collisions
+        using (new AsyncLock.LockAsync())
+        {
+            // write to a file or do some other long-running action
+            await Task.Delay(5000);
+        }
+    }
+</code></pre>
+
+<p>In the original, non-reentrant version, this code would work as expected. If the user clicks Button1, the lock will be obtained, the long-running task will start, and control will be returned to the calling method. If the user immediately clicks Button2, the lock will be contested so control will be returned immediately, and the long-running task in Button2_Click will wait and be ran after Button1_Click is finished.</p>
+
+<p>If we allow reentrancy though, Button1_Click's task will start and when Button2_Click tries to obtain the lock, we will bypass the lock and allow it to execute, effectively defeating the purpose of the lock altogether. So although we have allowed reentrancy, we have broken our original intent.</p>
+
+<p>It turns out that allowing reentrancy is not so straight-forward. Depending on the situation, different behavior would be expected, and the complexity of tracking the reentrancy only to provide a fragile solution is not a good idea.</p>
+
+<h3>So now what?</h3>
+
+<p>So what is the right thing to do? Well, the right thing to do is to avoid needing to lock around asynchronous operations altogether. That will completely avoid this issue and usually result in more robust code. Using the built-in classes in the <a href="http://msdn.microsoft.com/en-us/library/system.collections.concurrent.aspx">System.Collections.Concurrent</a> namespace coupled with the <a href="http://msdn.microsoft.com/en-us/library/dd642331.aspx">Lazy&lt;T&gt;</a> object can often achieve a similar effect without any (user-authored) locks at all. I will write an upcoming post with an example of how to implement this approach.</p>
+
+<p>But in cases where you absolutely have to have locking behavior around asynchronous code, you really have to be extra-super-duper diligent that you never have any reentrant locking code. Using the same thread-tracking mechanisms that we talked about earlier, you could probably build a deadlock-detection scheme that would at least alert you to the issue during testing. Otherwise, you can always leave it up to your users to find for you =)</p>
+
+]]></description>
+            <pubDate>Wed, 12 Dec 2012 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/reentrant-async-locks.html</guid>
+        </item>
+        <item>
+            <title>GridView in a ScrollViewer</title>
+            <link>http://briandunnington.github.io/gridview-in-a-scrollviewer.html</link>
+            <description><![CDATA[
+<!-- Main hero unit for a primary marketing message or call to action -->
+
+<div class="hero-unit">
+<h1>GridView in a ScrollViewer</h1>
+<p>How to use a GridView inside of a ScrollViewer in a Windows Store app while still retaining mouse-wheel scrolling and swipe-to-select behavior.</p>
+<!--<p><a class="btn btn-primary btn-large">Learn more &raquo;</a></p>-->
+</div>
+
+<p>Here is the scenario: You are building a <a href="http://www.windowsstore.com/">Windows Store</a> app and you want to use a <a href="http://msdn.microsoft.com/en-us/library/windows/apps/xaml/hh780618.aspx">GridView</a> to lay out groups of items in your app. However, you want each group to use a different layout for the individual items.</p>
+
+<p>You might assume that you want to use the <a href="http://msdn.microsoft.com/en-us/library/windows/apps/xaml/windows.ui.xaml.controls.itemscontrol.groupstyleselector.aspx">GroupStyleSelector</a> property, since the documentation says:</p>
+
+<blockquote>
+  <p>The GroupStyleSelector returns different GroupStyle values to use for content based on the characteristics of that content.</p>
+</blockquote>
+
+<p>However, it turns out that <a href="http://stackoverflow.com/questions/11418511/how-can-i-make-groups-in-a-metro-gridview-use-different-layouts">GroupStyleSelector doesn't apply different styles to different groups</a>. Instead, it is intended to apply a different style to <em>all</em> groups conditionally (for instance, when the app is changed to Snapped view).</p>
+
+<p>OK, so GroupStyleSelector is out. How about just putting each group of items in its own GridView and putting all of that in a big horizontal StackPanel wrapped in a ScrollViewer? (Hold on while I go try it.....) - Yup, that does the trick. Easy peasy.</p>
+
+<p>Wait, something is not right. On a touch device, you can swipe back and forth to scroll and things are fine, but scrolling using the mouse wheel doesnt work. Turns out that the cause is that GridView contains its own ScrollViewer internally and that ScrollViewer swallows up the mouse wheel events.</p>
+
+<p>Some <a href="http://stackoverflow.com/questions/10737656/metro-style-scrolling-with-mouse-wheel">deeper digging</a> suggests that we can re-template the GridView to remove the inner ScrollViewer. Easy enough; we can add something like this in our App.xaml:</p>
+
+<pre><code>&lt;ControlTemplate x:Key="NonScrollingGridView" TargetType="GridView"&gt;
+    &lt;Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}"&gt;
+        &lt;ItemsPresenter HeaderTemplate="{TemplateBinding HeaderTemplate}" Header="{TemplateBinding Header}" HeaderTransitions="{TemplateBinding HeaderTransitions}" Padding="{TemplateBinding Padding}"/&gt;
+    &lt;/Border&gt;
+&lt;/ControlTemplate&gt;
+</code></pre>
+
+<p>A quick check reveals that mouse wheel scrolling is now working! So that is that.</p>
+
+<p>Or is it? Now back on the touch-enabled device, swipe-to-select is no longer working. Frustratingly, the internal ScrollViewer is required for swipe-to-select, but breaks mouse wheel scrolling when nested. So where does that leave us?</p>
+
+<p>The solution (and I promise this is the actual solution this time) was suggested by <a href="http://social.msdn.microsoft.com/Forums/en-US/winappswithcsharp/thread/18742227-4be6-4f0a-be2b-061f80c8e33c/">user Poleg on this MSDN thread</a>: we need to leave the internal ScrollViewer in place but prevent it from swallowing the mouse wheel events. Luckily, UIElement provides the <a href="http://msdn.microsoft.com/en-us/library/ms598899.aspx">AddHandler</a> method that we can use for situations like this. The last parameter is a boolean named  <code>handledEventsToo</code> which lets us hook into routed events even if a previous element already handled the event. So, we can subclass GridView (or VariableSizedWrapGrid or any other Panel with built-in scrolling), hook the OnPointerWheelChanged event using the AddHandler method, and set <code>e.Handled = false</code>:</p>
+
+<pre><code>public class CustomGridView : GridView
+{
+    protected override void OnApplyTemplate()
+    {
+        base.OnApplyTemplate();
+        var sv = this.GetTemplateChild("ScrollViewer") as UIElement;
+        if (sv != null)
+            sv.AddHandler(UIElement.PointerWheelChangedEvent, new PointerEventHandler(OnPointerWheelChanged), true);
+    }
+
+    private void OnPointerWheelChanged(object sender, PointerRoutedEventArgs e)
+    {
+        e.Handled = false;
+    }
+}
+</code></pre>
+
+<p>You can use this CustomGridView inside of nested ScrollViewers and it will provide touch scrolling, mouse wheel scrolling, <em>and</em> swipe-to-select behavior. Hope that helps somebody who was getting frustrated with it like I was.</p>
+
+]]></description>
+            <pubDate>Mon, 10 Dec 2012 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/gridview-in-a-scrollviewer.html</guid>
+        </item>
+        <item>
+            <title>SQLite on WinRT bug</title>
+            <link>http://briandunnington.github.io/sqlite-winrt-bug.html</link>
+            <description><![CDATA[
+<!-- Main hero unit for a primary marketing message or call to action -->
+
+<div class="hero-unit">
+<h1>SQLite on WinRT bug</h1>
+<p>Got some queries that run fine, but if you add a column to the SELECT list or change the ORDER BY stop working? Got queries in a transaction that sometimes fail? Read on for the solution...</p>
+<!--<p><a class="btn btn-primary btn-large">Learn more &raquo;</a></p>-->
+</div>
+
+<p>While working on a Windows 8 app that uses a SQLite database, I was running into a very strange bug. I would construct a query that would work fine, but when I added certain columns to the ORDER BY clause, suddenly no results would be returned. I ruled out syntax issues since the same queries worked fine when ran in <a href="http://www.yunqa.de/delphi/doku.php/products/sqlitespy/index">SqlSpy</a>. After much debugging, I finally decided it was just a bug since I was using the Release Preview of Windows 8, beta version of VS 2012, and a pre-release version of SQLite with preliminary support for WinRT.</p>
+
+<p>Fast-forward a few months and the bug cropped up again. This time, I added an additional single column to the SELECT clause and the query broke. By now, I had upgraded to the RTM version of Windows 8 and was using the official WinRT build of SQLite so I was less confident that it was just a beta bug. I decided that I needed to dig deeper.</p>
+
+<p>Whenever the issue cropped up, the SQLite.Step() command would return 'CannotOpen', which <a href="http://www.sqlite.org/c3ref/c_abort.html">the documentation</a> simply says means: "Unable to open the database file". A call to SQLite.GetErrorMsg() returned "library routine called out of sequence" for which the documentation <a href="http://sqlite.org/cvstrac/wiki?p=LibraryRoutineCalledOutOfSequence">listed several possible causes</a>, but none of them really applied. The database was definitely opened correctly and not closed unexpectedly. The calling code was isolated to a single thread, so no wonkiness there. The issue <em>was</em> occuring on the Step() command, but the statement pointer was definitely prepared properly and valid.</p>
+
+<p>At this point, I could only assume the issue was deep in the bowels of the sqlite3.dll and I was not sure what to do. I googled a bunch of things on hunches, but nothing was coming up. Finally, I stumbled across <a href="http://sqlite.1065341.n5.nabble.com/Transaction-issues-with-WinRT-build-td63817.html">a posting</a> by a guy having a semi-similar problem. He was executing statements inside of a transaction and having some work and some fail. Several folks had suggestions on things to try, but nothing worked. Finally, Joe Mistachkin replied with this nuget of wisdom:</p>
+
+<blockquote>
+  <p>Setting the sqlite3_temp_directory to the value contained in the
+  "Windows.Storage.ApplicationData.Current.TemporaryFolder.Path" property should clear the issue.  This can be done immediately after opening the connection using PRAGMA temp_store_directory command on the newly opened database connection. </p>
+</blockquote>
+
+<p>Of course! WinRT apps cant access the full file system the same way that normal desktop apps can. In fact, by default, they can only access their own installation location. Apparently, sometimes SQLite needs to write to temporary files in order to execute queries and perhaps my changes were just enough to cause the database engine to need to use such a file. Joe's advice made sense in that SQLite for WinRT would need to be told where it was allowed to store temporary files.</p>
+
+<p>A quick look at the <a href="http://www.sqlite.org/pragma.html#pragma_temp_store_directory">temp_store_directory</a> documentation made it clear that this PRAGMA was deprecated and should not be used. (For those that dont know (like I didnt), a <a href="http://www.sqlite.org/pragma.html#pragma_temp_store_directory">PRAGMA statement</a> is a SQLite-specific command that can be used to modify the operation of the SQLite library.) Now that I knew the cause of the issue, my googling was better focused and I found <a href="http://stackoverflow.com/a/12246530/373799">this advice</a> that it was fine to use the temp_store_directory setting in this case.</p>
+
+<p>So armed with a potential solution, I coded up a quick test and it did indeed solve the issue - success at last! For those using <a href="https://github.com/praeclarum/sqlite-net/blob/master/src/SQLite.cs">Frank A. Krueger's sqlite-net</a> wrapper, here are the changes required (all in the SQLiteConnection class):</p>
+
+<pre><code>static bool isTempStoreSet;
+
+public SQLiteConnection(string databasePath, bool storeDateTimeAsTicks = false)
+{
+    DatabasePath = databasePath;
+    Sqlite3DatabaseHandle handle;
+    var r = SQLite3.Open(DatabasePath, out handle);
+    Handle = handle;
+    if (r != SQLite3.Result.OK)
+    {
+        throw SQLiteException.New(r, String.Format("Could not open database file: {0} ({1})", DatabasePath, r));
+    }
+    _open = true;
+
+    /* NOTE: Added to ensure that the temp directory is correctly set for WinRT apps.
+     * See: http://www.mailinglistarchive.com/html/sqlite-users@sqlite.org/2012-08/msg00238.html
+     * */
+    if (!isTempStoreSet)
+    {
+        Execute(String.Format("PRAGMA temp_store_directory = '{0}'", Windows.Storage.ApplicationData.Current.TemporaryFolder.Path));
+        tempStoreSet = true;
+    }
+    /* END NOTE */
+
+    StoreDateTimeAsTicks = storeDateTimeAsTicks;
+
+    BusyTimeout = TimeSpan.FromSeconds(0.1);
+}
+</code></pre>
+
+<p>That was one of the longest bug-hunting expeditions I had been on for a long time, so I was glad to finally get it sorted. Thanks to the wonderful internet for being filled with folks much smarter than me for doing most of the hard work - I just wrote it up here so it was all in one place and hopefully will help somebody else out in the future.</p>
+
+]]></description>
+            <pubDate>Fri, 14 Sep 2012 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/sqlite-winrt-bug.html</guid>
+        </item>
+        <item>
+            <title>Hello World!</title>
+            <link>http://briandunnington.github.io/first-post.html</link>
+            <description><![CDATA[
+<!-- Main hero unit for a primary marketing message or call to action -->
+
+<div class="hero-unit">
+<h1>Hello, world!</h1>
+<p>This is the first post on this blog. It is a bit of an experiment, as I am using several new (and new-to-me) techniques for creating and publishing this content</p>
+<!--<p><a class="btn btn-primary btn-large">Learn more &raquo;</a></p>-->
+</div>
+
+<p>This is the first post on this blog. It is a bit of an experiment, as I am using several new (and new-to-me) techniques for creating and publishing this content. All of the tools are based on standards (formal and de facto) and are freely available.</p>
+
+<p>All of the content is written in <a href="http://daringfireball.net/projects/markdown/">Markdown</a>, a human-readable syntax for formatting text. I am using the free <a href="http://markdownpad.com/">Markdown Pad</a> editor to write the content.</p>
+
+<p>The Markdown files are then ran through a custom tool that I created. The tool scans a directory for Markdown files (.md extension) and then converts the text to HTML (using the <a href="http://code.google.com/p/markdownsharp/">Markdown Sharp</a> library). The resulting HTML is then injected into an HTML template to create the final page. You can see the raw Markdown source used to generate any page by replacing the .html extension with .md (Example: <a href="/_posts/first-post.md">first-post.md</a>).</p>
+
+<p>As of this writing (2012.03.19), the template itself is using the <a href="http://html5boilerplate.com/">html5boilerplate</a> library, with a side helping of <a href="http://twitter.github.com/bootstrap/">Twitter Bootstrap</a> thrown in for the UI elements, all generated automatically by <a href="http://www.initializr.com/">Initializr</a>.</p>
+
+<p>Finally, the pages are being hosted on <a href="https://github.com/">Github</a> using their <a href="http://pages.github.com/">Pages</a> feature. The static .html files are all version controlled and stored in Github as normal, but Github also makes them browsable.</p>
+
+<p>Anyway, it sounds like a lot of moving parts, but it really makes things quite easy. Just open up a text editor and write the text without worrying about the HTML formatting too much, then click a button and everything is transformed into standards-compliant HTML magically. A simple push to Github and the pages are all updated with full backups, etc.</p>
+
+<p>Let's see how it goes.</p>
+
+]]></description>
+            <pubDate>Mon, 19 Mar 2012 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/first-post.html</guid>
+        </item>
+    </channel>
+</rss>

@@ -1,0 +1,34 @@
+<?xml version="1.0" ?>
+@model Nest.SiteData
+@{
+    HtmlEncode = true;
+    var now = DateTime.UtcNow;
+    var siteRoot = "http://briandunnington.github.io";
+}
+<rss version="2.0">
+    <channel>
+        <title>@Model.CurrentItem.Title</title>
+        @Raw("<link>http://briandunnington.github.io</link>")
+        <description>@Model.CurrentItem.Summary</description>
+        <language>en-us</language>
+        <copyright>Copyright 2012 - 2018 : Brian Dunnington</copyright>
+        <pubDate>@now.ToString("ddd, dd MMM yyyy hh:mm:ss 'GMT'")</pubDate>
+        <lastBuildDate>@now.ToString("ddd, dd MMM yyyy hh:mm:ss 'GMT'")</lastBuildDate>
+
+        @foreach (var post in @Model.Posts.Where((p) => !p.Contains("DRAFT")).OrderByDescending((p) => p.Date))
+        {
+        var link = siteRoot + post.Link;
+        <item>
+            <title>@post.Title</title>
+            @Raw(String.Format("<link>{0}</link>", link))
+            @Raw(String.Format("<description><![CDATA[\r\n{0}\r\n]]></description>", post.Content))
+            <pubDate>@post.Date.ToString("ddd, dd MMM yyyy hh:mm:ss 'GMT'")</pubDate>
+            <guid>@link</guid>
+            @if (post.Contains("Image"))
+            {
+            <image>@(post.Image)</image>
+            }
+        </item>
+        }
+    </channel>
+</rss>
