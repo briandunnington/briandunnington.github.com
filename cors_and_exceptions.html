@@ -8,7 +8,7 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 
-	<title>brian dunnington - Streaming live drone footage using Azure Media Services</title>
+	<title>brian dunnington - CORS and exceptions on ASP.NET Core</title>
 	<meta name="description" content="code and computer related tidbits">
 	<meta name="author" content="brian dunnington">
   <link rel="alternate" type="application/rss+xml" title="brian dunnington" href="/rss.xml" />
@@ -19,10 +19,10 @@
     <meta name="twitter:card" content="summary">
     <meta name="twitter:site" content="@briandunnington">
     <meta name="twitter:creator" content="@briandunnington">
-    <meta name="twitter:title" content="Streaming live drone footage using Azure Media Services">
-    <meta name="twitter:description" content="Directly from your drone to the world, via the the cloud">
+    <meta name="twitter:title" content="CORS and exceptions on ASP.NET Core">
+    <meta name="twitter:description" content="How to ensure your CORS headers are properly returned with HTTP error responses on ASP.NET Core">
     <meta name="twitter:domain" content="http://briandunnington.github.io/">
-    <meta name="twitter:image" content="http://briandunnington.github.io/images/dronecast_phantom.jpg">
+    <meta name="twitter:image" content="http://briandunnington.github.io/images/aspnetcore.png">
 
 
 	<link rel="stylesheet" href="css/bootstrap.css">
@@ -74,8 +74,8 @@
 	  <div class="row">
         <div class="span7 maincontent">
             <div class="hero-unit">
-<h1>Streaming live drone footage using Azure Media Services</h1>
-<p>Directly from your drone to the world, via the the cloud</p>
+<h1>CORS and exceptions on ASP.NET Core</h1>
+<p>How to ensure your CORS headers are properly returned with HTTP error responses on ASP.NET Core</p>
 </div>
 
 <p><style>
@@ -86,103 +86,84 @@ blockquote p { font-size: 90%; }
 blockquote pre { margin: 10px 0; }
 </style></p>
 
-<p>I have a <a href="https://www.dji.com/phantom-3-standard">DJI Phantom 3 Standard</a> drone and love to fly it around. You can get some really amazing shots from all sorts of unique perspectives. </p>
+<p>Setting up CORS in ASP.NET Core is <a href="https://docs.microsoft.com/en-us/aspnet/core/security/cors?view=aspnetcore-2.1">really easy and straight-forward</a> with just a couple of lines of code. Once configured, the appropriate CORS headers will be returned with each response.</p>
 
 <div class="img">
-<img src="images/dronecast_phantom.jpg"/>
+<img src="images/cors_200yes.png"/>
 </div>
 
-<p>Usually, I simply use the DJI GO app to record video during flight and then download it from the SD card later for processing/editing. But DJI also offers the ability to live-stream the video to sites like YouTube and Facebook. That is pretty cool, but I wanted to live-stream the video to a custom site. The DJI GO app does support streaming to a custom RTMP endpoint, and since Azure Media Services allows ingesting live video via RTMP, I figured it would be a great fit.</p>
-
-<p>Microsoft's <a href="https://docs.microsoft.com/en-us/azure/media-services/media-services-portal-creating-live-encoder-enabled-channel">own documentation</a> does an OK job of explaining how to set up live video ingest, but it glosses over a few important bits of info. There are also a couple of gotchas when configuring the drone streaming settings, so here is the complete and accurate steps to stream live video from your drone.</p>
-
-<h3>1. Create a Media Services account</h3>
+<p>Another nice thing about ASP.NET Core is the <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/error-handling?view=aspnetcore-2.1">easy exception handling</a>. But, when used together, there can be an unexpected side effect:</p>
 
 <div class="img">
-<img src="images/dronecast_createmediaservice.png"/>
+<img src="images/cors_500no.png"/>
 </div>
 
-<h3>2. Create a live streaming channel</h3>
+<p>Notice that the CORS headers are not present in the response in this case. Some exhaustive Googling turned up <a href="https://github.com/aspnet/CORS/issues/46">this GitHub issue</a> where the ASP.NET Core team essentially said that the exception handler was working as expected. <a href="https://github.com/aspnet/CORS/issues/46#issuecomment-157553623">Their reasoning</a> was that, in the event of an unhanlded exception, the runtime should not leak any unintended information in the response, so the response body and headers are cleared out when the exception handler is invoked.</p>
+
+<p>For many RESTful APIs though, the expectation may be that the browser displays a friendly error message in the event of unexpected exceptions. Due to the <a href="https://en.wikipedia.org/wiki/Same-origin_policy">same-origin policy</a> though, the browser is prevented from access the error response if the CORS headers are not present.</p>
+
+<h3>The Solution</h3>
+
+<p>Luckily, the world is filled with smart folks and somebody else had already <a href="https://github.com/aspnet/CORS/issues/90#issuecomment-348323102">come up with a solution</a> to this problem. The CORS headers are normally added to the response early on in the pipeline, so the workaround is simply to make a copy of the CORS headers as early as possilbe, and then re-add them <strong>after</strong> the exception handler has ran and cleared them out.</p>
+
+<p>I whipped up a simple middleware component to make it easy to reuse this behavior across all of our APIs. The CORS-related headers (they all start with <code>Access-Control-</code>) are saved into a temporary variable, and then the <code>Response.OnStarting()</code> callback is used to make sure they are added back to the response if necessary.</p>
+
+<pre><code>using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using System;
+using System.Threading.Tasks;
+
+namespace Examples.AspNetCore
+{
+    public static class MaintainCorsExtension
+    {
+        public static IApplicationBuilder MaintainCorsHeadersOnError(this IApplicationBuilder builder)
+        {
+            return builder.Use(async (httpContext, next) =&gt;
+            {
+                var corsHeaders = new HeaderDictionary();
+                foreach (var pair in httpContext.Response.Headers)
+                {
+                    if (!pair.Key.StartsWith("access-control-", StringComparison.InvariantCultureIgnoreCase)) { continue; }
+                    corsHeaders[pair.Key] = pair.Value;
+                }
+
+                httpContext.Response.OnStarting(o =&gt; {
+                    var ctx = (HttpContext)o;
+                    var headers = ctx.Response.Headers;
+                    foreach (var pair in corsHeaders)
+                    {
+                        if (headers.ContainsKey(pair.Key)) { continue; }
+                        headers.Add(pair.Key, pair.Value);
+                    }
+                    return Task.CompletedTask;
+                }, httpContext);
+
+                await next();
+            });
+    }
+    }
+}
+</code></pre>
+
+<p>To use the middleware, simply call it from your <code>Configure()</code> method in <code>Startup.cs</code>. Be sure to call this middleware early in the pipeline, right after the <code>.UseCors()</code> call, but before other middleware.</p>
+
+<pre><code>public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+{
+    app.UseCors();
+    app.MaintainCorsHeadersOnError();
+    //...configure the rest of your pipeline...
+    app.UseMvc();
+}
+</code></pre>
+
+<p>Now when an exception is thrown and handled by the ASP.NET runtime, the CORS headers will be restored before the response is sent back.</p>
 
 <div class="img">
-<img src="images/dronecast_step1.png"/>
+<img src="images/cors_500yes.png"/>
 </div>
 
-<div class="img">
-<img src="images/dronecast_step2.png"/>
-</div>
-
-<div class="img">
-<img src="images/dronecast_step3.png"/>
-</div>
-
-<div class="img">
-<img src="images/dronecast_step4.png"/>
-</div>
-
-<h3>3. Copy the resulting RTMP url</h3>
-
-<div class="img">
-<img src="images/dronecast_rtmpurl.png"/>
-</div>
-
-<h3>4. Create a new live event</h3>
-
-<div class="img">
-<img src="images/dronecast_liveevent.png"/>
-</div>
-
-<h3>5. Enable the Streaming Endpoint</h3>
-
-<div class="img">
-<img src="images/dronecast_enableendpoint.png"/>
-</div>
-
-<h3>6. Start the channel</h3>
-
-<div class="img">
-<img src="images/dronecast_startchannel.png"/>
-</div>
-
-<p>At this point, Azure is ready to ingest the incoming video stream and encode it into multi-bitrate streams that can be consumed by clients.</p>
-
-<p>Over in the DJI GO app...</p>
-
-<h3>1. General Settings > Select Live Broadcast Platform</h3>
-
-<div class="img">
-<img src="images/dronecast_djigo1.png"/>
-</div>
-
-<h3>2. Choose RTMP</h3>
-
-<div class="img">
-<img src="images/dronecast_djigo2.png"/>
-</div>
-
-<h3>3. Enter the RTMP url</h3>
-
-<div class="img">
-<img src="images/dronecast_djigo3.png"/>
-</div>
-
-<p><strong>NOTE:</strong> You must add an additional <code>/mystream</code> to the end of the url that you copied from the Azure portal. The value is not important, but the ingest will not work without the extra path info. </p>
-
-<div class="img">
-<img src="images/dronecast_djigo4.png"/>
-</div>
-
-<div class="img">
-<img src="images/dronecast_djigo5.png"/>
-</div>
-
-<p>When you are live streaming, the DJI GO app will show an indicator in the upper left corner.</p>
-
-<p>At this point, you are broadcasting your live stream to the world. The Azure portal has a handy feature that lets you view the live stream directly in the portal (as well as providing the live stream url).</p>
-
-<div class="img">
-<img src="images/dronecast_liveview.png"/>
-</div>
+<p>Now the broswer can access the response as expected and take the appropriate action. This is <a href="https://github.com/aspnet/CORS/commit/554855cab34961a27a6cf248fbb847b9dd8bd8d4">supposed to be fixed in the next version of ASP.NET Core</a>, but this does the trick in the meantime.</p>
 
         </div>
       <div class="span1">
