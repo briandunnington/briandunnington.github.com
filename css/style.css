@@ -137,3 +137,10 @@ pre code.csharp {
       padding-bottom: 20px;
   }
 }
+
+
+.maincontent h4 { margin: 16px 0 8px 0; }
+.img img { display: block; margin-bottom: 16px; border: solid 1px #666666; }
+.img span { text-align: center; }
+blockquote p { font-size: 90%; }
+blockquote pre { margin: 10px 0; }

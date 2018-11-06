@@ -7,9 +7,135 @@
         <description>RSS feed for website</description>
         <language>en-us</language>
         <copyright>Copyright 2012 - 2018 : Brian Dunnington</copyright>
-        <pubDate>Tue, 09 Oct 2018 01:29:00 GMT</pubDate>
-        <lastBuildDate>Tue, 09 Oct 2018 01:29:00 GMT</lastBuildDate>
+        <pubDate>Tue, 06 Nov 2018 04:17:21 GMT</pubDate>
+        <lastBuildDate>Tue, 06 Nov 2018 04:17:21 GMT</lastBuildDate>
 
+        <item>
+            <title>Roku Round-up</title>
+            <link>http://briandunnington.github.io/roku_roundup.html</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Roku Round-up</h1>
+<p>Quick updates on some Roku libraries that I recently released</p>
+</div>
+
+<p>I have previously posted about a few of my Roku library projects (<a href="redoku.html">here</a> and <a href="roact.html">here</a>), but I have recently
+made some improvments and also released a couple more useful tools so I thought I would do a quick round-up of everything.</p>
+
+<div class="img">
+<img src="images/roku.png" style="border: 0;margin:0 auto;"/>
+</div>
+
+<h3>Redoku</h3>
+
+<p><a href="https://github.com/briandunnington/Redoku">Redoku</a> is a Redux-inspired state-management library for Roku. If you are a JS dev and have used Redux, then Redoku
+should feel very familiar to you. All of the concepts (one-way data flow, actions, reducers, global state store, etc) are 
+exactly the same with just a few changes to fit into the BrightScript/SceneGraph constraints.</p>
+
+<p>There have been no specific updates to Redoku lately, but that is because it just continues to be rock solid for me. I use
+it in every project and it 'just works'. If you are developing a Roku app, take a look and let me know what you think.</p>
+
+<h3>Roact</h3>
+
+<p>Just as Redoku is the Redux of Roku, <a href="https://github.com/briandunnington/Roact">Roact</a> is the React of Roku. You build components and compose them together with
+familiar methods like <code>componentDidMount</code>, <code>setState</code>, and <code>render</code>. It is a bit different than thinking in pure SceneGraph
+terms, but if you have used React or React Native, you should feel right at home.</p>
+
+<pre><code>function render(p)
+    return h("Group", {}, [
+                h("Board"),
+                h("Label", {text: "Welcome to tic-tac-toe", translation: [1000,72]}),
+            ])
+end function
+</code></pre>
+
+<p>I recently stated using this in a fairly complex app that really gave it a thorough testing. I added support for <code>componentDidUpdate</code>
+for responding to changes in <code>props</code>, and fixed a few bugs (mostly related to removing child nodes that were no longer in
+the visual tree).</p>
+
+<p>Of course, Roact and Redoku work great together. But just like with React and Redux, Roact and Redoku can each be used 
+independently. The Roact repository has examples of apps using Redoku and without, and I have built lots of apps with Redoku 
+long before Roact even existed.</p>
+
+<h3>Promises</h3>
+
+<p>If you have not used BrightScript, you might not know that there is no language-level support for asynchronous operations.
+Instead, you create <code>Task</code> nodes (essentially threads) and 'observe' their fields and get notified when they change. This
+results in a lot of boilerplate code and callback functions littered throughout your code.</p>
+
+<p>The <a href="https://github.com/briandunnington/roku-promise">roku-promise</a> library tries to solve that by wrapping that pattern in a familiar Promise-like syntax.
+The end result is that you can write code like this:</p>
+
+<pre><code>createTaskPromise("TaskName", {
+    input1: "some value",
+    input2: 123
+}).then(sub(task)
+    results = task.output
+    ' do other stuff here with the results.
+    ' m is the original context from the caller
+    m.label.text = results.text
+end sub)
+</code></pre>
+
+<p>The best part is that the roku-promise library manages the scope/context for you so that when the code in the <code>then</code>
+delegate gets called, the context is the same as the original caller (in other words, <code>m</code> is the same).</p>
+
+<p>I recently released this as open-source and updated the code and docs to include examples of some other more
+advanced use cases (long-running tasks, promises without a task, etc) and am excited to see what else other
+folks can build on top of this.</p>
+
+<h3>Fetch</h3>
+
+<p>Continuing the trend of Javascript-inspired patterns, I also recently released the <a href="https://github.com/briandunnington/roku-fetch">roku-fetch</a> library.
+Roku's HTTP framework is quite a bit different than most other programming languages, so roku-fetch wraps it up
+in an API that should be familiar to anyone doing front-end development for the web.</p>
+
+<p>The most basic usage is simply:</p>
+
+<pre><code>response = fetch({url: "http://example.url"})
+if response.ok
+    ?"The response was: " + response.text()
+end if
+</code></pre>
+
+<p>But it also has full support for headers, HTTP verbs, timeout, and more:</p>
+
+<pre><code>response = fetch({
+    url: "http://example.url",
+    timeout: 5000,
+    method: "PUT",
+    headers: {
+        "Content-Type": "application/json",
+        "If-None-Match": "abc123"
+    }
+    body: FormatJson({id: "xyz", amount: 8.29})
+})
+if response.ok
+    etag = response.headers["ETag"].value
+    cookies = response.headers["Set-Cookie"]
+    while cookies &lt;&gt; invalid
+        ?cookies.value
+        cookies = cookies.next
+    end while
+    json = response.json()
+    ?json.items.total
+else
+    ?"The request failed", response.statusCode, response.text()
+end if
+</code></pre>
+
+<p>I have really liked not having to worry about <code>roUrlTransfer</code> objects and <code>roMessagePort</code> loops while using this.</p>
+
+<h3>Wrap up</h3>
+
+<p>All of these libraries have made Roku development faster, easier, and more fun for me personally, so I wanted to 
+share them with the larger community. They can all be mixed and matched so try some (or all) of them out and 
+let me know how it goes.</p>
+
+]]></description>
+            <pubDate>Tue, 06 Nov 2018 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/roku_roundup.html</guid>
+        </item>
         <item>
             <title>CORS and exceptions on ASP.NET Core</title>
             <link>http://briandunnington.github.io/cors_and_exceptions.html</link>
