@@ -1,0 +1,198 @@
+
+<!doctype html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+	<title>brian dunnington - Deploying Azure Web App Certificates from Key Vault</title>
+	<meta name="description" content="code and computer related tidbits">
+	<meta name="author" content="brian dunnington">
+  <link rel="alternate" type="application/rss+xml" title="brian dunnington" href="/rss.xml" />
+
+	<meta name="viewport" content="width=device-width">
+
+    <!-- Twitter Summary Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@briandunnington">
+    <meta name="twitter:creator" content="@briandunnington">
+    <meta name="twitter:title" content="Deploying Azure Web App Certificates from Key Vault">
+    <meta name="twitter:description" content="How to work around an ARM template limitation when using a Key Vault certificate in a Web App">
+    <meta name="twitter:domain" content="http://briandunnington.github.io/">
+    <meta name="twitter:image" content="http://briandunnington.github.io/images/deploy_certificates_from_key_vault.png">
+
+
+	<link rel="stylesheet" href="css/bootstrap.css">
+	<style>
+    body {
+      padding-top: 60px;
+      padding-bottom: 40px;
+    }
+    footer {
+      text-align: right;
+      margin-top: 40px;
+    }
+    h1 {
+      margin-bottom: 0.6em;
+    }
+  </style>
+	<link rel="stylesheet" href="css/bootstrap-responsive.css">
+	<link rel="stylesheet" href="css/style.css">
+
+	<!--[if lt IE 9]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<script>window.html5 || document.write('<script src="js/libs/html5.js"><\/script>')</script>
+	<![endif]-->
+</head>
+
+<body>
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/"><img src="img/bd_logo.png" style="margin: -8px 0 -14px;" /> : brian dunnington</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <li id="linkHome"><a href="/">Home</a></li>
+              <li id="linkAbout"><a href="/about.html">About</a></li>
+              <li id="linkContact"><a href="/contact.html">Contact</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+	  <div class="row">
+        <div class="span7 maincontent">
+            <div class="hero-unit">
+<h1>Deploying Azure Web App Certificates from Key Vault</h1>
+<p>How to work around an ARM template limitation when using a Key Vault certificate in a Web App</p>
+</div>
+
+<p>Azure Web Apps have supported using certificates from Key Vault for a couple of years now, but there is currently no easy way
+from the Azure portal to set this up. From the <a href="https://blogs.msdn.microsoft.com/appserviceteam/2016/05/24/deploying-azure-web-app-certificate-through-key-vault/">instructions on the App Service team blog</a>:</p>
+
+<blockquote>
+  <p>Currently, Azure portal doesn’t support deploying external certificate from Key Vault, you need to call Web App ARM APIs 
+  directly using <a href="https://github.com/projectkudu/ARMClient">ArmClient</a>/<a href="https://resources.azure.com/">Resource Explorer</a>/<a href="https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-template-deploy">Template Deployment Engine</a>.</p>
+</blockquote>
+
+<p>That last one means that you can use an <a href="https://github.com/Azure/azure-quickstart-templates/tree/master/201-web-app-certificate-from-key-vault">ARM template like this one</a> to link your Key Vault-stored
+certificate to your Web App. But...there is an annoying bug with the way certificates are handled by ARM templates.</p>
+
+<p>Normally when an ARM template specifies a resource, Azure will first check if the resource exists, and if so, only
+update the existing resource instead of trying to recreate the entire resource. But for some reason, this is not
+how Web App certificates are handled. If the certificate is not yet linked to the Web App, everything will work
+as expected. But if you run the ARM template again (ex: as part of a CI/CD pipeline), the ARM template deployment will
+fail with the message:</p>
+
+<pre><code>"Another certificate exists with same thumbprint XXXXXXXXXXXXXXXXXXXX at location xxxx 
+in the Resource Group xxxxxx."
+</code></pre>
+
+<p>I am not sure why this particular operation is not idempotent like every other ARM action, but there is a 
+<a href="https://feedback.azure.com/forums/281804-azure-resource-manager/suggestions/35348716-make-certificate-deployment-idempotent">feedback request</a> to fix it.</p>
+
+<p>I dont really like one-time use ARM templates, so I decided to just do this with direct Powershell commands instead:</p>
+
+<pre><code># Change these to your appropriave values
+$SubscriptionId = "xxxxxxxxxxxxxxxxx"
+$ResourceLocation = "West US"
+$ResourceGroupName = "myresourcegroup"
+$ResourceName = "mycertificate"
+$KeyVaultName = "mykeyvault"
+$KeyVaultId = "/subscriptions/xxxxxxxxxxxxx/resourceGroups/xxxxxxxx/providers/Microsoft.KeyVault/vaults/xxxxxxxxx"
+$KeyVaultSecretName = "certificatesecret"
+$ServerFarmId = "/subscriptions/xxxxxxxxxxxx/resourceGroups/xxxxxxxx/providers/Microsoft.Web/serverfarms/xxxxxxxxx"
+
+# Log in and select the correct subscription
+Login-AzureRmAccount 
+Set-AzureRmContext -SubscriptionId $SubscriptionId 
+
+# If you get a 'The service does not have access to...' error, then run these commands first (one time) to grant the necessary permissions:
+#Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName -ServicePrincipalName abfa0a7c-a6b6-4736-8310-5855508787cd -PermissionsToSecrets get
+
+# Create certificate
+$PropertiesObject = @{
+    keyVaultId = $KeyVaultId;
+    keyVaultSecretName = $KeyVaultSecretName;
+    serverFarmId = $ServerFarmId;
+}
+New-AzureRmResource -ResourceName $ResourceName -Location $ResourceLocation -PropertyObject $PropertiesObject -ResourceGroupName $ResourceGroupName -ResourceType Microsoft.Web/certificates -ApiVersion 2018-02-01 -Force
+
+# List certificates
+# Get-AzureRmResource -ResourceGroupName $ResourceGroupName -ResourceType Microsoft.Web/certificates -IsCollection -ApiVersion 2018-02-01
+</code></pre>
+
+<p>Few things to note:</p>
+
+<ul>
+<li><p>In order to grant the Azure tools the necessary permissions to access the Key Vault, you have to run the <code>Set-AzureRmKeyVaultAccessPolicy</code> command. This is only required once, and <code>abfa0a7c-a6b6-4736-8310-5855508787cd</code> is the Resource
+Provider service principal name and is the same for all Azure subscriptions in the public cloud. (The link above also notes: 
+<em>"Note for Azure Gov cloud environment you will need to use <code>6a02c803-dafd-4136-b4c3-5a6f318b4714</code> as the RP service principal name in the above command instead of <code>abfa0a7c-a6b6-4736-8310-5855508787cd</code>"</em>)</p></li>
+<li><p>By specifying the <code>-Force</code> option on <code>New-AzureRmResource</code>, this will cause the certificate to be redeployed even if it already exists. This lets you run the command multiple times without getting an error.</p></li>
+</ul>
+
+<p>Still not as nice as just being able to deploy your certificate along with all of your other resources in a single ARM template, but
+this works and can be scripted as part of a build pipeline.</p>
+
+        </div>
+      <div class="span1">
+        &nbsp;
+      </div>
+      <div class="span4">
+          <h3><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="64" style="vertical-align:middle;" /></a> <a href="http://twitter.com/briandunnington">@briandunnington</a></h3>
+          <hr />
+
+              <h6 class="muted">2018.11.27</h6>
+              <h2>Deploying Azure Web App Certificates from Key Vault</h2>
+              <p>How to work around an ARM template limitation when using a Key Vault certificate in a Web App</p>
+              <p><a class="btn" href="/webapp_certificate_from_keyvault.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2018.11.06</h6>
+              <h2>Roku Round-up</h2>
+              <p>Quick updates on some Roku libraries that I recently released</p>
+              <p><a class="btn" href="/roku_roundup.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2018.10.09</h6>
+              <h2>CORS and exceptions on ASP.NET Core</h2>
+              <p>How to ensure your CORS headers are properly returned with HTTP error responses on ASP.NET Core</p>
+              <p><a class="btn" href="/cors_and_exceptions.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2018.03.25</h6>
+              <h2>The many uses of Azure Functions Proxies</h2>
+              <p>Azure Functions Proxies are awesome - here are just a few ways to leverage them</p>
+              <p><a class="btn" href="/azure_functions_proxies.html">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2018.03.12</h6>
+              <h2>Build an Alexa skill using Azure Functions</h2>
+              <p>Although AWS Lambdas are the default, it is dead simple to use Azure Functions for your Alexa skill as well</p>
+              <p><a class="btn" href="/use_azure_functions_with_alexa.html">View details &raquo;</a></p>
+              <hr/>
+
+          <h4><a href="/index.html">More Posts ></a></h4>
+      </div>
+	  </div>
+
+      <footer>
+        <small>&copy; 2012-2018 brian dunnington</small>
+      </footer>
+
+    </div> <!-- /container -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
+
+<script src="js/libs/bootstrap/bootstrap.js"></script>
+
+<script src="js/script.js"></script>
+</body>
+</html>
