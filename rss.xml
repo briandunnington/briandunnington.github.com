@@ -7,12 +7,12 @@
         <description>RSS feed for website</description>
         <language>en-us</language>
         <copyright>Copyright 2012 - 2018 : Brian Dunnington</copyright>
-        <pubDate>Wed, 28 Nov 2018 12:58:39 GMT</pubDate>
-        <lastBuildDate>Wed, 28 Nov 2018 12:58:39 GMT</lastBuildDate>
+        <pubDate>Thu, 20 Dec 2018 08:03:29 GMT</pubDate>
+        <lastBuildDate>Thu, 20 Dec 2018 08:03:29 GMT</lastBuildDate>
 
         <item>
             <title>Deploying Azure Web App Certificates from Key Vault</title>
-            <link>http://briandunnington.github.io/webapp_certificate_from_keyvault.html</link>
+            <link>http://briandunnington.github.io/webapp_certificate_from_keyvault</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>Deploying Azure Web App Certificates from Key Vault</h1>
@@ -88,19 +88,19 @@ this works and can be scripted as part of a build pipeline.</p>
 
 ]]></description>
             <pubDate>Tue, 27 Nov 2018 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/webapp_certificate_from_keyvault.html</guid>
+            <guid>http://briandunnington.github.io/webapp_certificate_from_keyvault</guid>
             <image>http://briandunnington.github.io/images/deploy_certificates_from_key_vault.png</image>
         </item>
         <item>
             <title>Roku Round-up</title>
-            <link>http://briandunnington.github.io/roku_roundup.html</link>
+            <link>http://briandunnington.github.io/roku_roundup</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>Roku Round-up</h1>
 <p>Quick updates on some Roku libraries that I recently released</p>
 </div>
 
-<p>I have previously posted about a few of my Roku library projects (<a href="redoku.html">here</a> and <a href="roact.html">here</a>), but I have recently
+<p>I have previously posted about a few of my Roku library projects (<a href="redoku">here</a> and <a href="roact">here</a>), but I have recently
 made some improvments and also released a couple more useful tools so I thought I would do a quick round-up of everything.</p>
 
 <div class="img">
@@ -215,11 +215,11 @@ let me know how it goes.</p>
 
 ]]></description>
             <pubDate>Tue, 06 Nov 2018 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/roku_roundup.html</guid>
+            <guid>http://briandunnington.github.io/roku_roundup</guid>
         </item>
         <item>
             <title>CORS and exceptions on ASP.NET Core</title>
-            <link>http://briandunnington.github.io/cors_and_exceptions.html</link>
+            <link>http://briandunnington.github.io/cors_and_exceptions</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>CORS and exceptions on ASP.NET Core</h1>
@@ -315,12 +315,12 @@ namespace Examples.AspNetCore
 
 ]]></description>
             <pubDate>Tue, 09 Oct 2018 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/cors_and_exceptions.html</guid>
+            <guid>http://briandunnington.github.io/cors_and_exceptions</guid>
             <image>http://briandunnington.github.io/images/aspnetcore.png</image>
         </item>
         <item>
             <title>The many uses of Azure Functions Proxies</title>
-            <link>http://briandunnington.github.io/azure_functions_proxies.html</link>
+            <link>http://briandunnington.github.io/azure_functions_proxies</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>The many uses of Azure Functions Proxies</h1>
@@ -335,7 +335,7 @@ blockquote p { font-size: 90%; }
 blockquote pre { margin: 10px 0; }
 </style></p>
 
-<p>It is <a href="use_azure_functions_with_alexa.html">no secret</a> that I am loving <a href="https://azure.microsoft.com/en-us/services/functions/">Azure Functions</a> lately. They are super easy to get started with, and they have great tooling and <a href="https://medium.freecodecamp.org/serverless-doesnt-have-to-be-an-infuriating-black-box-b23cca2b2ba2">local debugging</a> experience. Awhile back, the Azure team <a href="https://blogs.msdn.microsoft.com/appserviceteam/2017/11/15/azure-functions-proxies-is-now-generally-available/">announced Azure Functions Proxies</a> which make Azure Functions even more useful. Let's look at just some of the cool uses:</p>
+<p>It is <a href="use_azure_functions_with_alexa">no secret</a> that I am loving <a href="https://azure.microsoft.com/en-us/services/functions/">Azure Functions</a> lately. They are super easy to get started with, and they have great tooling and <a href="https://medium.freecodecamp.org/serverless-doesnt-have-to-be-an-infuriating-black-box-b23cca2b2ba2">local debugging</a> experience. Awhile back, the Azure team <a href="https://blogs.msdn.microsoft.com/appserviceteam/2017/11/15/azure-functions-proxies-is-now-generally-available/">announced Azure Functions Proxies</a> which make Azure Functions even more useful. Let's look at just some of the cool uses:</p>
 
 <h3>Creating stubs during development</h3>
 
@@ -411,12 +411,12 @@ blockquote pre { margin: 10px 0; }
 
 ]]></description>
             <pubDate>Sun, 25 Mar 2018 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/azure_functions_proxies.html</guid>
+            <guid>http://briandunnington.github.io/azure_functions_proxies</guid>
             <image>http://briandunnington.github.io/images/azure_functions.png</image>
         </item>
         <item>
             <title>Build an Alexa skill using Azure Functions</title>
-            <link>http://briandunnington.github.io/use_azure_functions_with_alexa.html</link>
+            <link>http://briandunnington.github.io/use_azure_functions_with_alexa</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>Build an Alexa skill using Azure Functions</h1>
@@ -815,12 +815,12 @@ namespace AlexaCalculatorSkill
 
 ]]></description>
             <pubDate>Mon, 12 Mar 2018 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/use_azure_functions_with_alexa.html</guid>
+            <guid>http://briandunnington.github.io/use_azure_functions_with_alexa</guid>
             <image>http://briandunnington.github.io/images/azure_functions.png</image>
         </item>
         <item>
             <title>Roll Your Own React</title>
-            <link>http://briandunnington.github.io/roact.html</link>
+            <link>http://briandunnington.github.io/roact</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>Roll Your Own React</h1>
@@ -852,11 +852,11 @@ namespace AlexaCalculatorSkill
 
 ]]></description>
             <pubDate>Wed, 28 Feb 2018 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/roact.html</guid>
+            <guid>http://briandunnington.github.io/roact</guid>
         </item>
         <item>
             <title>Streaming live drone footage using Azure Media Services</title>
-            <link>http://briandunnington.github.io/dronecast.html</link>
+            <link>http://briandunnington.github.io/dronecast</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>Streaming live drone footage using Azure Media Services</h1>
@@ -971,12 +971,12 @@ blockquote pre { margin: 10px 0; }
 
 ]]></description>
             <pubDate>Tue, 06 Feb 2018 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/dronecast.html</guid>
+            <guid>http://briandunnington.github.io/dronecast</guid>
             <image>http://briandunnington.github.io/images/dronecast_phantom.jpg</image>
         </item>
         <item>
             <title>Redux + Roku = Redoku</title>
-            <link>http://briandunnington.github.io/redoku.html</link>
+            <link>http://briandunnington.github.io/redoku</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>Redux + Roku = Redoku</h1>
@@ -1085,11 +1085,11 @@ any asynchronous activity.</p>
 
 ]]></description>
             <pubDate>Fri, 07 Jul 2017 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/redoku.html</guid>
+            <guid>http://briandunnington.github.io/redoku</guid>
         </item>
         <item>
             <title>UWP GetHashCode warning</title>
-            <link>http://briandunnington.github.io/gethashcode_warning.html</link>
+            <link>http://briandunnington.github.io/gethashcode_warning</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>UWP GetHashCode warning</h1>
@@ -1127,11 +1127,11 @@ one way, don't assume it always will.</p>
 
 ]]></description>
             <pubDate>Mon, 26 Dec 2016 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/gethashcode_warning.html</guid>
+            <guid>http://briandunnington.github.io/gethashcode_warning</guid>
         </item>
         <item>
             <title>MockMock - A mocking framework for UWP</title>
-            <link>http://briandunnington.github.io/uwp_unittesting.html</link>
+            <link>http://briandunnington.github.io/uwp_unittesting</link>
             <description><![CDATA[
 <!-- Main hero unit for a primary marketing message or call to action -->
 
@@ -1336,11 +1336,11 @@ public class &lt;#= "Mock" + formatTypeName(type).Replace("global::", "").Replac
 
 ]]></description>
             <pubDate>Mon, 31 Aug 2015 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/uwp_unittesting.html</guid>
+            <guid>http://briandunnington.github.io/uwp_unittesting</guid>
         </item>
         <item>
             <title>Run Node.js Azure Mobile Services locally</title>
-            <link>http://briandunnington.github.io/run-azure-mobile-services-locally.html</link>
+            <link>http://briandunnington.github.io/run-azure-mobile-services-locally</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>Run Node.js Azure Mobile Services locally</h1>
@@ -1507,11 +1507,11 @@ UserConnectionString": "Driver={SQL Server Native Client 10.0};Server=...
 
 ]]></description>
             <pubDate>Tue, 24 Mar 2015 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/run-azure-mobile-services-locally.html</guid>
+            <guid>http://briandunnington.github.io/run-azure-mobile-services-locally</guid>
         </item>
         <item>
             <title>Compare Across Forks</title>
-            <link>http://briandunnington.github.io/compare_across_forks.html</link>
+            <link>http://briandunnington.github.io/compare_across_forks</link>
             <description><![CDATA[
 <!-- Main hero unit for a primary marketing message or call to action -->
 
@@ -1534,11 +1534,11 @@ UserConnectionString": "Driver={SQL Server Native Client 10.0};Server=...
 
 ]]></description>
             <pubDate>Tue, 10 Mar 2015 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/compare_across_forks.html</guid>
+            <guid>http://briandunnington.github.io/compare_across_forks</guid>
         </item>
         <item>
             <title>Triggering Storyboards with data binding</title>
-            <link>http://briandunnington.github.io/triggering_storyboards_with_databinding.html</link>
+            <link>http://briandunnington.github.io/triggering_storyboards_with_databinding</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>Triggering Storyboards with data binding</h1>
@@ -1610,11 +1610,11 @@ UserConnectionString": "Driver={SQL Server Native Client 10.0};Server=...
 
 ]]></description>
             <pubDate>Thu, 24 Apr 2014 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/triggering_storyboards_with_databinding.html</guid>
+            <guid>http://briandunnington.github.io/triggering_storyboards_with_databinding</guid>
         </item>
         <item>
             <title>Declare Bluetooth capability for Windows Store and Windows Phone 8.1 apps</title>
-            <link>http://briandunnington.github.io/bluetooth_capability.html</link>
+            <link>http://briandunnington.github.io/bluetooth_capability</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>Declare Bluetooth capability for Windows Store and Windows Phone 8.1 apps</h1>
@@ -1637,11 +1637,11 @@ UserConnectionString": "Driver={SQL Server Native Client 10.0};Server=...
 
 ]]></description>
             <pubDate>Fri, 04 Apr 2014 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/bluetooth_capability.html</guid>
+            <guid>http://briandunnington.github.io/bluetooth_capability</guid>
         </item>
         <item>
             <title>Run arbitrary code on the UI thread asynchronously</title>
-            <link>http://briandunnington.github.io/uitask.html</link>
+            <link>http://briandunnington.github.io/uitask</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>Run arbitrary code on the UI thread asynchronously</h1>
@@ -1786,11 +1786,11 @@ after UITask.Run()
 
 ]]></description>
             <pubDate>Thu, 03 Apr 2014 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/uitask.html</guid>
+            <guid>http://briandunnington.github.io/uitask</guid>
         </item>
         <item>
             <title>Azure Mobile Services: No &#39;id&#39; member found on type</title>
-            <link>http://briandunnington.github.io/azure_mobile_services_no_id.html</link>
+            <link>http://briandunnington.github.io/azure_mobile_services_no_id</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>Azure Mobile Services: No 'id' member found on type</h1>
@@ -1829,11 +1829,11 @@ after UITask.Run()
 
 ]]></description>
             <pubDate>Mon, 06 Jan 2014 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/azure_mobile_services_no_id.html</guid>
+            <guid>http://briandunnington.github.io/azure_mobile_services_no_id</guid>
         </item>
         <item>
             <title>Sharing Html &amp; Images via the Share Contract</title>
-            <link>http://briandunnington.github.io/sharing_html_via_share_contract.html</link>
+            <link>http://briandunnington.github.io/sharing_html_via_share_contract</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>Sharing Html & Images via the Share Contract</h1>
@@ -1884,11 +1884,11 @@ after UITask.Run()
 
 ]]></description>
             <pubDate>Wed, 06 Nov 2013 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/sharing_html_via_share_contract.html</guid>
+            <guid>http://briandunnington.github.io/sharing_html_via_share_contract</guid>
         </item>
         <item>
             <title>Migrating Scheduled Task Jobs</title>
-            <link>http://briandunnington.github.io/migrate-scheduled-jobs.html</link>
+            <link>http://briandunnington.github.io/migrate-scheduled-jobs</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>Migrating Scheduled Task Jobs</h1>
@@ -1952,11 +1952,11 @@ after UITask.Run()
 
 ]]></description>
             <pubDate>Fri, 25 Oct 2013 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/migrate-scheduled-jobs.html</guid>
+            <guid>http://briandunnington.github.io/migrate-scheduled-jobs</guid>
         </item>
         <item>
             <title>Windows Phone Color Emoji Override</title>
-            <link>http://briandunnington.github.io/textoptions-displaycoloremoji.html</link>
+            <link>http://briandunnington.github.io/textoptions-displaycoloremoji</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>Windows Phone Color Emoji Override</h1>
@@ -1985,11 +1985,11 @@ after UITask.Run()
 
 ]]></description>
             <pubDate>Tue, 15 Oct 2013 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/textoptions-displaycoloremoji.html</guid>
+            <guid>http://briandunnington.github.io/textoptions-displaycoloremoji</guid>
         </item>
         <item>
             <title>WinRT Xaml Image Source Bug</title>
-            <link>http://briandunnington.github.io/winrt-xaml-image-source-bug.html</link>
+            <link>http://briandunnington.github.io/winrt-xaml-image-source-bug</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>WinRT Xaml Image Source Bug</h1>
@@ -2041,11 +2041,11 @@ after UITask.Run()
 
 ]]></description>
             <pubDate>Thu, 13 Jun 2013 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/winrt-xaml-image-source-bug.html</guid>
+            <guid>http://briandunnington.github.io/winrt-xaml-image-source-bug</guid>
         </item>
         <item>
             <title>Assmebly and File Version Information in WinRT</title>
-            <link>http://briandunnington.github.io/winrt-version-info.html</link>
+            <link>http://briandunnington.github.io/winrt-version-info</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>Assembly and File Version Information in WinRT</h1>
@@ -2079,11 +2079,11 @@ after UITask.Run()
 
 ]]></description>
             <pubDate>Thu, 14 Mar 2013 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/winrt-version-info.html</guid>
+            <guid>http://briandunnington.github.io/winrt-version-info</guid>
         </item>
         <item>
             <title>ProgressRing for Windows Phone 8</title>
-            <link>http://briandunnington.github.io/progressring-wp8.html</link>
+            <link>http://briandunnington.github.io/progressring-wp8</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>ProgressRing for Windows Phone 8</h1>
@@ -2096,7 +2096,7 @@ after UITask.Run()
 
 <ul>
 <li><p>The <code>&lt;Style&gt;</code> is the exact style copied from the Windows 8 resources, so the control looks and behaves identically</p></li>
-<li><p>Note the check for <code>hasAppliedTemplate</code> - this is required to avoid <a href="/xaml-visualstatemanager-note.html">some wonky behavior</a> that I blogged about recently where <code>VisualStateManager</code> doesnt like to be called before <code>OnApplyTemplate()</code> has been called.</p></li>
+<li><p>Note the check for <code>hasAppliedTemplate</code> - this is required to avoid <a href="/xaml-visualstatemanager-note">some wonky behavior</a> that I blogged about recently where <code>VisualStateManager</code> doesnt like to be called before <code>OnApplyTemplate()</code> has been called.</p></li>
 </ul>
 
 <p>Anyway, next time you need some spinning-dots goodness in your WP8 app, give it a try and let me know what you think.</p>
@@ -2494,11 +2494,11 @@ after UITask.Run()
 
 ]]></description>
             <pubDate>Fri, 11 Jan 2013 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/progressring-wp8.html</guid>
+            <guid>http://briandunnington.github.io/progressring-wp8</guid>
         </item>
         <item>
             <title>WinRT JSON Parser</title>
-            <link>http://briandunnington.github.io/json-parser.html</link>
+            <link>http://briandunnington.github.io/json-parser</link>
             <description><![CDATA[
 <div class="hero-unit">
 <h1>WinRT JSON Parser</h1>
@@ -2659,11 +2659,11 @@ after UITask.Run()
 
 ]]></description>
             <pubDate>Wed, 09 Jan 2013 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/json-parser.html</guid>
+            <guid>http://briandunnington.github.io/json-parser</guid>
         </item>
         <item>
             <title>Windows 8 Store Apps Color Overrides</title>
-            <link>http://briandunnington.github.io/windows8-color-overrides.html</link>
+            <link>http://briandunnington.github.io/windows8-color-overrides</link>
             <description><![CDATA[
 <!-- Main hero unit for a primary marketing message or call to action -->
 
@@ -2734,11 +2734,11 @@ DEFAULT COMMON CONTROL COLORS
 
 ]]></description>
             <pubDate>Wed, 19 Dec 2012 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/windows8-color-overrides.html</guid>
+            <guid>http://briandunnington.github.io/windows8-color-overrides</guid>
         </item>
         <item>
             <title>Xaml VisualStateManager weirdness</title>
-            <link>http://briandunnington.github.io/xaml-visualstatemanager-note.html</link>
+            <link>http://briandunnington.github.io/xaml-visualstatemanager-note</link>
             <description><![CDATA[
 <!-- Main hero unit for a primary marketing message or call to action -->
 
@@ -2781,11 +2781,11 @@ void UpdateState(bool isActive)
 
 ]]></description>
             <pubDate>Tue, 18 Dec 2012 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/xaml-visualstatemanager-note.html</guid>
+            <guid>http://briandunnington.github.io/xaml-visualstatemanager-note</guid>
         </item>
         <item>
             <title>Reentrant async locks in .NET</title>
-            <link>http://briandunnington.github.io/reentrant-async-locks.html</link>
+            <link>http://briandunnington.github.io/reentrant-async-locks</link>
             <description><![CDATA[
 <!-- Main hero unit for a primary marketing message or call to action -->
 
@@ -2868,11 +2868,11 @@ void UpdateState(bool isActive)
 
 ]]></description>
             <pubDate>Wed, 12 Dec 2012 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/reentrant-async-locks.html</guid>
+            <guid>http://briandunnington.github.io/reentrant-async-locks</guid>
         </item>
         <item>
             <title>GridView in a ScrollViewer</title>
-            <link>http://briandunnington.github.io/gridview-in-a-scrollviewer.html</link>
+            <link>http://briandunnington.github.io/gridview-in-a-scrollviewer</link>
             <description><![CDATA[
 <!-- Main hero unit for a primary marketing message or call to action -->
 
@@ -2932,11 +2932,11 @@ void UpdateState(bool isActive)
 
 ]]></description>
             <pubDate>Mon, 10 Dec 2012 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/gridview-in-a-scrollviewer.html</guid>
+            <guid>http://briandunnington.github.io/gridview-in-a-scrollviewer</guid>
         </item>
         <item>
             <title>SQLite on WinRT bug</title>
-            <link>http://briandunnington.github.io/sqlite-winrt-bug.html</link>
+            <link>http://briandunnington.github.io/sqlite-winrt-bug</link>
             <description><![CDATA[
 <!-- Main hero unit for a primary marketing message or call to action -->
 
@@ -2999,11 +2999,11 @@ public SQLiteConnection(string databasePath, bool storeDateTimeAsTicks = false)
 
 ]]></description>
             <pubDate>Fri, 14 Sep 2012 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/sqlite-winrt-bug.html</guid>
+            <guid>http://briandunnington.github.io/sqlite-winrt-bug</guid>
         </item>
         <item>
             <title>Hello World!</title>
-            <link>http://briandunnington.github.io/first-post.html</link>
+            <link>http://briandunnington.github.io/first-post</link>
             <description><![CDATA[
 <!-- Main hero unit for a primary marketing message or call to action -->
 
@@ -3029,7 +3029,7 @@ public SQLiteConnection(string databasePath, bool storeDateTimeAsTicks = false)
 
 ]]></description>
             <pubDate>Mon, 19 Mar 2012 12:00:00 GMT</pubDate>
-            <guid>http://briandunnington.github.io/first-post.html</guid>
+            <guid>http://briandunnington.github.io/first-post</guid>
         </item>
     </channel>
 </rss>

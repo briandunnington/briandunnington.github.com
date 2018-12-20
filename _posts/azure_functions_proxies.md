@@ -91,7 +91,7 @@ But as time goes on, we decide we want to change our data source to the [Here We
 We can update the backend url and the response body transformation to map the new response data to our abstracted response, requiring aboslutely no changes to the app. By using the proxy, it decouples the app (API consumer) from the API implementation details. Win!
 
 
-[AlexaFunctions]: use_azure_functions_with_alexa.html
+[AlexaFunctions]: use_azure_functions_with_alexa
 [AzureFunctions]: https://azure.microsoft.com/en-us/services/functions/
 [LocalDebugging]: https://medium.freecodecamp.org/serverless-doesnt-have-to-be-an-infuriating-black-box-b23cca2b2ba2
 [AnnounceProxies]: https://blogs.msdn.microsoft.com/appserviceteam/2017/11/15/azure-functions-proxies-is-now-generally-available/

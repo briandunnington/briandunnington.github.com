@@ -411,4 +411,4 @@ Anyway, next time you need some spinning-dots goodness in your WP8 app, give it 
 [ProgressRing]: http://msdn.microsoft.com/en-us/library/windows/apps/windows.ui.xaml.controls.progressring
 [ProgressBar]: http://msdn.microsoft.com/en-us/library/system.windows.controls.progressbar%28v=vs.95%29.aspx
 [PerformanceProgressBar]: http://www.jeff.wilcox.name/2010/08/performanceprogressbar/
-[wonky]: /xaml-visualstatemanager-note.html
+[wonky]: /xaml-visualstatemanager-note

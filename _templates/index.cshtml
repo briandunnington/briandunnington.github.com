@@ -83,8 +83,8 @@
           <div class="nav-collapse">
             <ul class="nav">
               <li class="active"><a href="/">Home</a></li>
-              <li><a href="/about.html">About</a></li>
-              <li><a href="/contact.html">Contact</a></li>
+              <li><a href="/about">About</a></li>
+              <li><a href="/contact">Contact</a></li>
             </ul>
           </div><!--/.nav-collapse -->
         </div>
@@ -101,7 +101,7 @@
                 <p>@post.Summary</p>
               </div>
               <h6 class="muted">@post.Date.ToString("yyyy.MM.dd")</h6>
-              <div class="hero-button"><a class="btn" href="@post.Link">View details &raquo;</a></div>
+              <div class="hero-button"><a class="btn" href="@post.LinkNoExt">View details &raquo;</a></div>
             </div>
         </div>
         }
@@ -114,7 +114,7 @@
                 <h6 class="muted">@post.Date.ToString("yyyy.MM.dd")</h6>
                 <h2>@post.Title</h2>
                 <p>@post.Summary</p>
-                <p><a class="btn" href="@post.Link">View details &raquo;</a></p>
+                <p><a class="btn" href="@post.LinkNoExt">View details &raquo;</a></p>
               </div>
           }
       </div>

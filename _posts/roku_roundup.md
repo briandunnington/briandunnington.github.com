@@ -118,8 +118,8 @@ share them with the larger community. They can all be mixed and matched so try s
 let me know how it goes.
 
 
-[RedokuPost]: redoku.html
-[RoactPost]: roact.html
+[RedokuPost]: redoku
+[RoactPost]: roact
 [Redoku]: https://github.com/briandunnington/Redoku
 [Roact]: https://github.com/briandunnington/Roact
 [RokuPromise]: https://github.com/briandunnington/roku-promise

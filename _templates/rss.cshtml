@@ -17,7 +17,7 @@
 
         @foreach (var post in @Model.Posts.Where((p) => !p.Contains("DRAFT")).OrderByDescending((p) => p.Date))
         {
-        var link = siteRoot + post.Link;
+        var link = siteRoot + post.LinkNoExt;
         <item>
             <title>@post.Title</title>
             @Raw(String.Format("<link>{0}</link>", link))
