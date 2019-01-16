@@ -10,16 +10,12 @@ Summary: Contact Information
 
 ### Github: [https://github.com/briandunnington][Github]
 
-### Growl for Windows: [http://www.growlforwindows.com][Growl]
+### Roku Blog: [https://rokulikeahurricane.io][RokuLikeAHurricane]
 
-### element code project: [http://www.elementcodeproject.com][element]
-
-### Personal Blog: [http://www.briandunnington.com][Blog]
-
+### Personal Blog: [https://briandunnington.com][Blog]
 
 
 [Twitter]: https://twitter.com/briandunnington
 [Github]: https://github.com/briandunnington
-[Blog]: http://www.briandunnington.com
-[Growl]: http://www.growlforwindows.com
-[element]: http://www.elementcodeproject.com
+[Blog]: https://briandunnington.com
+[RokuLikeAHurricane]: https://rokulikeahurricane.io

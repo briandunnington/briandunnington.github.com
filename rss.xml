@@ -7,8 +7,8 @@
         <description>RSS feed for website</description>
         <language>en-us</language>
         <copyright>Copyright 2012 - 2018 : Brian Dunnington</copyright>
-        <pubDate>Thu, 20 Dec 2018 08:03:29 GMT</pubDate>
-        <lastBuildDate>Thu, 20 Dec 2018 08:03:29 GMT</lastBuildDate>
+        <pubDate>Wed, 16 Jan 2019 04:33:56 GMT</pubDate>
+        <lastBuildDate>Wed, 16 Jan 2019 04:33:56 GMT</lastBuildDate>
 
         <item>
             <title>Deploying Azure Web App Certificates from Key Vault</title>
