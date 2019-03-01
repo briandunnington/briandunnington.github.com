@@ -1,0 +1,233 @@
+
+<!doctype html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+	<title>brian dunnington - Distributed Cache Invalidation using Azure Service Bus</title>
+	<meta name="description" content="code and computer related tidbits">
+	<meta name="author" content="brian dunnington">
+  <link rel="alternate" type="application/rss+xml" title="brian dunnington" href="/rss.xml" />
+
+	<meta name="viewport" content="width=device-width">
+
+    <!-- Twitter Summary Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@briandunnington">
+    <meta name="twitter:creator" content="@briandunnington">
+    <meta name="twitter:title" content="Distributed Cache Invalidation using Azure Service Bus">
+    <meta name="twitter:description" content="It has been said that there are only two hard problems in computer science: cache invalidation and naming things. Time to cross one of those off of the list">
+    <meta name="twitter:domain" content="http://briandunnington.github.io/">
+    <meta name="twitter:image" content="http://briandunnington.github.io/images/azure_servicebus.png">
+
+
+	<link rel="stylesheet" href="css/bootstrap.css">
+	<style>
+    body {
+      padding-top: 60px;
+      padding-bottom: 40px;
+    }
+    footer {
+      text-align: right;
+      margin-top: 40px;
+    }
+    h1 {
+      margin-bottom: 0.6em;
+    }
+  </style>
+	<link rel="stylesheet" href="css/bootstrap-responsive.css">
+	<link rel="stylesheet" href="css/style.css">
+
+	<!--[if lt IE 9]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<script>window.html5 || document.write('<script src="js/libs/html5.js"><\/script>')</script>
+	<![endif]-->
+</head>
+
+<body>
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/"><img src="img/bd_logo.png" style="margin: -8px 0 -14px;" /> : brian dunnington</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <li id="linkHome"><a href="/">Home</a></li>
+              <li id="linkAbout"><a href="/about">About</a></li>
+              <li id="linkContact"><a href="/contact">Contact</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+	  <div class="row">
+      <div class="span8 maincontent">
+          <div class="hero-unit">
+<h1>Distributed Cache Invalidation using Azure Service Bus</h1>
+<p>It has been said that there are only two hard problems in computer science: cache invalidation and naming things. Time to cross one of those off of the list</p>
+</div>
+
+<p>I am sure you have <a href="https://martinfowler.com/bliki/TwoHardThings.html">heard this before</a> since it is one of the most repeated sayings in software development:</p>
+
+<blockquote>
+  <p>There are only two hard things in Computer Science: cache invalidation and naming things.</p>
+  
+  <p>-- Phil Karlton</p>
+</blockquote>
+
+<p>I am no expert in naming things, so today we are going to focus on cache invaliation instead.</p>
+
+<h3>Why cache invalidation is hard</h3>
+
+<p>If you are using an external cache like <a href="https://redis.io/">Redis</a>, then cache invalidation is actually not hard at all. Since there is only one cache in a centralized spot and all clients use it as the source of truth, there is nothing to synchronize.</p>
+
+<p>But sometimes an external cache is not the right answer. Sometimes the objects being cached are very large and still take a long time to transmit across the wire from the cache. Or the data might not be easily serializable. Or your system design doesn't easily allow the addition of a caching service. Whatever the reason, sometimes a local in-memory cache is the solution. The data can be fetched instantly and contain any kind of complex object.</p>
+
+<p>But in any kind of distributed system (like a website running across multiple servers in the cloud), each machine will have their own copy of the cached data, and thus it can get out of sync. If the data is changed on one server, how can the other servers be aware of the change so that they don't serve stale data?</p>
+
+<h3>Getting the word out</h3>
+
+<p>What we need is a way for one server to let all of the others know about the change. If you have a static and finite amount of other machines in your farm, you might be able to simply send a message to each one instructing them to invalidate the cached item. But in today's cloud-first world, you likely don't even know which other machines are running your code. And maybe you even have auto-scaling turned on so you don't even know <em>how many</em> other machines are running your code.</p>
+
+<p>So we need a way to send a message out and let any number of other unknown listeners receive the message. This is a <a href="https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern">classic pub/sub scenario</a> which allows decoupling of the message sending (publishing) from the message receiving (subscribing).</p>
+
+<h3>Azure Service Bus topics and subscriptions</h3>
+
+<p>There are lots of ways to implement a pub/sub system, but one of the easiest (IMHO) is to leverage the <a href="https://docs.microsoft.com/en-us/azure/service-bus-messaging/service-bus-queues-topics-subscriptions#topics-and-subscriptions">Topics and Subscriptions feature of Azure Service Bus</a>. A topic is like a normal message bus queue that can receive messages. But unlike a classic queue where each message is consumed only once, a topic can broadcast a copy of the message to any number of subscriptions.</p>
+
+<p>For our implementation, each machine in the farm will register itself as a subscriber. This happens automatically, so even if your site is scaled up and a bunch of new machines come online, you don't have to worry about tracking who needs to get the messages. </p>
+
+<p>When a change is made on one machine, it publishes a message to the topic that says 'item X in cache Y has changed'. Any machines that have registered as subscribers will get a copy of that message and will know that they need to invalidate that item in their copy of the cache as well.</p>
+
+<h3>SynchronizedCache implementation</h3>
+
+<p>So let's build out an implementation of these ideas. The <code>SynchronizedCache</code> class will provide the usual caching features but also support this distributed invalidation by using Azure Service Bus.</p>
+
+<p>The actual cache is just a simple <code>ConcurrentDictionary</code> that stores objects by key. When they are requested, they are served from the cache if available, or they are loaded from the source automatically. Each implementation of <code>SynchronizedCache</code> must implement the <code>Load()</code> method with the app-specific logic for fetching the data from the source when it is not found in the cache. So far, this is just like a typical in-memory cache.</p>
+
+<pre><code>public Task&lt;TValue&gt; GetAsync(TKey key)
+{
+    return cache.GetOrAdd(GetHashKey(key), (k) =&gt; Load(key));
+}
+
+protected abstract Task&lt;TValue&gt; Load(TKey key);
+</code></pre>
+
+<p>But when the cache is first used, it checks the Azure Service bus to see if a subscription is already registered for this machine. If not, it automatically registers a subscription. The subscription also sets a filter rule so that it only gets messages for this specific type of cache (which allows you to have several differnt types of caches in your app and only require one single topic). </p>
+
+<pre><code>if (!await serviceBusManagementClient.SubscriptionExistsAsync(topicClient.Path, subscriptionName))
+{
+    var cacheTypeRule = new RuleDescription()
+    {
+        Name = "CacheTypeRule",
+        Filter = new CorrelationFilter() { ContentType = cacheType }
+    };
+    var subscriptionDescription = new SubscriptionDescription(topicClient.Path, subscriptionName) { AutoDeleteOnIdle = TimeSpan.FromDays(1), DefaultMessageTimeToLive = TimeSpan.FromMinutes(15) };
+    subscriptionDescription = await serviceBusManagementClient.CreateSubscriptionAsync(subscriptionDescription, cacheTypeRule);
+}
+this.subscriptionClient = new SubscriptionClient(topicClient.ServiceBusConnection, topicClient.Path, subscriptionName, ReceiveMode.PeekLock, RetryPolicy.Default);
+</code></pre>
+
+<p>An event listener is also set up so that any incoming messages can be handled:</p>
+
+<pre><code>subscriptionClient.RegisterMessageHandler(ProcessMessageAsync, messageHandlerOptions);
+</code></pre>
+
+<p>The neat part is that when <code>InvalidateAsync()</code> is called, a message is sent to the topic that contains the cache type and the key that is being invalidated:</p>
+
+<pre><code>public Task InvalidateAsync(TKey key)
+{
+    var message = new Message();
+    message.ReplyTo = subscriptionName;
+    message.Label = GetHashKey(key);
+    return topicClient.SendAsync(message);
+}
+</code></pre>
+
+<p>The topic receives the message and distributes it to all subscribers. Each subscriber is notified and the <code>ProcessMessageAsync</code> event gets triggered. The receiving machine can see which key was invalidated and invalidate its own copy as well.</p>
+
+<pre><code>async Task ProcessMessageAsync(Message message, CancellationToken token)
+{
+    var lockToken = message.SystemProperties.LockToken;
+    try
+    {
+        var key = (message.Label);
+        cache.TryRemove(key, out _);
+    }
+    catch
+    {
+    }
+    await subscriptionClient.CompleteAsync(lockToken);
+}
+</code></pre>
+
+<p>The subscriptions are set up to have a short TTL (currently 1 day). This means that as long as someone is listening for messages, the subscription will remain, but once the listener is removed (perhaps your app auto-scaled back down and deprovisioned some of the web servers), the subscriptions will automatically delete themselves. That means that as machines come online, they automatically start listening for messages they care about, and when they go offline, the subscriptions automatically clean themselves up - no muss, no fuss!</p>
+
+<p><em>(Of course you could build out more advanced functionality for the caching portion: things like absolute or sliding expriation time, dependency invalidation, etc are easy to add, but they are just normal in-memory cache features and not tied to the distributed invalidation so I left them out for clarity.)</em></p>
+
+<h3>Wrap up</h3>
+
+<p>The source code for the <code>SynchronizedCache</code> class and an example project <a href="https://github.com/briandunnington/SynchronizedCache">are available on GitHub</a>. Try it out and then <a href="https://twitter.com/briandunnington">shoot me a message on Twitter</a> to let me know if you are using this approach.</p>
+
+<p>As for naming things: that is truly a problem that nobody will ever solve 🤣</p>
+
+      </div>
+
+      <div class="span4">
+          <h3><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="64" style="vertical-align:middle;" /></a> <a href="http://twitter.com/briandunnington">@briandunnington</a></h3>
+          <hr />
+
+              <h6 class="muted">2019.02.28</h6>
+              <h2>Distributed Cache Invalidation using Azure Service Bus</h2>
+              <p>It has been said that there are only two hard problems in computer science: cache invalidation and naming things. Time to cross one of those off of the list</p>
+              <p><a class="btn" href="/distributed_cache_invalidation">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2018.11.27</h6>
+              <h2>Deploying Azure Web App Certificates from Key Vault</h2>
+              <p>How to work around an ARM template limitation when using a Key Vault certificate in a Web App</p>
+              <p><a class="btn" href="/webapp_certificate_from_keyvault">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2018.11.06</h6>
+              <h2>Roku Round-up</h2>
+              <p>Quick updates on some Roku libraries that I recently released</p>
+              <p><a class="btn" href="/roku_roundup">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2018.10.09</h6>
+              <h2>CORS and exceptions on ASP.NET Core</h2>
+              <p>How to ensure your CORS headers are properly returned with HTTP error responses on ASP.NET Core</p>
+              <p><a class="btn" href="/cors_and_exceptions">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2018.03.25</h6>
+              <h2>The many uses of Azure Functions Proxies</h2>
+              <p>Azure Functions Proxies are awesome - here are just a few ways to leverage them</p>
+              <p><a class="btn" href="/azure_functions_proxies">View details &raquo;</a></p>
+              <hr/>
+
+          <h4><a href="/index">More Posts ></a></h4>
+      </div>
+	  </div>
+
+      <footer>
+        <small>&copy; 2012-2019 brian dunnington</small>
+      </footer>
+
+    </div> <!-- /container -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
+
+<script src="js/libs/bootstrap/bootstrap.js"></script>
+
+<script src="js/script.js"></script>
+</body>
+</html>
