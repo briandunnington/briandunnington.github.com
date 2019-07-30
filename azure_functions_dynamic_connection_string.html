@@ -1,0 +1,230 @@
+
+<!doctype html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+	<title>brian dunnington - Azure Functions: Set Cosmos DB Trigger Connection String At Runtime</title>
+	<meta name="description" content="code and computer related tidbits">
+	<meta name="author" content="brian dunnington">
+  <link rel="alternate" type="application/rss+xml" title="brian dunnington" href="/rss.xml" />
+
+	<meta name="viewport" content="width=device-width">
+
+    <!-- Twitter Summary Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@briandunnington">
+    <meta name="twitter:creator" content="@briandunnington">
+    <meta name="twitter:title" content="Azure Functions: Set Cosmos DB Trigger Connection String At Runtime">
+    <meta name="twitter:description" content="How to specify the trigger connection string at runtime and avoid storing secrets during local development">
+    <meta name="twitter:domain" content="http://briandunnington.github.io/">
+    <meta name="twitter:image" content="http://briandunnington.github.io/images/azure_functions.png">
+
+
+	<link rel="stylesheet" href="css/bootstrap.css">
+	<style>
+    body {
+      padding-top: 60px;
+      padding-bottom: 40px;
+    }
+    footer {
+      text-align: right;
+      margin-top: 40px;
+    }
+    h1 {
+      margin-bottom: 0.6em;
+    }
+  </style>
+	<link rel="stylesheet" href="css/bootstrap-responsive.css">
+	<link rel="stylesheet" href="css/style.css">
+
+	<!--[if lt IE 9]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<script>window.html5 || document.write('<script src="js/libs/html5.js"><\/script>')</script>
+	<![endif]-->
+</head>
+
+<body>
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/"><img src="img/bd_logo.png" style="margin: -8px 0 -14px;" /> : brian dunnington</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <li id="linkHome"><a href="/">Home</a></li>
+              <li id="linkAbout"><a href="/about">About</a></li>
+              <li id="linkContact"><a href="/contact">Contact</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+	  <div class="row">
+      <div class="span8 maincontent">
+          <div class="hero-unit">
+<h1>Azure Functions: Set Cosmos DB Trigger Connection String At Runtime</h1>
+<p>How to specify the trigger connection string at runtime and avoid storing secrets during local development</p>
+</div>
+
+<p>By now you surely have noticed that I have a crush on <a href="https://azure.microsoft.com/en-us/services/functions/">Azure Functions</a>. They are just about the perfect tool for so many scenarios. Lately, I have found myself using the <a href="https://docs.microsoft.com/en-us/azure/azure-functions/functions-create-cosmos-db-triggered-function">Cosmos DB trigger</a> a lot to get notified when data is added or changed. Like many of the triggers that are triggered by another service, you have to specify the connection string to the DB in order for it to work. You don't actually specify the connection string, but the name of the setting that <em>contains</em> the connection string and you do it in the attribute that decorates the function, usually like this:</p>
+
+<pre><code>    [FunctionName("CosmosTrigger")]
+    public static void Run([CosmosDBTrigger(
+        databaseName: "ToDoItems",
+        collectionName: "Items",
+        ConnectionStringSetting = "CosmosDBConnection",
+        LeaseCollectionName = "leases",
+        CreateLeaseCollectionIfNotExists = true)]IReadOnlyList&lt;Document&gt; documents,
+        ILogger log)
+    {
+        if (documents != null &amp;&amp; documents.Count &gt; 0)
+        {
+            log.LogInformation($"Documents modified: {documents.Count}");
+            log.LogInformation($"First document Id: {documents[0].Id}");
+        }
+    }
+}
+</code></pre>
+
+<p>In the code above, <code>ConnectionStringSetting</code> is the name of the setting that contains the connection string. In this case, it is <code>CosmosDBConnection</code>, so you would want to make sure that setting is properly set in your Functions configuration.</p>
+
+<p>Instead of storing the actual connection string, you can use the <a href="https://docs.microsoft.com/en-us/azure/app-service/app-service-key-vault-references">Key Vault syntax</a> to point the setting to a Key Vault secret that contains the connection string. The syntax looks like:</p>
+
+<pre><code>@Microsoft.KeyVault(SecretUri=https://myvault.vault.azure.net/secrets/mysecret/ec96f02080254f109c51a1f14cdb1931)
+</code></pre>
+
+<p>Now you have your connection string safely stored in Key Vault and your Function app is configured to read it directly. All is well - that is until you try to run the Function locally.</p>
+
+<p>The Key Vault syntax is an App Service feature (not an Azure Functions feature), so it is not supported in the local Functions runtime that you use to run &amp; debug locally. So you can't use the <code>@Microsoft.KeyVault()</code> value when you run your code locally. You could put the actual connection string into your <code>local.settings.json</code> and that will work, but that file is not usually checked into source control because you don't want to store your secrets in your source repository. That makes sharing the secret with other folks on your team a challenge - you could use old-fashioned communication techniques like <em>talking to each other</em>, but there has to be a better way. What we really want is to be able to read the connection string directly from Key Vault, even when running locally.</p>
+
+<p>So what do we have to work with and what do we know:</p>
+
+<ul>
+<li><code>ConnectionStringSetting</code> is a property on an attribute, so it must be a constant value (cannot be set to a variable value)</li>
+<li>The <code>@Microsoft.KeyVault()</code> syntax is a constant but only works when deployed to Azure, not when running locally</li>
+<li>We don't want to store secrets in the <code>local.settings.json</code> file</li>
+</ul>
+
+<p>That seems to take away most of our options, but if you do a little diving into the <a href="https://github.com/Azure/azure-webjobs-sdk-extensions/blob/b7aa8f84c2b3c9065861fe955ce8180b9d19f939/src/WebJobs.Extensions.CosmosDB/Trigger/CosmosDBTriggerAttributeBindingProvider.cs#L261">Cosmos DB Trigger source code</a>, you will notice that it first tries to use the <code>ConnectionStringSetting</code> but if it is not set, will fallback to using <code>_options.ConnectionString</code>:</p>
+
+<pre><code>internal string ResolveConnectionString(string unresolvedConnectionString, string propertyName)
+{
+    // First, resolve the string.
+    if (!string.IsNullOrEmpty(unresolvedConnectionString))
+    {
+        string resolvedString = _configuration.GetConnectionStringOrSetting(unresolvedConnectionString);
+
+        if (string.IsNullOrEmpty(resolvedString))
+        {
+            throw new InvalidOperationException($"Unable to resolve app setting for property '{nameof(CosmosDBTriggerAttribute)}.{propertyName}'. Make sure the app setting exists and has a valid value.");
+        }
+
+        return resolvedString;
+    }
+
+    // If that didn't exist, fall back to options.
+    return _options.ConnectionString;
+}
+</code></pre>
+
+<p>So what is <code>_options.ConnectionString</code> and how can we leverage it? Well, it is an instance of <code>CosmosDBOptions</code> and it can be set using the standard Options registration patterns:</p>
+
+<pre><code>builder.Services.PostConfigure&lt;CosmosDBOptions&gt;(options =&gt;
+{
+    options.ConnectionString = "dynamically set the connection string value here";
+});
+</code></pre>
+
+<p>(Note that the above code assumes that you are using an <code>IWebJobsStartup</code> class and dependency injection - and really, why wouldn't you be? 😁)</p>
+
+<p>If you combine that with some code to read settings from Key Vault, you end up with something like this:</p>
+
+<pre><code>var configBuilder = new ConfigurationBuilder();
+configBuilder.AddAzureKeyVault("https://myvault.vault.net");
+var config = configBuilder.Build();
+builder.Services.PostConfigure&lt;CosmosDBOptions&gt;(options =&gt;
+{
+    options.ConnectionString = config["CosmosDbUrl"]; // CosmosDbUrl is a secret in the Key Vault
+});
+</code></pre>
+
+<p><strong>One important thing to note:</strong> The trigger will only fall back to using the <code>_options.ConnectionString</code> value if the connection string is <em>not</em> set by the attribute. So in your function definition, make sure to set <code>ConnectionStringSetting</code> to <code>""</code>:</p>
+
+<pre><code>    [FunctionName("DbFunction")]
+    public static void Run([CosmosDBTrigger(
+        databaseName: "databaseName",
+        collectionName: "collectionName",
+        ConnectionStringSetting = "",
+        LeaseCollectionName = "leases")]IReadOnlyList&lt;Document&gt; input, ILogger log)
+    {
+        if (input != null &amp;&amp; input.Count &gt; 0)
+        {
+            log.LogInformation("Documents modified " + input.Count);
+            log.LogInformation("First document Id " + input[0].Id);
+        }
+    }
+</code></pre>
+
+<p>Now even when you run the code locally, the code will fetch the connection string value from Key Vault, the <code>CosmosDBOptions</code> instance will be configured with that value, and it will all be made available to the trigger when resolving the connection string value.</p>
+
+      </div>
+
+      <div class="span4">
+          <h3><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="64" style="vertical-align:middle;" /></a> <a href="http://twitter.com/briandunnington">@briandunnington</a></h3>
+          <hr />
+
+              <h6 class="muted">2019.07.30</h6>
+              <h2>Azure Functions: Set Cosmos DB Trigger Connection String At Runtime</h2>
+              <p>How to specify the trigger connection string at runtime and avoid storing secrets during local development</p>
+              <p><a class="btn" href="/azure_functions_dynamic_connection_string">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2019.07.10</h6>
+              <h2>Quick Fix: Creating an X509Certificate from bytes</h2>
+              <p>How to fix a strange error when creating an X509Certificate from an array of bytes</p>
+              <p><a class="btn" href="/create_certificate_from_bytes">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2019.02.28</h6>
+              <h2>Distributed Cache Invalidation using Azure Service Bus</h2>
+              <p>It has been said that there are only two hard problems in computer science: cache invalidation and naming things. Time to cross one of those off of the list</p>
+              <p><a class="btn" href="/distributed_cache_invalidation">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2018.11.27</h6>
+              <h2>Deploying Azure Web App Certificates from Key Vault</h2>
+              <p>How to work around an ARM template limitation when using a Key Vault certificate in a Web App</p>
+              <p><a class="btn" href="/webapp_certificate_from_keyvault">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2018.11.06</h6>
+              <h2>Roku Round-up</h2>
+              <p>Quick updates on some Roku libraries that I recently released</p>
+              <p><a class="btn" href="/roku_roundup">View details &raquo;</a></p>
+              <hr/>
+
+          <h4><a href="/index">More Posts ></a></h4>
+      </div>
+	  </div>
+
+      <footer>
+        <small>&copy; 2012-2019 brian dunnington</small>
+      </footer>
+
+    </div> <!-- /container -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
+
+<script src="js/libs/bootstrap/bootstrap.js"></script>
+
+<script src="js/script.js"></script>
+</body>
+</html>
