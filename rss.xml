@@ -7,9 +7,233 @@
         <description>RSS feed for website</description>
         <language>en-us</language>
         <copyright>Copyright 2012 - 2018 : Brian Dunnington</copyright>
-        <pubDate>Tue, 30 Jul 2019 04:15:33 GMT</pubDate>
-        <lastBuildDate>Tue, 30 Jul 2019 04:15:33 GMT</lastBuildDate>
+        <pubDate>Wed, 31 Jul 2019 05:09:03 GMT</pubDate>
+        <lastBuildDate>Wed, 31 Jul 2019 05:09:03 GMT</lastBuildDate>
 
+        <item>
+            <title>Azure Functions: Route Priority</title>
+            <link>http://briandunnington.github.io/azure_functions_route_priority</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Azure Functions: Route Priority</h1>
+<p>Making Azure Functions route matching make more sense</p>
+</div>
+
+<p>Although I continue to <a href="/azure_functions_dynamic_connection_string">profess</a> <a href="/azure_functions_proxies">my</a> <a href="/use_azure_functions_with_alexa">love</a> for <a href="https://azure.microsoft.com/en-us/services/functions/">Azure Functions</a>, today we are going to discuss something that it doesn't do so good: route priority. Consider these two endpoints:</p>
+
+<pre><code>/api/{userId}
+/api/ping
+</code></pre>
+
+<p>(I won't get into API design and RESTful practices or whether or not you should even have routes like this - but it comes up often enough that I am gonna talk about it anyway)</p>
+
+<p>If you are used to most flavors of ASP.NET, you would rightly assume that a request for <code>/api/ping</code> would route to the second endpoint and <code>/api/sam123</code> would route to the first endpoint.</p>
+
+<p>But if you set up these routes in Azure Functions, can you guess which function will get ran for each request? Trick question - the answer is <em>'it depends'</em>. When your code is loaded up, the Functions runtime locates all functions and then registers routes for each of them. Specifically, the <a href="https://github.com/Azure/azure-functions-host/blob/2986ab411cc1addd8cea77dd9e2c6ddc438bc3ae/src/WebJobs.Script.WebHost/HttpInitializationService.cs#L49"><code>InitializeHttpFunctions</code> in <code>HttpInitializationService</code></a> does this:</p>
+
+<pre><code>private void InitializeHttpFunctions(IEnumerable&lt;FunctionDescriptor&gt; functions, HttpOptions httpOptions)
+{
+    //...
+    foreach (var function in functions)
+    {
+        var httpTrigger = function.GetTriggerAttributeOrNull&lt;HttpTriggerAttribute&gt;();
+        if (httpTrigger != null)
+        {
+            //...
+            string route = httpTrigger.Route;
+
+            if (string.IsNullOrEmpty(route) &amp;&amp; !function.Metadata.IsProxy)
+            {
+                route = function.Name;
+            }
+
+            WebJobsRouteBuilder builder = function.Metadata.IsProxy ? proxiesRoutesBuilder : routesBuilder;
+            builder.MapFunctionRoute(function.Metadata.Name, route, constraints, function.Metadata.Name);
+        }
+    }
+    //...
+}
+</code></pre>
+
+<p>The <a href="https://github.com/Azure/azure-webjobs-sdk-extensions/blob/12f060f59d210a4d4892fa85f1a63a645edeba18/src/WebJobs.Extensions.Http/Routing/WebJobsRouteBuilder.cs#L49"><code>MapFunctionRoute</code> method in <code>WebJobsRouteBuilder</code></a> creates the route and adds it to a <code>RouteCollection</code> of routes:</p>
+
+<pre><code>var routes = new RouteCollection();
+_routes.Add(new Route(
+    new RouteHandler(c =&gt; _handler.InvokeAsync(c, functionName)),
+    name,
+    template,
+    new RouteValueDictionary(defaults),
+    new RouteValueDictionary(constraints),
+    tokens,
+    _constraintResolver));
+</code></pre>
+
+<p>The <code>RouteCollection</code> that is built just tries to match in the order that the routes are added. And since we don't know how <code>IEnumerable&lt;FunctionDescriptor&gt;</code> orders the functions, we can't be sure of the route order (empirical evidence suggests that the functions are loaded in alphabetical order, but I wouldn't rely on that fact)</p>
+
+<p>The problem is now obvious: a request for <code>/api/ping</code> might match the <code>/api/ping</code> route if it happens to get registered first, but it might instead match the <code>/api/{userId}</code> route (with a <code>{userId}</code> value of <code>ping</code>) if that happened to get registered first.</p>
+
+<p>Sadly, Azure Functions doesn't have a built-in good solution for this. One option suggested by the Functions team is to <a href="https://github.com/MicrosoftDocs/azure-docs/issues/11755#issuecomment-405651650">use route constraints</a> to make your routes unique. So if your <code>{userId}</code> values follow a certain pattern, you could potentially do something like this:</p>
+
+<pre><code>/api/{userId:minlength(10)}
+</code></pre>
+
+<p>The full list of route constraints <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-2.2#route-constraint-reference">can be found here</a>. That can work for simple cases, but it quickly gets unwieldy if you have non-trivial constraints. What would be better is if the Functions runtime just did what ASP.NET Core did and smartly figured out which route you really intended. And since ASP.NET Core is open source, we can go see just how they are doing that.</p>
+
+<p><a href="https://github.com/aspnet/AspNetCore/blob/2c3a44371a651e31d10ed1969b1f0a86335214ee/src/Components/Components/src/Routing/RouteTableFactory.cs#L113">In the <code>RouteTableFactory.cs</code> file</a>, we can see the <code>RouteComparison</code> method that compares two <code>RouteEntry</code> objects and smartly orders them based on segment length, which segments are literals vs. parameters, and which parameters have constraints on them. So could we use this in Azure Functions some how?</p>
+
+<p>It turns out that it is not very easy to do this. Azure Functions does not expose any functionality to add middleware or hook into the request processing pipeline. However, the <code>HttpInitializationService</code> class above does give a clue - it takes a dependency on <code>IWebJobsRouter</code> which certainly sounds like something that might be useful. If we could get access to that, we could get a list of the registered routes and then perhaps re-order them.</p>
+
+<h2>Attempt #1 - Custom IWebJobsRouter implementation ❌</h2>
+
+<p>My first thought was to simply create a new <code>CustomWebJobsRouter</code> class that inherited from <code>WebJobsRouter</code>, register this class with the DI system, and have my way with it. So I added the following to my <code>Startup.cs</code> file:</p>
+
+<pre><code>builder.Services.AddSingleton&lt;IWebJobsRouter, CustomWebJobsRouter&gt;
+</code></pre>
+
+<p>Setting a break point in my <code>CustomWebJobsRouter</code> class showed that it was indeed being called. But suddenly all of my routing stopped working entirely (every request returned a 404 no matter what). Since the Functions runtime uses the Web Jobs SDK behind the scenes, I <a href="https://github.com/Azure/azure-webjobs-sdk-extensions/blob/cdeb65faacf04c53845fb76c4b513c9998fc97de/src/WebJobs.Extensions.Http/HttpBindingApplicationBuilderExtension.cs#L34">tracked down this code</a> that showed that the <code>ApplicationServices</code> also registered <code>IWebJobsRouter</code>, but since they are not the same instance, it appeared to cause some kind of internal issue. In fact, if I changed my <code>Startup.cs</code> to register the built-in <code>WebJobsRouter</code> implementation, it still broke all routing. So trying to replace the <code>IWebJobsRouter</code> registration wasn't going to work.</p>
+
+<h2>Attempt #2 - DI dependency ❌</h2>
+
+<p>Instead of trying to replace the <code>IWebJobsRouter</code> registration, I decided to try to get a reference to the native instance instead. I added a dependency on <code>IWebJobsRouter</code> to another class that I was using, and lo-and-behold, I was able to get access to the instance.</p>
+
+<pre><code>public class MyClass(IWebJobsRouter router)
+{
+    this.router = router; // yay! we have it
+}
+</code></pre>
+
+<p>At this point, I was able to grab the registered routes and re-order them to make more sense. Break out the champagne - I had done it! But upon further testing, I realized there was a small issue. My custom class was not instantiated until a request came in, at which time it re-ordered the routes. But that first request was still routed to the original old route. My class was not running until too late in the pipeline to affect that first request. I tried moving the dependency to a bunch of other classes, hoping to get it earlier in the pipeline. Nothing worked though - the first request would always get processed before the routes were updated.</p>
+
+<h2>Attempt #4 &amp; #5 - Getting desperate ❌</h2>
+
+<p>Arg! I was so close, but that first request was gnawing at me. I started trying more and more questionable ideas to try to get it to work. I wanted to try something like ASP.NET MVC's <code>RewritePath</code> but that doesn't exist in ASP.NET Core. I tried just modifying the <code>HttpContext.Request.Path</code> property directly, but it was still too late in the pipeline to have an effect.</p>
+
+<p>I even thought of using an <code>HttpClient</code> to have the API call itself on startup to try to work around the issue. The idea was that the 'first request' would be the API itself, which could rewrite the routes and allow them to be correct for future requests. But this was entering pretty hacky territory, so I scrapped that idea and went and had dinner instead.</p>
+
+<h2>Attempt #3 - Custom extension ✔</h2>
+
+<p>After a nice meal, I finally remembered that you can register an implementation of <code>IExtensionConfigProvider</code> to allow custom code to be run. Normally this is intended to be used to create custom bindings, but I decided to try to (ab)use it for my own purposes. The extension is constructed by DI, so it was easy to take a dependency on the <code>IWebJobsRouter</code> instance again. But now I had the opposite problem - the code was called <em>too</em> early and the routes were not yet set up at all.</p>
+
+<p>But now I had access to the instance, and I knew the routes were <em>going</em> to be set up, so I set up a <code>Task.Delay</code> loop to keep checking until the routes were set (I hear you yelling 'HACK!' but I prefer to hear 'ingenious solution!'). Once the routes were set up, I was able to reorder them and confirm that they were correctly ordered before the first request ever comes in. All of the pieces were now available.</p>
+
+<h2>Putting it all together</h2>
+
+<p>Even though I now had the data I needed at the time that I needed it, it was still a bit of a challenge. The <code>IWebJobsRouter</code> does not expose its collection of routes, so I had to use a little reflection to access the private member that holds them. Once I had them, I used a modified<a href="#comparison">*</a> version of the <code>RouteComparison</code> comparer to order them properly and then reset the collection value. Here is what the meat of my extension ended up looking like:</p>
+
+<pre><code>public class RoutePriorityExtension : IExtensionConfigProvider
+{
+    IWebJobsRouter router;
+
+    public RoutePriorityExtension(IWebJobsRouter router)
+    {
+        this.router = router;
+    }
+
+    public void Initialize(ExtensionConfigContext context)
+    {
+        Task.Run(async () =&gt;
+        {
+            while (!AreRoutesReady())
+            {
+                await Task.Delay(100);
+            }
+            ReorderRoutes();
+        });
+    }
+
+    public bool AreRoutesReady()
+    {
+        return GetUnorderedRoutes().Count &gt; 0;
+    }
+
+    public void ReorderRoutes()
+    {
+        var unorderedRoutes = GetUnorderedRoutes();
+        var routePrecedence = Comparer&lt;Route&gt;.Create(RouteComparison);
+        var orderedRoutes = unorderedRoutes.OrderBy(id =&gt; id, routePrecedence);
+        var orderedCollection = new RouteCollection();
+        foreach (var route in orderedRoutes)
+        {
+            orderedCollection.Add(route);
+        }
+        router.ClearRoutes();
+        router.AddFunctionRoutes(orderedCollection, null);
+    }
+
+    List&lt;Route&gt; GetUnorderedRoutes()
+    {
+        var type = typeof(WebJobsRouter);
+        var fields = type.GetRuntimeFields(); // reflection yeah
+        var field = fields.FirstOrDefault(f =&gt; f.Name == "_functionRoutes");
+        var functionRoutes = field.GetValue(router);
+        var unorderedRouteCollection = (RouteCollection)functionRoutes;
+        var unorderedRoutes = GetRoutes(unorderedRouteCollection);
+        return unorderedRoutes;
+    }
+
+    List&lt;Route&gt; GetRoutes(RouteCollection collection)
+    {
+        var routes = new List&lt;Route&gt;();
+        for (var i = 0; i &lt; collection.Count; i++)
+        {
+            var nestedCollection = collection[i] as RouteCollection;
+            if (nestedCollection != null)
+            {
+                routes.AddRange(GetRoutes(nestedCollection));
+                continue;
+            }
+            routes.Add((Route)collection[i]);
+        }
+        return routes;
+    }
+}
+</code></pre>
+
+<p>To hide the ugly delay loop and reflection bits, I created a small extension method so you can just use this one line instead:</p>
+
+<pre><code>builder.AddRoutePriority();
+</code></pre>
+
+<p>With that one line, now your functions will have the same sane and expected routing as ASP.NET Core.<a href="#comparison">*</a></p>
+
+<p><a name="comparison"></a></p>
+
+<h2>A note about route comparison</h2>
+
+<p>*To be completely honest, this routing is slightly modified from the ASP.NET Core version. If you look at the ASP.NET Core version, there is a descriptive comment that says:</p>
+
+<pre><code>/// To calculate the precedence we sort the list of routes as follows:
+/// * Shorter routes go first.
+/// * A literal wins over a parameter in precedence.
+/// * For literals with different values (case insensitive) we choose the lexical order
+/// * For parameters with different numbers of constraints, the one with more wins
+</code></pre>
+
+<p>So the first thing it does is compare routes based on length (number of segments) with the assumption that shorter routes are higher priority than longer routes. In practice, I found that length was not really the most important factor - my routing instead compares segment-by-segment and prefers literal segments over parameter-based segments. So where the ASP.NET Core routing would prioritize two routes like this:</p>
+
+<pre><code>/api/{userId}
+/api/tools/ping
+</code></pre>
+
+<p>My routing would order them like this:</p>
+
+<pre><code>/api/tools/ping
+/api/{userId}
+</code></pre>
+
+<p>Routes with literal segments are matched first because they are explicit routes that are definitive matches and the parameter-based routes are only tried after the literal routes.</p>
+
+<h2>Show me the code</h2>
+
+<p>Here is the complete thing that you can copy and paste to check it out. Just declare your functions as normal, add <code>builder.AddRoutePriority()</code> to your <code>Startup.cs</code> and enjoy 🍻</p>
+
+<script src="https://gist.github.com/briandunnington/10e83919272bd6564ed95edbced77610.js"></script>
+
+]]></description>
+            <pubDate>Thu, 01 Aug 2019 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/azure_functions_route_priority</guid>
+            <image>http://briandunnington.github.io/images/azure_functions.png</image>
+        </item>
         <item>
             <title>Azure Functions: Set Cosmos DB Trigger Connection String At Runtime</title>
             <link>http://briandunnington.github.io/azure_functions_dynamic_connection_string</link>
