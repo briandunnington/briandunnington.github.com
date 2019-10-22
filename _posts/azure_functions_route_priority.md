@@ -8,6 +8,8 @@ Image: http://briandunnington.github.io/images/azure_functions.png
 <p>Making Azure Functions route matching make more sense</p>
 </div>
 
+**[Updated][Update]**: Updated to handle recent changes in the Functions webhost code.
+
 Although I continue to [profess][DynamicConnectionString] [my][FunctionProxies] [love][Alexa] for [Azure Functions][AzureFunctions], today we are going to discuss something that it doesn't do so good: route priority. Consider these two endpoints:
 
     /api/{userId}
@@ -87,51 +89,65 @@ Instead of trying to replace the `IWebJobsRouter` registration, I decided to try
 
 At this point, I was able to grab the registered routes and re-order them to make more sense. Break out the champagne - I had done it! But upon further testing, I realized there was a small issue. My custom class was not instantiated until a request came in, at which time it re-ordered the routes. But that first request was still routed to the original old route. My class was not running until too late in the pipeline to affect that first request. I tried moving the dependency to a bunch of other classes, hoping to get it earlier in the pipeline. Nothing worked though - the first request would always get processed before the routes were updated.
 
-## Attempt #4 & #5 - Getting desperate ❌
+## Attempt #3 & #4 - Getting desperate ❌
 
 Arg! I was so close, but that first request was gnawing at me. I started trying more and more questionable ideas to try to get it to work. I wanted to try something like ASP.NET MVC's `RewritePath` but that doesn't exist in ASP.NET Core. I tried just modifying the `HttpContext.Request.Path` property directly, but it was still too late in the pipeline to have an effect.
 
 I even thought of using an `HttpClient` to have the API call itself on startup to try to work around the issue. The idea was that the 'first request' would be the API itself, which could rewrite the routes and allow them to be correct for future requests. But this was entering pretty hacky territory, so I scrapped that idea and went and had dinner instead.
 
-## Attempt #3 - Custom extension ✔
+## Attempt #5 - Custom extension <strike>✔</strike> ❌
+
+**NOTE**: This is no longer the best approach. See **[Update][Update]** below.
 
 After a nice meal, I finally remembered that you can register an implementation of `IExtensionConfigProvider` to allow custom code to be run. Normally this is intended to be used to create custom bindings, but I decided to try to (ab)use it for my own purposes. The extension is constructed by DI, so it was easy to take a dependency on the `IWebJobsRouter` instance again. But now I had the opposite problem - the code was called *too* early and the routes were not yet set up at all.
 
 But now I had access to the instance, and I knew the routes were *going* to be set up, so I set up a `Task.Delay` loop to keep checking until the routes were set (I hear you yelling 'HACK!' but I prefer to hear 'ingenious solution!'). Once the routes were set up, I was able to reorder them and confirm that they were correctly ordered before the first request ever comes in. All of the pieces were now available.
 
+<a name="update"></a>
+
+## ***Update***
+
+After running this in production for awhile, I would sometimes notice a strange issue where the routes appeared to be reset back to their unordered state. Some deeper digging finally revealed what was going on.
+
+## Attempt #6 - Update HttpInitializationService ❌
+
+It turns out that `HttpInitializationService` that is actually responsible for initializing the `IWebJobsRouter` instance implements the `IHostedService` interface. That interface has `StartAsync` and `StopAsync` methods which appear to get called when the function goes idle and then restarts. Each time it did that, the `IWebJobsRouter.AddFunctionRoutes` got called again, which reset the routes. I updated the extension to grab the `HttpInitializationService` from the service provider and then replaced the internal `IWebJobsRouter` instance with a wrapper object that did the route reordering. This allowed me to remove the `Task.Delay` loop entirely and also solved the problem of routes being reset because I was able to intercept the `AddFunctionRoutes` call and reorder the routes no matter when it was called.
+
+I ran this in production for about a month and it was rock solid until a few days ago...
+
+## Attempt #7 - Listen to ApplicationStarted event ✔
+
+A few days ago, I noticed that some of my functions appeared to no longer have their routes correctly ordered. Strangely, some machines appeared to still be correct but others did not. I went digging and found out that there had been a [recent change to how route initialization was done][WebScriptHostHttpRoutesManager]. The old `HttpInitializationService` was replaced with a new `WebScriptHostHttpRoutesManager` class. This class no longer implemented `IHostedService`, which was good news because that meant that the route ordering is no longer done every time the function goes idle and then restarts. But the bad news was that there was no longer a way to get a reference to the instance or override the dependency registration.
+
+I finally stumbled upon [the `IApplicationLifetime.ApplicationStarted` property][ApplicationStarted]. This property gets called once, right after the service is full configured and initialized so it is the perfect hook for our logic. I wired up the route reordering to be triggered by this event and confirmed that it works with both the previous runtime and the new updated runtime.
+
 ## Putting it all together
 
 Even though I now had the data I needed at the time that I needed it, it was still a bit of a challenge. The `IWebJobsRouter` does not expose its collection of routes, so I had to use a little reflection to access the private member that holds them. Once I had them, I used a modified[*][Comparison] version of the `RouteComparison` comparer to order them properly and then reset the collection value. Here is what the meat of my extension ended up looking like:
 
-    public class RoutePriorityExtension : IExtensionConfigProvider
+    public class RoutePriorityExtensionConfigProvider : IExtensionConfigProvider
     {
+        IApplicationLifetime applicationLifetime;
         IWebJobsRouter router;
 
-        public RoutePriorityExtension(IWebJobsRouter router)
+        public RoutePriorityExtensionConfigProvider(IApplicationLifetime applicationLifetime, IWebJobsRouter router)
         {
+            this.applicationLifetime = applicationLifetime;
             this.router = router;
-        }
 
-        public void Initialize(ExtensionConfigContext context)
-        {
-            Task.Run(async () =>
+            this.applicationLifetime.ApplicationStarted.Register(() =>
             {
-                while (!AreRoutesReady())
-                {
-                    await Task.Delay(100);
-                }
                 ReorderRoutes();
             });
         }
 
-        public bool AreRoutesReady()
+        public void Initialize(ExtensionConfigContext context)
         {
-            return GetUnorderedRoutes().Count > 0;
         }
 
         public void ReorderRoutes()
         {
-            var unorderedRoutes = GetUnorderedRoutes();
+            var unorderedRoutes = router.GetRoutes();
             var routePrecedence = Comparer<Route>.Create(RouteComparison);
             var orderedRoutes = unorderedRoutes.OrderBy(id => id, routePrecedence);
             var orderedCollection = new RouteCollection();
@@ -143,18 +159,71 @@ Even though I now had the data I needed at the time that I needed it, it was sti
             router.AddFunctionRoutes(orderedCollection, null);
         }
 
-        List<Route> GetUnorderedRoutes()
+        static int RouteComparison(Route x, Route y)
+        {
+            var xTemplate = x.ParsedTemplate;
+            var yTemplate = y.ParsedTemplate;
+
+            for (var i = 0; i < xTemplate.Segments.Count; i++)
+            {
+                if (yTemplate.Segments.Count <= i)
+                {
+                    return -1;
+                }
+
+                var xSegment = xTemplate.Segments[i].Parts[0];
+                var ySegment = yTemplate.Segments[i].Parts[0];
+                if (!xSegment.IsParameter && ySegment.IsParameter)
+                {
+                    return -1;
+                }
+                if (xSegment.IsParameter && !ySegment.IsParameter)
+                {
+                    return 1;
+                }
+
+                if (xSegment.IsParameter)
+                {
+                    if (xSegment.InlineConstraints.Count() > ySegment.InlineConstraints.Count())
+                    {
+                        return -1;
+                    }
+                    else if (xSegment.InlineConstraints.Count() < ySegment.InlineConstraints.Count())
+                    {
+                        return 1;
+                    }
+                }
+                else
+                {
+                    var comparison = string.Compare(xSegment.Text, ySegment.Text, StringComparison.OrdinalIgnoreCase);
+                    if (comparison != 0)
+                    {
+                        return comparison;
+                    }
+                }
+            }
+            if (yTemplate.Segments.Count > xTemplate.Segments.Count)
+            {
+                return 1;
+            }
+            return 0;
+        }
+    }
+
+    public static class IWebJobsRouterExtensions
+    {
+        public static List<Route> GetRoutes(this IWebJobsRouter router)
         {
             var type = typeof(WebJobsRouter);
-            var fields = type.GetRuntimeFields(); // reflection yeah
+            var fields = type.GetRuntimeFields();
             var field = fields.FirstOrDefault(f => f.Name == "_functionRoutes");
             var functionRoutes = field.GetValue(router);
-            var unorderedRouteCollection = (RouteCollection)functionRoutes;
-            var unorderedRoutes = GetRoutes(unorderedRouteCollection);
-            return unorderedRoutes;
+            var routeCollection = (RouteCollection)functionRoutes;
+            var routes = GetRoutes(routeCollection);
+            return routes;
         }
 
-        List<Route> GetRoutes(RouteCollection collection)
+        static List<Route> GetRoutes(RouteCollection collection)
         {
             var routes = new List<Route>();
             for (var i = 0; i < collection.Count; i++)
@@ -171,7 +240,7 @@ Even though I now had the data I needed at the time that I needed it, it was sti
         }
     }
 
-To hide the ugly delay loop and reflection bits, I created a small extension method so you can just use this one line instead:
+To hide the complexity and reflection bits, I created a small extension method so you can just use this one line instead:
 
     builder.AddRoutePriority();
 
@@ -218,4 +287,7 @@ Here is the complete thing that you can copy and paste to check it out. Just dec
 [RouteConstraints]: https://docs.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-2.2#route-constraint-reference
 [RouteComparison]: https://github.com/aspnet/AspNetCore/blob/2c3a44371a651e31d10ed1969b1f0a86335214ee/src/Components/Components/src/Routing/RouteTableFactory.cs#L113
 [ApplicationServices]: https://github.com/Azure/azure-webjobs-sdk-extensions/blob/cdeb65faacf04c53845fb76c4b513c9998fc97de/src/WebJobs.Extensions.Http/HttpBindingApplicationBuilderExtension.cs#L34
+[WebScriptHostHttpRoutesManager]: https://github.com/Azure/azure-functions-host/pull/5102/files
+[ApplicationStarted]: https://docs.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.hosting.iapplicationlifetime.applicationstarted
 [Comparison]: #comparison
+[Update]: #update
