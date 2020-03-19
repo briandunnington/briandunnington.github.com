@@ -7,9 +7,49 @@
         <description>RSS feed for website</description>
         <language>en-us</language>
         <copyright>Copyright 2012 - 2018 : Brian Dunnington</copyright>
-        <pubDate>Tue, 22 Oct 2019 04:06:21 GMT</pubDate>
-        <lastBuildDate>Tue, 22 Oct 2019 04:06:21 GMT</lastBuildDate>
+        <pubDate>Thu, 19 Mar 2020 03:18:48 GMT</pubDate>
+        <lastBuildDate>Thu, 19 Mar 2020 03:18:48 GMT</lastBuildDate>
 
+        <item>
+            <title>Azure Functions: Wildcard Routing</title>
+            <link>http://briandunnington.github.io/azure_functions_wildcard_routing</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Azure Functions: Wildcard Routing</h1>
+<p>A quick tip to support wildcard routes in Azure Functions</p>
+</div>
+
+<p>I have been using and writing about <a href="https://azure.microsoft.com/en-us/services/functions/">Azure Functions</a> quite a bit lately, including:</p>
+
+<ul>
+<li><a href="/azure_functions_route_priority">Making Azure Functions route matching make more sense</a></li>
+<li><a href="/azure_functions_dynamic_connection_string">How to set the Cosmos DB trigger connection string at runtime</a></li>
+<li><a href="/azure_functions_proxies">The many uses of Azure Functions Proxies</a></li>
+</ul>
+
+<p>Today's tip is a quick and easy one. Some times you want to handle a bunch of routes with a single function. Maybe you are building a pass-thru to call another API. You might be able to use Azure Functions Proxies, but if you need to execute custom code, that option is out. What you need is a way to set up a wildcard route in your HTTP trigger.</p>
+
+<p>The <a href="https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-http-webhook-trigger?tabs=csharp#using-route-parameters">docs</a> say "You can use any <a href="https://docs.microsoft.com/en-us/aspnet/web-api/overview/web-api-routing-and-actions/attribute-routing-in-web-api-2#constraints">Web API Route Constraint</a> with your parameters". [<em>Side note</em>: There are lots of cool things you can do with route parameters like using regular expressions, optional parameters, and default values - check them all out]. But one thing you <em>won't</em> see documented there is anything about wildcard parameters.</p>
+
+<p>But it turns out that they are supported if you know the syntax. And the syntax is <a href="https://docs.microsoft.com/en-us/azure/azure-functions/functions-proxies">the same one that is used by Proxies</a>: <code>/api/{*restOfPath}</code>. The docs say: "If the route template terminates in a wildcard, such as <code>/api/{*restOfPath}</code>, the value <code>{restOfPath}</code> is a string representation of the remaining path segments from the incoming request."</p>
+
+<p>So you can use this same technique in your HTTP trigger binding set up:</p>
+
+<pre><code>[FunctionName("WildcardExample")]
+public async Task WildcardExample([HttpTrigger(AuthorizationLevel.Anonymous, "get", 
+                                    Route = "{*restOfPath}")]) string restOfPath)
+{
+    // use restOfPath in your function here
+}
+</code></pre>
+
+<p>I saw a few questions about this on the internet so I thought I would share this simple solution.</p>
+
+]]></description>
+            <pubDate>Thu, 19 Mar 2020 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/azure_functions_wildcard_routing</guid>
+            <image>http://briandunnington.github.io/images/azure_functions.png</image>
+        </item>
         <item>
             <title>Azure Functions: Route Priority</title>
             <link>http://briandunnington.github.io/azure_functions_route_priority</link>

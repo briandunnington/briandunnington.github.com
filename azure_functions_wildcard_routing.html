@@ -1,3 +1,4 @@
+
 <!doctype html>
 <!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
 <!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
@@ -7,12 +8,22 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 
-	<title>brian dunnington - About</title>
+	<title>brian dunnington - Azure Functions: Wildcard Routing</title>
 	<meta name="description" content="code and computer related tidbits">
 	<meta name="author" content="brian dunnington">
   <link rel="alternate" type="application/rss+xml" title="brian dunnington" href="/rss.xml" />
 
 	<meta name="viewport" content="width=device-width">
+
+    <!-- Twitter Summary Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@briandunnington">
+    <meta name="twitter:creator" content="@briandunnington">
+    <meta name="twitter:title" content="Azure Functions: Wildcard Routing">
+    <meta name="twitter:description" content="A quick tip to support wildcard routes in Azure Functions">
+    <meta name="twitter:domain" content="http://briandunnington.github.io/">
+    <meta name="twitter:image" content="http://briandunnington.github.io/images/azure_functions.png">
+
 
 	<link rel="stylesheet" href="css/bootstrap.css">
 	<style>
@@ -63,21 +74,35 @@
 	  <div class="row">
       <div class="span8 maincontent">
           <div class="hero-unit">
-<h1>About this Blog</h1>
-<p>This blog is a bit of an experiment, as I am using several new (and new-to-me) techniques for creating and publishing this content</p>
+<h1>Azure Functions: Wildcard Routing</h1>
+<p>A quick tip to support wildcard routes in Azure Functions</p>
 </div>
 
-<p>This blog is a bit of an experiment, as I am using several new (and new-to-me) techniques for creating and publishing this content. All of the tools are based on standards (formal and de facto) and are freely available.</p>
+<p>I have been using and writing about <a href="https://azure.microsoft.com/en-us/services/functions/">Azure Functions</a> quite a bit lately, including:</p>
 
-<p>All of the content is written in <a href="http://daringfireball.net/projects/markdown/">Markdown</a>, a human-readable syntax for formatting text. <s>I am using the free <a href="http://markdownpad.com/">Markdown Pad</a> editor to write the content.</s> <strong><em>[Update]:</em></strong> Now I just write the markdown right inside of <a href="https://code.visualstudio.com/">Visual Studio Code</a> since it has a nice preview function and I am usually already in there anyway.</p>
+<ul>
+<li><a href="/azure_functions_route_priority">Making Azure Functions route matching make more sense</a></li>
+<li><a href="/azure_functions_dynamic_connection_string">How to set the Cosmos DB trigger connection string at runtime</a></li>
+<li><a href="/azure_functions_proxies">The many uses of Azure Functions Proxies</a></li>
+</ul>
 
-<p>The Markdown files are then ran through <a href="https://github.com/briandunnington/Nest">Nest</a>, a custom tool that I created. Nest scans a directory for Markdown files (.md extension) and then converts the text to HTML (using the <a href="http://code.google.com/p/markdownsharp/">Markdown Sharp</a> library). The resulting HTML is then injected into a <a href="http://msdn.microsoft.com/en-us/vs2010trainingcourse_aspnetmvc3razor.aspx">Razor</a>-based template using <a href="https://github.com/jlamfers/RazorMachine">RazorMachine</a> to render the final page.</p>
+<p>Today's tip is a quick and easy one. Some times you want to handle a bunch of routes with a single function. Maybe you are building a pass-thru to call another API. You might be able to use Azure Functions Proxies, but if you need to execute custom code, that option is out. What you need is a way to set up a wildcard route in your HTTP trigger.</p>
 
-<p>The template itself is using the <a href="http://html5boilerplate.com/">html5boilerplate</a> library, with a side helping of <a href="http://twitter.github.com/bootstrap/">Twitter Bootstrap</a> thrown in for the UI elements, all generated automatically by <a href="http://www.initializr.com/">Initializr</a>.</p>
+<p>The <a href="https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-http-webhook-trigger?tabs=csharp#using-route-parameters">docs</a> say "You can use any <a href="https://docs.microsoft.com/en-us/aspnet/web-api/overview/web-api-routing-and-actions/attribute-routing-in-web-api-2#constraints">Web API Route Constraint</a> with your parameters". [<em>Side note</em>: There are lots of cool things you can do with route parameters like using regular expressions, optional parameters, and default values - check them all out]. But one thing you <em>won't</em> see documented there is anything about wildcard parameters.</p>
 
-<p>Finally, the pages are being hosted on <a href="https://github.com/">Github</a> using their <a href="http://pages.github.com/">Pages</a> feature. The static .html files are all version controlled and stored in Github as normal, but Github also makes them browsable.</p>
+<p>But it turns out that they are supported if you know the syntax. And the syntax is <a href="https://docs.microsoft.com/en-us/azure/azure-functions/functions-proxies">the same one that is used by Proxies</a>: <code>/api/{*restOfPath}</code>. The docs say: "If the route template terminates in a wildcard, such as <code>/api/{*restOfPath}</code>, the value <code>{restOfPath}</code> is a string representation of the remaining path segments from the incoming request."</p>
 
-<p>Anyway, it sounds like a lot of moving parts, but it really makes things quite easy. Just open up a text editor and write the text without worrying about the HTML formatting too much, then click a button and everything is transformed into standards-compliant HTML magically. A simple <code>git push</code> and the pages are all updated with full backups, etc.</p>
+<p>So you can use this same technique in your HTTP trigger binding set up:</p>
+
+<pre><code>[FunctionName("WildcardExample")]
+public async Task WildcardExample([HttpTrigger(AuthorizationLevel.Anonymous, "get", 
+                                    Route = "{*restOfPath}")]) string restOfPath)
+{
+    // use restOfPath in your function here
+}
+</code></pre>
+
+<p>I saw a few questions about this on the internet so I thought I would share this simple solution.</p>
 
       </div>
 
@@ -126,8 +151,5 @@
 <script src="js/libs/bootstrap/bootstrap.js"></script>
 
 <script src="js/script.js"></script>
-<script>
-$("#linkAbout").addClass("active");
-</script>
 </body>
 </html>
