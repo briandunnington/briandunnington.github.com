@@ -12,7 +12,7 @@ Yesterday I saw this tweet on Twitter:
 
 <br><img src="/images/azure_functions_key_vault_tweet.png" width="100%"><br><br>
 
-We came up for a solution to this at work ([we are hiring][hiring]) and use it in all of our services so I thought I would share it.
+We came up for a solution to this at work and use it in all of our services so I thought I would share it. (By the way, if you want to come work with me on cool stuff like this, [we are hiring][hiring])
 
 The root of the issue is that the triggers in Azure Functions often need some kind of configuration. Things like Cosmos DB change feed triggers, event hub triggers, and queue triggers all need things like connection strings and queue names to know what resource they are monitoring. These values come from the application settings and the runtime knows how to resolve them properly.
 

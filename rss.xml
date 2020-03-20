@@ -7,8 +7,8 @@
         <description>RSS feed for website</description>
         <language>en-us</language>
         <copyright>Copyright 2012 - 2018 : Brian Dunnington</copyright>
-        <pubDate>Fri, 20 Mar 2020 03:58:39 GMT</pubDate>
-        <lastBuildDate>Fri, 20 Mar 2020 03:58:39 GMT</lastBuildDate>
+        <pubDate>Fri, 20 Mar 2020 04:01:12 GMT</pubDate>
+        <lastBuildDate>Fri, 20 Mar 2020 04:01:12 GMT</lastBuildDate>
 
         <item>
             <title>Azure Functions: Trigger Attribute Settings From Key Vault</title>
@@ -23,7 +23,7 @@
 
 <p><br><img src="/images/azure_functions_key_vault_tweet.png" width="100%"><br><br></p>
 
-<p>We came up for a solution to this at work (<a href="https://careers.microsoft.com/us/en/job/803455/Senior-Software-Engineer">we are hiring</a>) and use it in all of our services so I thought I would share it.</p>
+<p>We came up for a solution to this at work and use it in all of our services so I thought I would share it. (By the way, if you want to come work with me on cool stuff like this, <a href="https://careers.microsoft.com/us/en/job/803455/Senior-Software-Engineer">we are hiring</a>)</p>
 
 <p>The root of the issue is that the triggers in Azure Functions often need some kind of configuration. Things like Cosmos DB change feed triggers, event hub triggers, and queue triggers all need things like connection strings and queue names to know what resource they are monitoring. These values come from the application settings and the runtime knows how to resolve them properly.</p>
 
