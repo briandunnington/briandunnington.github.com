@@ -7,9 +7,114 @@
         <description>RSS feed for website</description>
         <language>en-us</language>
         <copyright>Copyright 2012 - 2018 : Brian Dunnington</copyright>
-        <pubDate>Thu, 19 Mar 2020 03:18:48 GMT</pubDate>
-        <lastBuildDate>Thu, 19 Mar 2020 03:18:48 GMT</lastBuildDate>
+        <pubDate>Fri, 20 Mar 2020 03:58:39 GMT</pubDate>
+        <lastBuildDate>Fri, 20 Mar 2020 03:58:39 GMT</lastBuildDate>
 
+        <item>
+            <title>Azure Functions: Trigger Attribute Settings From Key Vault</title>
+            <link>http://briandunnington.github.io/azure_functions_key_vault_config</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Azure Functions: Trigger Attribute Settings From Key Vault</h1>
+<p>How to read trigger attribute settings from Key Vault</p>
+</div>
+
+<p>Yesterday I saw this tweet on Twitter:</p>
+
+<p><br><img src="/images/azure_functions_key_vault_tweet.png" width="100%"><br><br></p>
+
+<p>We came up for a solution to this at work (<a href="https://careers.microsoft.com/us/en/job/803455/Senior-Software-Engineer">we are hiring</a>) and use it in all of our services so I thought I would share it.</p>
+
+<p>The root of the issue is that the triggers in Azure Functions often need some kind of configuration. Things like Cosmos DB change feed triggers, event hub triggers, and queue triggers all need things like connection strings and queue names to know what resource they are monitoring. These values come from the application settings and the runtime knows how to resolve them properly.</p>
+
+<p>Often, these values contain secrets so it is great to store them in Key Vault. To enable this common scenario, Azure Functions supports a <a href="https://docs.microsoft.com/en-us/azure/app-service/app-service-key-vault-references">special Key Vault syntax</a> for application setting values:</p>
+
+<pre><code>@Microsoft.KeyVault(SecretUri=https://myvault.vault.azure.net/secrets/mysecret/ec96f02080254f109c51a1f14cdb1931)
+
+-or-
+
+@Microsoft.KeyVault(VaultName=myvault;SecretName=mysecret;SecretVersion=ec96f02080254f109c51a1f14cdb1931)
+</code></pre>
+
+<p>This is resolved by the runtime automatically and the secret value from Key Vault is made available.</p>
+
+<p>The problem arises during local development. Application settings are provided by the <code>local.settings.json</code> file when developing locally, but the <code>local.settings.json</code> file does not support the Key Vault syntax.</p>
+
+<p><br><img src="/images/azure_functions_key_vault_nolocal.png" width="100%"><br><br></p>
+
+<p>(The reason is that that feature is not part of the Azure Functions runtime but instead <a href="https://github.com/Azure/azure-webjobs-sdk/issues/746#issuecomment-458652023">provided by the underlying App Service functionality</a>.)</p>
+
+<p>So developers often resort to copying in connection strings/etc into their <code>local.settings.json</code> file while developing. They have to be extra careful not to commit this file to source control (the default template automatically adds it to the <code>.gitignore</code> list), but then it is hard to share with other folks on your team. In the end, it is not an elegant process. What we really want is a method that would let us use the secrets from Key Vault both in Azure and locally, remove the need for manually sharing the secrets between team members, while ensuring that we don't accidentally commit them to source control.</p>
+
+<p>So - what is the solution? Well, since Azure Functions is built on top of ASP.NET Core, it is already using <code>IConfiguration</code> behind the scenes. All of the environment variables and application settings are read into this configuration and it is used to resolve the trigger attribute values. So we need a way to inject our Key Vault values into the runtime's <code>IConfiguration</code> instance.</p>
+
+<pre><code>/* This is the meat of the logic. It finds the IConfiguration service that is already registered by the runtime, and then
+    * creates an instance of the concrete class if necessary. It loads all of the Key Vault secrets into the config, and then
+    * replaces the registered IConfiguration instance with the patched version.
+    * 
+    * Use at your own risk 😊
+    * */
+public static IConfiguration AddAzureKeyVaultConfiguration(this IServiceCollection services, string keyVaultUrlSettingName)
+{
+    // get the IConfiguration that is already registered with the host
+    var configBuilder = new ConfigurationBuilder();
+    var descriptor = services.FirstOrDefault(d =&gt; d.ServiceType == typeof(IConfiguration));
+    if (descriptor?.ImplementationInstance is IConfigurationRoot configuration)
+    {
+        configBuilder.AddConfiguration(configuration);
+    }
+    else if (descriptor?.ImplementationFactory != null)
+    {
+        var sp = services.BuildServiceProvider();
+        var constructedConfiguration = descriptor.ImplementationFactory.Invoke(sp) as IConfiguration;
+        configBuilder.AddConfiguration(constructedConfiguration);
+    }
+
+    // build a temporary configuration so we can extract the key vault urls
+    var tempConfig = configBuilder.Build();
+    var keyVaultUrls = tempConfig[keyVaultUrlSettingName]?.Split(',');
+
+    // add the key vault providers and build a new config
+    configBuilder.AddAzureKeyVaults(keyVaultUrls);
+    var config = configBuilder.Build();
+
+    // replace the existing IConfiguration instance with our new one
+    services.Replace(ServiceDescriptor.Singleton(typeof(IConfiguration), config));
+    return config;
+}
+</code></pre>
+
+<p>First the code finds the already-registered <code>IConfiguration</code> type in the services collection. If necessary, it creates an instance of the concrete class. Then it reads all of the secrets from Key Vault and injects them into the configuration. Finally, it replaces the service registration with the patched instance.</p>
+
+<p>Let's look at an example. For this example, I have already set up my Key Vault and added a few secrets:</p>
+
+<p><br><img src="/images/azure_functions_key_vault_secrets.png" width="100%"><br><br></p>
+
+<p>In order to use it, you only have to pass in the <em>name of the setting</em> that contains your Key Vault url. Since the Key Vault url is not a secret itself, you can put it in your <code>local.settings.json</code> and commit it to source control.</p>
+
+<p><br><img src="/images/azure_functions_key_vault_localsettings.png" width="100%"><br><br></p>
+
+<p>Here is how you set it up in your <code>Startup.cs</code> file (you are using <a href="https://docs.microsoft.com/en-us/azure/azure-functions/functions-dotnet-dependency-injection">dependency injection in your Functions</a>, right?)</p>
+
+<p><br><img src="/images/azure_functions_key_vault_startup.png" width="100%"><br><br></p>
+
+<p>Note that this also makes the <code>config</code> variable available to your code so you can use any of the settings to configure your other dependencies as well.</p>
+
+<p>Then in your function, you can just use the Key Vault secret names like normal application settings. Notice that it works with both regular setting names and with the <code>%{name}%</code> resolver syntax.</p>
+
+<p><br><img src="/images/azure_functions_key_vault_function.png" width="100%"><br><br></p>
+
+<p>When you run it, everything Just Works™. Whether you are running locally or in Azure, the code only needs one setting to be configured: the url to your Key Vault. Because it leverages the built-in Key Vault handling, the authentication portion automatically uses Managed Service Identity when running in Azure but falls back to your personal credentials when running locally.</p>
+
+<p>All of the code and the example is <a href="https://github.com/briandunnington/AzureFunctionsKeyVaultSettingsExample">available on Github</a>.</p>
+
+<p>Please try it out and let me know if you find it useful. I will create a NuGet package if this is something that other folks would like to use in their projects.</p>
+
+]]></description>
+            <pubDate>Fri, 20 Mar 2020 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/azure_functions_key_vault_config</guid>
+            <image>http://briandunnington.github.io/images/azure_functions.png</image>
+        </item>
         <item>
             <title>Azure Functions: Wildcard Routing</title>
             <link>http://briandunnington.github.io/azure_functions_wildcard_routing</link>

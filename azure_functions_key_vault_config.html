@@ -1,0 +1,220 @@
+
+<!doctype html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+	<title>brian dunnington - Azure Functions: Trigger Attribute Settings From Key Vault</title>
+	<meta name="description" content="code and computer related tidbits">
+	<meta name="author" content="brian dunnington">
+  <link rel="alternate" type="application/rss+xml" title="brian dunnington" href="/rss.xml" />
+
+	<meta name="viewport" content="width=device-width">
+
+    <!-- Twitter Summary Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@briandunnington">
+    <meta name="twitter:creator" content="@briandunnington">
+    <meta name="twitter:title" content="Azure Functions: Trigger Attribute Settings From Key Vault">
+    <meta name="twitter:description" content="How to read trigger attribute settings from Key Vault">
+    <meta name="twitter:domain" content="http://briandunnington.github.io/">
+    <meta name="twitter:image" content="http://briandunnington.github.io/images/azure_functions.png">
+
+
+	<link rel="stylesheet" href="css/bootstrap.css">
+	<style>
+    body {
+      padding-top: 60px;
+      padding-bottom: 40px;
+    }
+    footer {
+      text-align: right;
+      margin-top: 40px;
+    }
+    h1 {
+      margin-bottom: 0.6em;
+    }
+  </style>
+	<link rel="stylesheet" href="css/bootstrap-responsive.css">
+	<link rel="stylesheet" href="css/style.css">
+
+	<!--[if lt IE 9]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<script>window.html5 || document.write('<script src="js/libs/html5.js"><\/script>')</script>
+	<![endif]-->
+</head>
+
+<body>
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/"><img src="img/bd_logo.png" style="margin: -8px 0 -14px;" /> : brian dunnington</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <li id="linkHome"><a href="/">Home</a></li>
+              <li id="linkAbout"><a href="/about">About</a></li>
+              <li id="linkContact"><a href="/contact">Contact</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+	  <div class="row">
+      <div class="span8 maincontent">
+          <div class="hero-unit">
+<h1>Azure Functions: Trigger Attribute Settings From Key Vault</h1>
+<p>How to read trigger attribute settings from Key Vault</p>
+</div>
+
+<p>Yesterday I saw this tweet on Twitter:</p>
+
+<p><br><img src="/images/azure_functions_key_vault_tweet.png" width="100%"><br><br></p>
+
+<p>We came up for a solution to this at work (<a href="https://careers.microsoft.com/us/en/job/803455/Senior-Software-Engineer">we are hiring</a>) and use it in all of our services so I thought I would share it.</p>
+
+<p>The root of the issue is that the triggers in Azure Functions often need some kind of configuration. Things like Cosmos DB change feed triggers, event hub triggers, and queue triggers all need things like connection strings and queue names to know what resource they are monitoring. These values come from the application settings and the runtime knows how to resolve them properly.</p>
+
+<p>Often, these values contain secrets so it is great to store them in Key Vault. To enable this common scenario, Azure Functions supports a <a href="https://docs.microsoft.com/en-us/azure/app-service/app-service-key-vault-references">special Key Vault syntax</a> for application setting values:</p>
+
+<pre><code>@Microsoft.KeyVault(SecretUri=https://myvault.vault.azure.net/secrets/mysecret/ec96f02080254f109c51a1f14cdb1931)
+
+-or-
+
+@Microsoft.KeyVault(VaultName=myvault;SecretName=mysecret;SecretVersion=ec96f02080254f109c51a1f14cdb1931)
+</code></pre>
+
+<p>This is resolved by the runtime automatically and the secret value from Key Vault is made available.</p>
+
+<p>The problem arises during local development. Application settings are provided by the <code>local.settings.json</code> file when developing locally, but the <code>local.settings.json</code> file does not support the Key Vault syntax.</p>
+
+<p><br><img src="/images/azure_functions_key_vault_nolocal.png" width="100%"><br><br></p>
+
+<p>(The reason is that that feature is not part of the Azure Functions runtime but instead <a href="https://github.com/Azure/azure-webjobs-sdk/issues/746#issuecomment-458652023">provided by the underlying App Service functionality</a>.)</p>
+
+<p>So developers often resort to copying in connection strings/etc into their <code>local.settings.json</code> file while developing. They have to be extra careful not to commit this file to source control (the default template automatically adds it to the <code>.gitignore</code> list), but then it is hard to share with other folks on your team. In the end, it is not an elegant process. What we really want is a method that would let us use the secrets from Key Vault both in Azure and locally, remove the need for manually sharing the secrets between team members, while ensuring that we don't accidentally commit them to source control.</p>
+
+<p>So - what is the solution? Well, since Azure Functions is built on top of ASP.NET Core, it is already using <code>IConfiguration</code> behind the scenes. All of the environment variables and application settings are read into this configuration and it is used to resolve the trigger attribute values. So we need a way to inject our Key Vault values into the runtime's <code>IConfiguration</code> instance.</p>
+
+<pre><code>/* This is the meat of the logic. It finds the IConfiguration service that is already registered by the runtime, and then
+    * creates an instance of the concrete class if necessary. It loads all of the Key Vault secrets into the config, and then
+    * replaces the registered IConfiguration instance with the patched version.
+    * 
+    * Use at your own risk 😊
+    * */
+public static IConfiguration AddAzureKeyVaultConfiguration(this IServiceCollection services, string keyVaultUrlSettingName)
+{
+    // get the IConfiguration that is already registered with the host
+    var configBuilder = new ConfigurationBuilder();
+    var descriptor = services.FirstOrDefault(d =&gt; d.ServiceType == typeof(IConfiguration));
+    if (descriptor?.ImplementationInstance is IConfigurationRoot configuration)
+    {
+        configBuilder.AddConfiguration(configuration);
+    }
+    else if (descriptor?.ImplementationFactory != null)
+    {
+        var sp = services.BuildServiceProvider();
+        var constructedConfiguration = descriptor.ImplementationFactory.Invoke(sp) as IConfiguration;
+        configBuilder.AddConfiguration(constructedConfiguration);
+    }
+
+    // build a temporary configuration so we can extract the key vault urls
+    var tempConfig = configBuilder.Build();
+    var keyVaultUrls = tempConfig[keyVaultUrlSettingName]?.Split(',');
+
+    // add the key vault providers and build a new config
+    configBuilder.AddAzureKeyVaults(keyVaultUrls);
+    var config = configBuilder.Build();
+
+    // replace the existing IConfiguration instance with our new one
+    services.Replace(ServiceDescriptor.Singleton(typeof(IConfiguration), config));
+    return config;
+}
+</code></pre>
+
+<p>First the code finds the already-registered <code>IConfiguration</code> type in the services collection. If necessary, it creates an instance of the concrete class. Then it reads all of the secrets from Key Vault and injects them into the configuration. Finally, it replaces the service registration with the patched instance.</p>
+
+<p>Let's look at an example. For this example, I have already set up my Key Vault and added a few secrets:</p>
+
+<p><br><img src="/images/azure_functions_key_vault_secrets.png" width="100%"><br><br></p>
+
+<p>In order to use it, you only have to pass in the <em>name of the setting</em> that contains your Key Vault url. Since the Key Vault url is not a secret itself, you can put it in your <code>local.settings.json</code> and commit it to source control.</p>
+
+<p><br><img src="/images/azure_functions_key_vault_localsettings.png" width="100%"><br><br></p>
+
+<p>Here is how you set it up in your <code>Startup.cs</code> file (you are using <a href="https://docs.microsoft.com/en-us/azure/azure-functions/functions-dotnet-dependency-injection">dependency injection in your Functions</a>, right?)</p>
+
+<p><br><img src="/images/azure_functions_key_vault_startup.png" width="100%"><br><br></p>
+
+<p>Note that this also makes the <code>config</code> variable available to your code so you can use any of the settings to configure your other dependencies as well.</p>
+
+<p>Then in your function, you can just use the Key Vault secret names like normal application settings. Notice that it works with both regular setting names and with the <code>%{name}%</code> resolver syntax.</p>
+
+<p><br><img src="/images/azure_functions_key_vault_function.png" width="100%"><br><br></p>
+
+<p>When you run it, everything Just Works™. Whether you are running locally or in Azure, the code only needs one setting to be configured: the url to your Key Vault. Because it leverages the built-in Key Vault handling, the authentication portion automatically uses Managed Service Identity when running in Azure but falls back to your personal credentials when running locally.</p>
+
+<p>All of the code and the example is <a href="https://github.com/briandunnington/AzureFunctionsKeyVaultSettingsExample">available on Github</a>.</p>
+
+<p>Please try it out and let me know if you find it useful. I will create a NuGet package if this is something that other folks would like to use in their projects.</p>
+
+      </div>
+
+      <div class="span4">
+          <h3><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="64" style="vertical-align:middle;" /></a> <a href="http://twitter.com/briandunnington">@briandunnington</a></h3>
+          <hr />
+
+              <h6 class="muted">2020.03.20</h6>
+              <h2>Azure Functions: Trigger Attribute Settings From Key Vault</h2>
+              <p>How to read trigger attribute settings from Key Vault</p>
+              <p><a class="btn" href="/azure_functions_key_vault_config">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2020.03.19</h6>
+              <h2>Azure Functions: Wildcard Routing</h2>
+              <p>A quick tip to support wildcard routes in Azure Functions</p>
+              <p><a class="btn" href="/azure_functions_wildcard_routing">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2019.08.01</h6>
+              <h2>Azure Functions: Route Priority</h2>
+              <p>Making Azure Functions route matching make more sense</p>
+              <p><a class="btn" href="/azure_functions_route_priority">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2019.07.30</h6>
+              <h2>Azure Functions: Set Cosmos DB Trigger Connection String At Runtime</h2>
+              <p>How to specify the trigger connection string at runtime and avoid storing secrets during local development</p>
+              <p><a class="btn" href="/azure_functions_dynamic_connection_string">View details &raquo;</a></p>
+              <hr/>
+              <h6 class="muted">2019.07.10</h6>
+              <h2>Quick Fix: Creating an X509Certificate from bytes</h2>
+              <p>How to fix a strange error when creating an X509Certificate from an array of bytes</p>
+              <p><a class="btn" href="/create_certificate_from_bytes">View details &raquo;</a></p>
+              <hr/>
+
+          <h4><a href="/index">More Posts ></a></h4>
+      </div>
+	  </div>
+
+      <footer>
+        <small>&copy; 2012-2020 brian dunnington</small>
+      </footer>
+
+    </div> <!-- /container -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
+
+<script src="js/libs/bootstrap/bootstrap.js"></script>
+
+<script src="js/script.js"></script>
+</body>
+</html>
