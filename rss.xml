@@ -7,9 +7,56 @@
         <description>RSS feed for website</description>
         <language>en-us</language>
         <copyright>Copyright 2012 - 2018 : Brian Dunnington</copyright>
-        <pubDate>Fri, 20 Mar 2020 04:01:12 GMT</pubDate>
-        <lastBuildDate>Fri, 20 Mar 2020 04:01:12 GMT</lastBuildDate>
+        <pubDate>Wed, 25 Nov 2020 08:34:00 GMT</pubDate>
+        <lastBuildDate>Wed, 25 Nov 2020 08:34:00 GMT</lastBuildDate>
 
+        <item>
+            <title>Serializing JObject to camelCase</title>
+            <link>http://briandunnington.github.io/jobject_serialization</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Serializing JObject to camelCase</h1>
+<p>How to serialize a JSON.NET JObject to camelCase</p>
+</div>
+
+<p>Yesterday one of my colleagues (<a href="https://twitter.com/harsimran_hs">@harsimran_hs</a>) pinged me about some weird behavior he was seeing when serializing some JSON to return from one of our APIs. The strange thing was that sometimes the results were camelCased and sometimes they were coming back PascalCased for the same method.</p>
+
+<p>Some investigation uncovered that in one code path, the object being serialized was a regular C# class from our domain model and in those cases it was being correctly serialized as camelCase. But in the other code path, the object was coming in as a <code>JObject</code> (<a href="https://www.newtonsoft.com/json/help/html/T_Newtonsoft_Json_Linq_JObject.htm">docs</a>) due to some (intentional) generic code handling. In the cases where the object was a <code>JObject</code>, the JSON output was being PascalCased.</p>
+
+<p>We initially thought it would be an easy fix and tried setting the <code>JsonConvert.DefaultSettings</code> (<a href="https://www.newtonsoft.com/json/help/html/DefaultSettings.htm">docs</a>) to force the serializer to use camelCasing. When that didn't work, we tried moving closer to the source and providing a custom <code>JsonSerializer</code> at the point where the object was being serialized. When that didn't work either, we started wondering what was really going on.</p>
+
+<p>As it turns out, it is by-design that <code>JObject</code> serialization <strong>ignores</strong> contract resolvers. So any <code>JObject</code> will serialize its properties as-is. That means that if you end up with a <code>JObject</code> that already has PascalCased properties, there is no built-in way to handle this case.</p>
+
+<p>We went searching for an answer and came across a <a href="https://andrewlock.net/serializing-a-pascalcase-newtonsoft-json-jobject-to-camelcase/">blog post from Andrew Lock</a> that offered up a few options. The first two solutions involved avoiding even ending up with a wrongly-cased <code>JObject</code> in the first place, which wouldn't work in our situation. In his final solution, he suggested essentially looping over the <code>JObject</code> properties and manually converting them to camelCase before serializing. While this approach does work, it involved a bunch of extension methods and more code than we wanted for what was essentially a hack (Andrew called it 'hacky' himself).</p>
+
+<p>So in the quest to make the hack as painless as possible, we went back to the drawing board and came up with the following one liner. Be warned, it is not the nicest line of code you are ever going to see:</p>
+
+<pre><code>myJObj = JObject.FromObject(myJObj.ToObject&lt;ExpandoObject&gt;(), JsonSerializer.Create(new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() }));
+</code></pre>
+
+<p>Let's break down what it is doing:</p>
+
+<p><code>myJObj.ToObject&lt;ExpandoObject&gt;()</code> first converts the <code>JObject</code> into a regular object - we use <code>ExpandoObject</code> in this case to take advantage of its dynamic nature to support the unknown list of properties.</p>
+
+<p>Then <code>JObject.FromObject()</code> converts the <code>ExpandoObject</code> back into a <code>JObject</code>, but this time we can apply the <code>JsonSerializerSettings</code> and they will be honored. The end result is a new <code>JObject</code> with all of the properties pre-serialized as camelCase.</p>
+
+<p>Let's take this example:</p>
+
+<p><br><img src="/images/jobject_example.png" width="100%"><br><br></p>
+
+<p>And then view the resulting output, including the desired output, what we get by default, and with our new hacky-one-line solution applied (note that it even handles nested objects):</p>
+
+<p><br><img src="/images/jobject_output.png" width="100%"><br><br></p>
+
+<p>So in the end we still ended up with a hacky solution but it is all on one line now with a nice big comment explaining why we are up to these shenanigans.</p>
+
+<p>If you have any better ideas, head on over to <a href="https://twitter.com/briandunnington">my Twitter</a> and let me know!</p>
+
+]]></description>
+            <pubDate>Wed, 25 Nov 2020 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/jobject_serialization</guid>
+            <image>http://briandunnington.github.io/images/camel.jpg</image>
+        </item>
         <item>
             <title>Azure Functions: Trigger Attribute Settings From Key Vault</title>
             <link>http://briandunnington.github.io/azure_functions_key_vault_config</link>
