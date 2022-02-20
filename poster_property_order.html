@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <title>Roku: Poster component property order</title>
+
+    <meta name="title" content="Roku: Poster component property order"/>
+    <meta name="description" content="Often when loading images from the web, we do not have control over how large the source images are. Loading images that are too large will eat up precious Roku memory and cause performance problems in your app. There is a way to solve this, but it has an interesting twist that can trip people up."/>
+    <meta name="author" content="Brian Dunnington" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:type" content="website"/>
+    <meta property="og:site_name" content="Brian Dunnington" />
+    <meta property="og:url" content="https://briandunnington.github.io/poster_property_order"/>
+    <meta property="og:title" content="Roku: Poster component property order"/>
+    <meta property="og:description" content="Often when loading images from the web, we do not have control over how large the source images are. Loading images that are too large will eat up precious Roku memory and cause performance problems in your app. There is a way to solve this, but it has an interesting twist that can trip people up."/>
+    <meta property="og:image" content="https://briandunnington.github.io/img/bd_logo.png"/>
+    <meta property="article:published_time" content="2018-12-17T12:00:00"/>
+    <meta property="twitter:card" content="summary_large_image"/>
+    <meta property="twitter:site" content="@briandunnington"/>
+    <meta property="twitter:creator" content="@briandunnington"/>
+    <meta property="twitter:url" content="https://briandunnington.github.io/poster_property_order"/>
+    <meta property="twitter:title" content="Roku: Poster component property order"/>
+    <meta property="twitter:description" content="Often when loading images from the web, we do not have control over how large the source images are. Loading images that are too large will eat up precious Roku memory and cause performance problems in your app. There is a way to solve this, but it has an interesting twist that can trip people up."/>
+    <meta property="twitter:image" content="https://briandunnington.github.io/img/bd_logo.png"/>
+
+    <link rel="canonical" href="https://briandunnington.github.io/poster_property_order" />
+    <link rel="stylesheet" href="/css/style.css"/>
+    <link rel="stylesheet" href="/css/prism.css"/>
+    <link type="application/atom+xml" rel="alternate" href="https://briandunnington.github.io/rss.xml" title="Brian Dunnington" />
+
+    <script src="/js/prism.js"></script>
+</head>
+
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/">
+                <h2 class="nav-title">brian dunnington</h2>
+            </a>
+            <ul>
+                <li><a href="/about">About</a></li>
+                <li><a href="/contact">Contact</a></li>
+                <li><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="48" style="position: relative;top:30px;"/></a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <div class="post">
+            <div class="post-info">
+                <time datetime="2018-12-17 12:00:00 +0000" class="catalogue-time">December 17, 2018</time>
+            </div>
+
+            <h1 class="post-title">Roku: Poster component property order</h1>
+            <div class="post-line"></div>
+
+
+
+            <div class="language-csharp"><p>Often when loading images from the web, we do not have control over how large the source images are. Loading images
+that are too large will eat up precious Roku memory and cause performance problems in your app.</p>
+
+<p>However, the <code>Poster</code> component does have the ability to automatically resize the incoming image as it is loaded so
+that no excess memory is used. The <a href="https://sdkdocs.roku.com/display/sdkdoc/Poster">Roku docs</a> indicate that you can use the following
+properties to control how the image is loaded into memory:</p>
+
+<ul>
+<li><code>loadWith</code></li>
+<li><code>loadHeight</code></li>
+<li><code>loadDisplayMode</code></li>
+</ul>
+
+<p>By using these properties, you can load an image that is normally too large but only consume the memory required for the
+desired final size. For example:</p>
+
+<pre  class="language-markup" ><code>&lt;Poster uri="http://big.image" loadDisplayMode="scaleToZoom" loadWidth="720" loadHeight="405" /&gt;
+</code></pre>
+
+<p>If you view the <a href="https://sdkdocs.roku.com/display/sdkdoc/Texture+Memory">texture memory</a>, you can see:</p>
+
+<p><img src="/images/poster_properties_1.png" /></p>
+
+<p>But wait - why does it report that the image is 1920x1080 if we specified it to be 720x405? The Roku docs actually mention
+the reason, but it is not always immediately obvious:</p>
+
+<blockquote>
+  <p>In order for the load scaling options to work, the option fields must be set in XML markup before the <code>uri</code> field.</p>
+</blockquote>
+
+<p>What that means is that <strong>property source order is important</strong>. As soon as the <code>uri</code> field is set, the image begins loading
+with whatever options have been set. If the <code>load*</code> properties have not been set yet, they will be ignored. So we need to
+change our markup to ensure that the <code>uri</code> is set <em>after</em> the other properties:</p>
+
+<pre  class="language-markup" ><code>&lt;Poster loadDisplayMode="scaleToZoom" loadWidth="720" loadHeight="405" uri="http://big.image" /&gt;
+</code></pre>
+
+<p>Now when you view the texture memory, you see:</p>
+
+<p><img src="/images/poster_properties_2.png" /></p>
+
+<p>That looks more like it. Even though the Roku docs mention this, it catches lots of folks off guard since xml property order is normally not significant.</p>
+</div>
+        </div>
+
+        <div class="pagination">
+
+                <a href="/divisible_by_3" class="left arrow">&#8592; Roku: A Different Kind of 'Rule of Thirds'</a>
+                            <a href="/webapp_certificate_from_keyvault" class="right arrow">Deploying Azure Web App Certificates from Key Vault &#8594;</a>
+            <a href="#" class="top">Top</a>
+        </div>
+    </main>
+
+    <footer>
+        <span>
+            &copy; 2012-2022 brian dunnington
+        </span>
+    </footer>
+
+</body>
+</html>

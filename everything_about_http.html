@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <title>HTTP on Roku</title>
+
+    <meta name="title" content="HTTP on Roku"/>
+    <meta name="description" content="Everything you ever wanted to know about making network calls on Roku"/>
+    <meta name="author" content="Brian Dunnington" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:type" content="website"/>
+    <meta property="og:site_name" content="Brian Dunnington" />
+    <meta property="og:url" content="https://briandunnington.github.io/everything_about_http"/>
+    <meta property="og:title" content="HTTP on Roku"/>
+    <meta property="og:description" content="Everything you ever wanted to know about making network calls on Roku"/>
+    <meta property="og:image" content="https://briandunnington.github.io/img/bd_logo.png"/>
+    <meta property="article:published_time" content="2019-01-15T12:00:00"/>
+    <meta property="twitter:card" content="summary_large_image"/>
+    <meta property="twitter:site" content="@briandunnington"/>
+    <meta property="twitter:creator" content="@briandunnington"/>
+    <meta property="twitter:url" content="https://briandunnington.github.io/everything_about_http"/>
+    <meta property="twitter:title" content="HTTP on Roku"/>
+    <meta property="twitter:description" content="Everything you ever wanted to know about making network calls on Roku"/>
+    <meta property="twitter:image" content="https://briandunnington.github.io/img/bd_logo.png"/>
+
+    <link rel="canonical" href="https://briandunnington.github.io/everything_about_http" />
+    <link rel="stylesheet" href="/css/style.css"/>
+    <link rel="stylesheet" href="/css/prism.css"/>
+    <link type="application/atom+xml" rel="alternate" href="https://briandunnington.github.io/rss.xml" title="Brian Dunnington" />
+
+    <script src="/js/prism.js"></script>
+</head>
+
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/">
+                <h2 class="nav-title">brian dunnington</h2>
+            </a>
+            <ul>
+                <li><a href="/about">About</a></li>
+                <li><a href="/contact">Contact</a></li>
+                <li><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="48" style="position: relative;top:30px;"/></a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <div class="post">
+            <div class="post-info">
+                <time datetime="2019-01-15 12:00:00 +0000" class="catalogue-time">January 15, 2019</time>
+            </div>
+
+            <h1 class="post-title">HTTP on Roku</h1>
+            <div class="post-line"></div>
+
+
+
+            <div class="language-csharp"><p>After getting your development environment all set up for Roku dev and creating your first <code>Hello World!</code> app, one of the first 'real' things you will need to do when developing a proper app is to fetch data from the network. However, Roku's HTTP stack is a little different than you might be used to on other platforms, so this post aims to walk through how it works and how to perform common operations.</p>
+
+<h2>Overview</h2>
+
+<p>The object that you use to fetch data from the network in BrightScript is called <a href="https://sdkdocs.roku.com/display/sdkdoc/roUrlTransfer">roUrlTransfer</a>. This class implements several interfaces, the most important of which are <a href="https://sdkdocs.roku.com/display/sdkdoc/ifUrlTransfer">ifUrlTransfer</a> and <a href="https://sdkdocs.roku.com/display/sdkdoc/ifHttpAgent">ifHttpAgent</a>. The Roku docs explain how to create an instance and what each of the methods do (though they can be a little bit sparse and don't include many real-world examples). One important thing to note is that the <code>roUrlTransfer</code> object can only be used from a <code>Task</code> node - since network calls are inherently asynchronous, Roku forces you to do these operations in a <code>Task</code> to avoid blocking the UI thread.</p>
+
+<h2>Preparing a request</h2>
+
+<p>To make a request, the general steps are:</p>
+
+<ul>
+<li>Create an instance of the <code>roUrlTransfer</code> object</li>
+<li>Configure it appropriately, including setting the url</li>
+<li>Call one of the built-in methods to actually fetch the data</li>
+</ul>
+
+<p>Let's start with some simple usage:</p>
+
+<h3><code>GET</code> request</h3>
+
+<p>To make a simple <code>GET</code> request, you can do this:</p>
+
+<pre><code>request = CreateObject("roUrlTransfer")
+request.SetUrl("http://your.url/goes.here")
+response = request.GetToString()
+</code></pre>
+
+<p>In this case, <code>response</code> will be the actual HTTP body. The docs say that <code>GetToString</code> will <em>"connect to the remote service as specified in the URL and return the response body as a string. This function waits for the transfer to complete and it may block for a long time. This calls discards the headers and response codes. If that information is required, use AsyncGetToString instead."</em></p>
+
+<p>We will get to <code>AsyncGetToString</code> in a moment, but let's look at another example first.</p>
+
+<h3><code>POST</code> request</h3>
+
+<p>To <code>POST</code> data, the code looks similar:</p>
+
+<pre><code>request = CreateObject("roUrlTransfer")
+request.SetUrl("http://your.url/goes.here")
+response = request.PostFromString(body)
+</code></pre>
+
+<p>Although the code is not much different, there are a couple of things to note here. The first is that the return value is not the same as <code>GetToString</code>. Instead, the docs say: <em>"The HTTP response code is returned. Any response body is discarded."</em> Probably not super useful in most cases, so we will see how to get the entire HTTP response (including body and headers) a little later on.</p>
+
+<p>The second is that <code>body</code> is a string and is the exact HTTP body that you want to send. If your server is expecting <code>application/x-www-form-urlencoded</code> values (like would be received from an HTML <code>&lt;form&gt;</code>), then you need to format the data appropriately. <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST">MDN says</a> <em>"the keys and values are encoded in key-value tuples separated by '&amp;', with a '=' between the key and the value. Non-alphanumeric characters in both keys and values are percent encoded"</em>. You can use the <a href="https://sdkdocs.roku.com/display/sdkdoc/ifUrlTransfer#ifUrlTransfer-Escape(textasString)asString">Escape</a> function to url-encode the keys and values like this:</p>
+
+<pre><code>request = CreateObject("roUrlTransfer")
+body = "firstname=" + request.Escape("Mary Ann") + "&amp;lastname=" + request.Escape("Smith-Jones")
+request.SetUrl("http://your.url/goes.here")
+response = request.PostFromString(body)
+</code></pre>
+
+<p>If your server is expecting JSON, you can build an object and then use <code>[FormatJSON][]</code> to produce the string to send:</p>
+
+<pre><code>request = CreateObject("roUrlTransfer")
+data = {
+    firstname: "Mary Ann"
+    lastname: "Smith-Jones"
+}
+body = FormatJSON(data)
+request.SetUrl("http://your.url/goes.here")
+response = request.PostFromString(body)
+</code></pre>
+
+<p>In most cases, you will also need to specify the <code>Content-Type</code> header as well, which brings us to...</p>
+
+<h3>Request headers</h3>
+
+<p>To add headers to a request, you can either add them individually using the <code>AddHeader</code> method like this:</p>
+
+<pre><code>request = CreateObject("roUrlTransfer")
+data = {
+    firstname: "Mary Ann"
+    lastname: "Smith-Jones"
+}
+body = FormatJSON(data)
+request.AddHeader("Content-Type", "application/json")
+request.AddHeader("X-Api-Key", "ABC-123-DEF")
+request.SetUrl("http://your.url/goes.here")
+response = request.PostFromString(body)
+</code></pre>
+
+<p>Or you can set them all at once by passing an AA to <code>SetHeaders</code> like this:</p>
+
+<pre><code>request = CreateObject("roUrlTransfer")
+data = {
+    firstname: "Mary Ann"
+    lastname: "Smith-Jones"
+}
+body = FormatJSON(data)
+headers = {
+    "Content-Type": "application/json"
+    "X-Api-Key": "ABC-123-DEF"
+}
+request.SetHeaders(headers)
+request.SetUrl("http://your.url/goes.here")
+response = request.PostFromString(body)
+</code></pre>
+
+<p>Some headers (like <code>User-Agent</code> and <code>Content-Length</code>) are set automatically for you but can be overridden in special cases.</p>
+
+<h3>Other HTTP verbs</h3>
+
+<p>Along with <code>GetToString</code> and <code>PostFromString</code>, there is also a built-in <code>Head</code> method that will do a <code>HEAD</code> request. But for all other HTTP verbs (such as <code>PUT</code>, <code>DELETE</code>, etc) you must use the <code>SetRequest</code> method:</p>
+
+<pre><code>request = CreateObject("roUrlTransfer")
+request.SetRequest("DELETE")
+request.SetUrl("http://your.url/goes.here")
+response = request.GetToString()
+</code></pre>
+
+<p>Confusingly, you still have to use either <code>GetToString</code> or <code>PostFromString</code> to actually send the request, depending on if you need to also send a message body or not.</p>
+
+<h3>HTTPS and SSL</h3>
+
+<p>Unlike most other HTTP stacks that you may be familiar with, <code>roUrlTransfer</code> does not support HTTPS in the default configuration. You must explicitly call <code>SetCertificatesFile</code> and pass it the local file path of a <code>.pem</code> file that contains the certificates from the Certificate Authority. You can provide your own <code>.pem</code> file, but for most scenarios it is easier to use the file provided by Roku with this special path: <code>common:/certs/ca-bundle.crt</code>. So the full usage would be:</p>
+
+<pre><code>request = CreateObject("roUrlTransfer")
+request.SetCertificatesFile("common:/certs/ca-bundle.crt")
+request.SetUrl("https://your.secure.url/goes.here")
+response = request.GetToString()
+</code></pre>
+
+<p>If for some reason your server returns an invalid SSL certificate and you want to accept it anyway (perhaps in a testing or staging situation), you can set use <code>EnableHostVerification(false)</code> and <code>EnablePeerVerification(false)</code> to disable the SSL check.</p>
+
+<p><em>Note that there is also a method called <code>InitClientCertificates</code> but all that does is cause the Roku to send its own client cert to your server. There are cases where that might be useful (for authenticating a specific Roku device, for example), but it is not related to HTTPS.</em></p>
+
+<hr />
+
+<h2>Handling a response</h2>
+
+<p>As mentioned earlier, <code>GetToString</code> will return the HTTP body, so if you:</p>
+
+<ul>
+<li>are making a <code>GET</code> call, and</li>
+<li>dont need the status code to know it was a success, and</li>
+<li>dont need any HTTP response headers, and</li>
+<li>dont mind the synchronous nature of <code>GetToString</code></li>
+</ul>
+
+<p>...then you can just use <code>GetToString</code> and grab the response and go about your business. However, in most cases, you <em>will</em> want to know if the request succeeded or not, or want to access the headers, or want to make the request asynchronously. In those cases, we need to move away from <code>GetToString</code> (and <code>PostFromString</code>) and use the asynchronous versions instead: <code>AsyncGetToString</code> and <code>AsyncPostFromString</code> (and <code>AsyncHead</code> if for some reason you need that).</p>
+
+<p>For all of these methods, the request is sent asynchronously and later a <code>roUrlEvent</code> will be dispatched to the message port when the response is ready. This has several benefits:</p>
+
+<ul>
+<li>the call returns immediately so it does not block further execution</li>
+<li>the <code>roUrlEvent</code> contains not only the response body, but also access to the response status code and headers</li>
+</ul>
+
+<p>In most non-trivial apps, these are the methods you will want to use.</p>
+
+<h3>Handling the <code>roUrlEvent</code> message</h3>
+
+<p>In order to handle the asynchronous events, you need to configure the <code>roUrlTransfer</code> object to send its messages to a message port. Like other objects that implement the <code>ifSetMessagePort</code> interface, you do it like this:</p>
+
+<pre><code>port = CreateObject("roMessagePort")
+request = CreateObject("roUrlTransfer")
+request.SetMessagePort(port)
+request.SetUrl("http://your.url/goes.here")
+request.AsyncGetToString()
+</code></pre>
+
+<p>Then, in your port-monitoring code, you can listen for the <code>roUrlEvent</code> message like this:</p>
+
+<pre><code>msg = wait(0, port)
+if (type(msg) = "roUrlEvent")
+    'TODO: handle response here
+else
+    'Not a roUrlEvent
+end if
+</code></pre>
+
+<p>Once you have the <code>roUrlEvent</code> message, you can access the status code, body, and headers. The <a href="https://sdkdocs.roku.com/display/sdkdoc/roUrlEvent">roUrlEvent documentation</a> lists all available methods, but let's cover the common scenarios.</p>
+
+<h3>Linking requests &amp; responses</h3>
+
+<p>Note that the docs also have this to say about asynchronous requests:</p>
+
+<blockquote>
+  <p><em>"Each roUrlTransfer object can perform only one asynchronous operation at one time. After starting an asynchronous operation, you cannot perform any other data transfer operations using that object until the asynchronous operation has completed, as indicated by receiving an roUrlEvent message whose GetSourceIdentity value matches the GetIdentity value of the roUrlTransfer.  Furthermore, the roUrlTransfer object must remain referenced until the transfer has completed. That means that there must be at least one variable containing a reference to the object during the transfer.  Allowing the variable to go out of scope (for example, by returning from a function where the variable is declared, or reusing the variable to hold a different value) will stop the asynchronous transfer."</em></p>
+</blockquote>
+
+<p>If you use asynchronous requests, make sure that you keep a reference to the <code>roUrlTransfer</code> object until the response is complete or else the request will be cancelled. One approach is to create a dictionary of in-flight requests that will hold the references and can be used to look up the request when the response message comes in.</p>
+
+<p>Each request generates a unique ID that can be read using the <code>GetIdentity</code> method like this:</p>
+
+<pre><code>port = CreateObject("roMessagePort")
+request = CreateObject("roUrlTransfer")
+request.SetMessagePort(port)
+request.SetUrl("http://your.url/goes.here")
+request.AsyncGetToString()
+id = request.GetIdentity().ToStr()
+</code></pre>
+
+<p>When you receive a <code>roUrlEvent</code> message, it has a <code>GetSourceIdentity</code> method (I dont know why they have different names) that will return the ID of the response. You can use these IDs to correlate response messages with requests.</p>
+
+<pre><code>msg = wait(0, port)
+if (type(msg) = "roUrlEvent")
+    responseId = msg.GetSourceIdentity().ToStr()
+    'If responseId = requestId, then this response goes with that request
+end if
+</code></pre>
+
+<p>You can use this ID as the key in the lookup dictionary to track multiple concurrent HTTP requests.</p>
+
+<h3>HTTP status codes</h3>
+
+<p>When you get the <code>roUrlEvent</code> message, usually the first thing you want to do is check the status code to see if it succeeded. You can use the <code>GetResponseCode</code> method to read the status code:</p>
+
+<pre><code>msg = wait(0, port)
+if (type(msg) = "roUrlEvent")
+    responseId = msg.GetSourceIdentity().ToStr()
+    statusCode = msg.GetResponseCode()
+    'If statusCode &gt;= 200 and &lt; 300, then it was a success
+end if
+</code></pre>
+
+<p>If the status code is a positive value, it will represent the HTTP status code of the response. However, if the status code is a negative value, it indicates a low-level failure. These error codes are <a href="https://sdkdocs.roku.com/display/sdkdoc/roUrlEvent">documented here</a> (and notice that <code>roUrlTransfer</code> is really just a thin wrapper over <code>curl</code>).</p>
+
+<h3>Handling the response body</h3>
+
+<p>You can get the actual response body with the <code>GetString</code> method. This will be the raw HTTP body so if you are expecting a structured format like JSON or XML, you will need to parse it accordingly:</p>
+
+<pre><code>msg = wait(0, port)
+if (type(msg) = "roUrlEvent")
+    responseId = msg.GetSourceIdentity().ToStr()
+    statusCode = msg.GetResponseCode()
+    body = msg.GetString()
+    json = ParseJSON(body)
+end if
+</code></pre>
+
+<p>Note that if the status code is not in the 200-299 range, the body will be empty. You can change this behavior (so that you can get the full body for non-200 responses as well) by setting the <code>RetainBodyOnError(true)</code> method on the request</p>
+
+<pre><code>port = CreateObject("roMessagePort")
+request = CreateObject("roUrlTransfer")
+request.SetMessagePort(port)
+request.SetUrl("http://your.url/goes.here")
+request.RetainBodyOnError(true)
+request.AsyncGetToString()
+</code></pre>
+
+<h3>Response headers</h3>
+
+<p>Strangely, there are two different ways to read the response headers. The first is <code>GetResponseHeaders</code> which returns an AA with the header names as the keys and the header values as the values. However, the documentation states: <em>"Headers are only returned when the status code is greater than or equal to 200 and less than 300."</em>. Also note that some headers are allowed to appear in the HTTP response multiple times, and since they are represented as an AA here (which cannot have duplicate keys), only the last HTTP value is represented.</p>
+
+<pre><code>msg = wait(0, port)
+if (type(msg) = "roUrlEvent")
+    responseId = msg.GetSourceIdentity().ToStr()
+    statusCode = msg.GetResponseCode()
+    if statusCode &gt;= 200 AND &lt; 300
+        headers = msg.GetResponseHeaders()
+        etag = headers["Etag"]
+    end if
+end if
+</code></pre>
+
+<p>The alternative is <code>GetResponseHeadersArray</code>. This returns and array of AAs instead and the documentation states: <em>"Each associative array contains a single header name/value pair. Use this function if you need access to duplicate headers, since GetResponseHeaders() returns only the last name/value pair for a given name. All headers are returned regardless of the status code."</em> The down side of this is that you cannot directly access the header value by name (you have to loop over the array instead).</p>
+
+<pre><code>msg = wait(0, port)
+if (type(msg) = "roUrlEvent")
+    responseId = msg.GetSourceIdentity().ToStr()
+    statusCode = msg.GetResponseCode()
+    headers = msg.GetResponseHeadersArray()
+    for each headerObj in headers
+        for each headerName in headerObj
+            ?headerName, headerObj[headerName]
+        end for
+    end for
+end if
+</code></pre>
+
+<h3>Putting it all together</h3>
+
+<pre><code>data = {
+    firstname: "Mary Ann"
+    lastname: "Smith-Jones"
+}
+body = FormatJSON(data)
+port = CreateObject("roMessagePort")
+request = CreateObject("roUrlTransfer")
+request.SetMessagePort(port)
+request.SetCertificatesFile("common:/certs/ca-bundle.crt")
+request.RetainBodyOnError(true)
+request.AddHeader("Content-Type", "application/json")
+request.SetRequest("PUT")
+request.SetUrl("https://your.secure.url/goes.here")
+requestSent = request.AsyncPostFromString(data)
+if (requestSent)
+    msg = wait(0, port)
+    if (type(msg) = "roUrlEvent")
+        statusCode = msg.GetResponseCode()
+        headers = msg.GetResponseHeaders()
+        etag = headers["Etag"]
+        body = msg.GetString()
+        json = ParseJSON(body)
+    end if
+end if
+</code></pre>
+
+<hr />
+
+<h2>Helper Libraries</h2>
+
+<p>As you can see, Roku's HTTP handling is quite different than many of the other implementations you might be familiar with. If all of this <code>roUrlTransfer</code> stuff is confusing, you might consider using one of the open-source libraries out there that wrap it all up into a more user-friendly package. A couple to consider are:</p>
+
+<p><a href="https://github.com/bvisin/roku-requests">roku-requests</a> - Python-inspired library that includes client-side caching. Lets you write code like:</p>
+
+<pre><code>r = Requests().request("PUT", "https://httpbin.org/put", {"key":"value"})
+</code></pre>
+
+<p><a href="https://github.com/briandunnington/roku-fetch">roku-fetch</a> - Inspired by Javascript's <code>fetch</code> functionality, you can write code like:</p>
+
+<pre><code>response = fetch({
+    url: "http://example.url",
+    timeout: 5000,
+    method: "PUT",
+    headers: {
+        "Content-Type": "application/json",
+        "If-None-Match": "abc123"
+    }
+    body: FormatJson({id: "xyz", amount: 8.29})
+})
+</code></pre>
+
+<p><em>NOTE: Full disclosure - I am the author of the roku-fetch library</em></p>
+
+<hr />
+
+<h2>Wrapping up</h2>
+
+<p>Hopefully that gave you a better understanding of how Roku's HTTP handling works and how to use it. If you have questions, head over to the <a href="https://rokudevelopers.slack.com">Roku Slack channel</a> and ask away.</p>
+</div>
+        </div>
+
+        <div class="pagination">
+
+                <a href="/distributed_cache_invalidation" class="left arrow">&#8592; Distributed Cache Invalidation using Azure Service Bus</a>
+                            <a href="/live_video_delay" class="right arrow">Roku: Fix for live video delay &#8594;</a>
+            <a href="#" class="top">Top</a>
+        </div>
+    </main>
+
+    <footer>
+        <span>
+            &copy; 2012-2022 brian dunnington
+        </span>
+    </footer>
+
+</body>
+</html>

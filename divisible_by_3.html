@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <title>Roku: A Different Kind of 'Rule of Thirds'</title>
+
+    <meta name="title" content="Roku: A Different Kind of 'Rule of Thirds'"/>
+    <meta name="description" content="Roku devices support a variety of resolutions. Here is a tip to make sure your FHD layouts look great when scaled down to HD."/>
+    <meta name="author" content="Brian Dunnington" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:type" content="website"/>
+    <meta property="og:site_name" content="Brian Dunnington" />
+    <meta property="og:url" content="https://briandunnington.github.io/divisible_by_3"/>
+    <meta property="og:title" content="Roku: A Different Kind of 'Rule of Thirds'"/>
+    <meta property="og:description" content="Roku devices support a variety of resolutions. Here is a tip to make sure your FHD layouts look great when scaled down to HD."/>
+    <meta property="og:image" content="https://briandunnington.github.io/img/bd_logo.png"/>
+    <meta property="article:published_time" content="2018-12-17T12:00:00"/>
+    <meta property="twitter:card" content="summary_large_image"/>
+    <meta property="twitter:site" content="@briandunnington"/>
+    <meta property="twitter:creator" content="@briandunnington"/>
+    <meta property="twitter:url" content="https://briandunnington.github.io/divisible_by_3"/>
+    <meta property="twitter:title" content="Roku: A Different Kind of 'Rule of Thirds'"/>
+    <meta property="twitter:description" content="Roku devices support a variety of resolutions. Here is a tip to make sure your FHD layouts look great when scaled down to HD."/>
+    <meta property="twitter:image" content="https://briandunnington.github.io/img/bd_logo.png"/>
+
+    <link rel="canonical" href="https://briandunnington.github.io/divisible_by_3" />
+    <link rel="stylesheet" href="/css/style.css"/>
+    <link rel="stylesheet" href="/css/prism.css"/>
+    <link type="application/atom+xml" rel="alternate" href="https://briandunnington.github.io/rss.xml" title="Brian Dunnington" />
+
+    <script src="/js/prism.js"></script>
+</head>
+
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/">
+                <h2 class="nav-title">brian dunnington</h2>
+            </a>
+            <ul>
+                <li><a href="/about">About</a></li>
+                <li><a href="/contact">Contact</a></li>
+                <li><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="48" style="position: relative;top:30px;"/></a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <div class="post">
+            <div class="post-info">
+                <time datetime="2018-12-17 12:00:00 +0000" class="catalogue-time">December 17, 2018</time>
+            </div>
+
+            <h1 class="post-title">Roku: A Different Kind of 'Rule of Thirds'</h1>
+            <div class="post-line"></div>
+
+
+
+            <div class="language-csharp"><p>Roku devices <a href="https://sdkdocs.roku.com/display/sdkdoc/Specifying+Display+Resolution">support a few different resolutions</a> for displaying your app's UI:</p>
+
+<ul>
+<li>FHD (1920x1080)</li>
+<li>HD (1280x720)</li>
+<li>SD (720x480)</li>
+</ul>
+
+<p><em>NOTE: This post is only going to focus on FHD and HD. Since SD is a different aspect ratio (4:3) and most Roku devices cannot output SD anyway, it is usually easier to omit explicit support and let the Roku autoscale the UI to handle SD.</em></p>
+
+<p>Although you can provide explicit layouts for both HD and FHD, a much more common approach is to only provide the FHD layout and let the Roku downscale the UI to handle HD automatically. To do this, simply add this to your <code>manifest</code> file:</p>
+
+<p><code>ui_resolutions=FHD</code></p>
+
+<p>Now, you can simply use a 1920x1080 grid when specifying your UI dimensions and Roku will automatically handle converting it to HD as necessary. In order to autoscale the UI down, all of the dimensions are essentially multiplied by 2/3. So an element that is half-a-screen wide in and FHD app would be specified as 960 (1920/2), but would correctly render at 640 (960 * 2/3) on an HD screen.</p>
+
+<p>However, there is a catch with this approach. Since everything is multiplied by 2/3, the original element dimensions must always be divisible by 3 to avoid rounding issues. Consider the following layout which renders a 3x3 grid - it is 597px wide (<a href="http://www.aaamath.com/div66_x3.htm">which is divisible by 3 since 5+9+7=12, which is divisible by 3</a>) and thus each square is 199x199:</p>
+
+<pre  class="language-markup" ><code>&lt;Rectangle width="597" height="597" color="0xFFFFFF"&gt;
+    &lt;Rectangle width="199" height="199" color="0xFF0000" translation="[0,0]"/&gt;
+    &lt;Rectangle width="199" height="199" color="0x00FF00" translation="[199,0]"/&gt;
+    &lt;Rectangle width="199" height="199" color="0xFF0000" translation="[398,0]"/&gt;
+    &lt;Rectangle width="199" height="199" color="0x00FF00" translation="[0,199]"/&gt;
+    &lt;Rectangle width="199" height="199" color="0xFF0000" translation="[199,199]"/&gt;
+    &lt;Rectangle width="199" height="199" color="0x00FF00" translation="[398,199]"/&gt;
+    &lt;Rectangle width="199" height="199" color="0xFF0000" translation="[0,399]"/&gt;
+    &lt;Rectangle width="199" height="199" color="0x00FF00" translation="[199,398]"/&gt;
+    &lt;Rectangle width="199" height="199" color="0xFF0000" translation="[398,398]"/&gt;
+&lt;/Rectangle&gt;
+</code></pre>
+
+<p><img src="/images/divisible_by_3_1.png" style="width: 600px;" /></p>
+
+<p>If you look closely, you can see there are some white lines along the right edge of the grid. Zooming in on the image, we can see:</p>
+
+<p><img src="/images/divisible_by_3_2.png" style="width: 600px;" /></p>
+
+<p>The squares are not lining up correctly since 199 is not divisible by 3. Let's work through what is going on.</p>
+
+<ul>
+<li>The overall grid is 597x597 which is divisible by 3. The HD grid should end up 597 * 2/3 = 398px wide</li>
+<li>In order to make a 3x3 grid, each square is 199x199 - 199 is <em>not</em> divisible by 3</li>
+<li>199 * 2/3 = 132.66666667 which gets rendered as 132</li>
+<li>The top left square ends up 132x132 at position 0,0</li>
+<li>The top middle square ends up rendered at position 132,0 so there is no gap</li>
+<li>The top right square should have been rendered at 398,0, which converts to 265 in HD. But since the first two squares were only 132 each, they only take up 264px so there ends up being a 1px gap between the second and third columns.</li>
+<li>Same thing happens between the second and third rows</li>
+<li>The top right square gets positioned at 265, but since it is only 132px wide, it only fills in to 397, leaving a 1px gap along the right edge (same along the bottom row)</li>
+</ul>
+
+<p>So if we adjust our dimensions so that each individual square is divisible by 3 in both dimensions, we get:</p>
+
+<pre  class="language-markup" ><code>&lt;Rectangle width="603" height="603" color="0xFFFFFF"&gt;
+    &lt;Rectangle width="201" height="201" color="0xFF0000" translation="[0,0]"/&gt;
+    &lt;Rectangle width="201" height="201" color="0x00FF00" translation="[201,0]"/&gt;
+    &lt;Rectangle width="201" height="201" color="0xFF0000" translation="[402,0]"/&gt;
+    &lt;Rectangle width="201" height="201" color="0x00FF00" translation="[0,201]"/&gt;
+    &lt;Rectangle width="201" height="201" color="0xFF0000" translation="[201,201]"/&gt;
+    &lt;Rectangle width="201" height="201" color="0x00FF00" translation="[402,201]"/&gt;
+    &lt;Rectangle width="201" height="201" color="0xFF0000" translation="[0,402]"/&gt;
+    &lt;Rectangle width="201" height="201" color="0x00FF00" translation="[201,402]"/&gt;
+    &lt;Rectangle width="201" height="201" color="0xFF0000" translation="[402,402]"/&gt;
+&lt;/Rectangle&gt;
+</code></pre>
+
+<p><img src="/images/divisible_by_3_3.png" style="width: 600px;" /></p>
+
+<p>Here are the two grids side by side for comparison:</p>
+
+<p><img src="/images/divisible_by_3_4.png" style="width: 600px;" /></p>
+
+<p>Note that this applies to all UI dimensions, not just <code>width</code> and <code>height</code>. Any property that specifies a UI dimension is affected, including <code>translation</code> and <code>scale</code>. <code>scale</code> is particularly tricky because the resulting post-scaled dimension must be divisible by 3. So:</p>
+
+<ul>
+<li>600 ✔️ with <code>scale</code> of <code>0.8</code> = 480 ✔️ * 2/3 = 320 ✔️</li>
+<li>597 ✔️ with <code>scale</code> of <code>0.8</code> = 477.6 ❌</li>
+</ul>
+</div>
+        </div>
+
+        <div class="pagination">
+
+                <a href="/init_order" class="left arrow">&#8592; Roku: Component initialization order</a>
+                            <a href="/poster_property_order" class="right arrow">Roku: Poster component property order &#8594;</a>
+            <a href="#" class="top">Top</a>
+        </div>
+    </main>
+
+    <footer>
+        <span>
+            &copy; 2012-2022 brian dunnington
+        </span>
+    </footer>
+
+</body>
+</html>

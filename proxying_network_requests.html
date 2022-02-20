@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <title>Roku: Proxying network requests</title>
+
+    <meta name="title" content="Roku: Proxying network requests"/>
+    <meta name="description" content="Some of the options available for inspecting network traffic from your Roku"/>
+    <meta name="author" content="Brian Dunnington" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:type" content="website"/>
+    <meta property="og:site_name" content="Brian Dunnington" />
+    <meta property="og:url" content="https://briandunnington.github.io/proxying_network_requests"/>
+    <meta property="og:title" content="Roku: Proxying network requests"/>
+    <meta property="og:description" content="Some of the options available for inspecting network traffic from your Roku"/>
+    <meta property="og:image" content="https://briandunnington.github.io/img/bd_logo.png"/>
+    <meta property="article:published_time" content="2019-04-05T12:00:00"/>
+    <meta property="twitter:card" content="summary_large_image"/>
+    <meta property="twitter:site" content="@briandunnington"/>
+    <meta property="twitter:creator" content="@briandunnington"/>
+    <meta property="twitter:url" content="https://briandunnington.github.io/proxying_network_requests"/>
+    <meta property="twitter:title" content="Roku: Proxying network requests"/>
+    <meta property="twitter:description" content="Some of the options available for inspecting network traffic from your Roku"/>
+    <meta property="twitter:image" content="https://briandunnington.github.io/img/bd_logo.png"/>
+
+    <link rel="canonical" href="https://briandunnington.github.io/proxying_network_requests" />
+    <link rel="stylesheet" href="/css/style.css"/>
+    <link rel="stylesheet" href="/css/prism.css"/>
+    <link type="application/atom+xml" rel="alternate" href="https://briandunnington.github.io/rss.xml" title="Brian Dunnington" />
+
+    <script src="/js/prism.js"></script>
+</head>
+
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/">
+                <h2 class="nav-title">brian dunnington</h2>
+            </a>
+            <ul>
+                <li><a href="/about">About</a></li>
+                <li><a href="/contact">Contact</a></li>
+                <li><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="48" style="position: relative;top:30px;"/></a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <div class="post">
+            <div class="post-info">
+                <time datetime="2019-04-05 12:00:00 +0000" class="catalogue-time">April 5, 2019</time>
+            </div>
+
+            <h1 class="post-title">Roku: Proxying network requests</h1>
+            <div class="post-line"></div>
+
+
+
+            <div class="language-csharp"><p>Roku does not have built-in support for proxies, and the HTTP stack (<code>roUrlTransfer</code>) does not expose the necessary methods to manually construct a valid proxy request. There are two approaches to get proxying working in spite of these limitations.</p>
+
+<h2>System-level proxying</h2>
+
+<p>Although Roku does not explicitly support proxying, there is a way to capture the network traffic. The Hulu dev team <a href="https://medium.com/hulu-tech-blog/automating-mitmproxy-and-improving-hulus-build-loading-tool-for-roku-629e7f763682">recently shared a post</a> on how they set this up, but the basic steps are:</p>
+
+<ul>
+<li>Set up <a href="https://mitmproxy.org/">mitmproxy</a> on a host machine.</li>
+<li>Share the host machine's internet connection. This will appear as a normal WiFi network that the Roku can connect to.</li>
+<li>Configure some routing rules on the host machine. The steps to do this are specific to each OS but are <a href="https://forums.roku.com/viewtopic.php?t=86886">outlined in this forum thread</a>.</li>
+<li>Modify your Roku app code to load the mitmproxy SSL certificate</li>
+</ul>
+
+<p>Essentially what happens is that the Roku connects to the shared WiFi connection, which causes all traffic to flow through the host machine. The routing rules redirect the HTTP and HTTPS traffic through the mitmproxy, which allows you to inspect the results.</p>
+
+<p>The Hulu blog post notes some caveats to be aware of:</p>
+
+<ul>
+<li>You can only set the mitmproxy SSL cert for network calls that your app makes. This means that the network calls from the Roku OS itself and some native video player/RAF calls cannot be configured to use the certificate. Those urls will need to be configured to pass through directly without being intercepted by mitmproxy.</li>
+<li>Setting up the routing rules is a bit tricky for the different OSes, and the forum post does not provide a working example for Windows at all.</li>
+</ul>
+
+<h2>App-level proxying</h2>
+
+<p>There is another way to proxy both HTTP and HTTPS requests, but it requires modifying the actual outgoing request. As with the previous solution, it only works for apps that you develop with specific proxying support (it doesn't work for OS-level calls or other apps on the device). The advantage is that is does not require sharing your internet connection, setting up any special routing rules, or loading any special certificates. In order to support this type of proxying, two pieces are required.</p>
+
+<h3>Modifying requests from the Roku</h3>
+
+<p>Include the following <code>configureRequestProxy()</code> function in your app. The function takes two arguments:</p>
+
+<ul>
+<li><code>request</code> - This should be your original <code>roUrlTransfer</code> object that has already had <code>SetUrl()</code> called on it. <em>(The url will be munged to point to the proxy server but the original value will be preserved.)</em></li>
+<li><code>proxyAddress</code> - The IP address (and optional port) of your proxy server. Ex: <code>192.168.1.100:8888</code></li>
+</ul>
+
+<!-- force end of list -->
+
+<pre><code>sub configureRequestProxy(request, proxy)
+    if request &lt;&gt; invalid and proxy &lt;&gt; invalid
+        proxyPrefix = "http://" + proxy + "/;"
+        currentUrl = request.getUrl()
+        if currentUrl.instr(proxyPrefix) = 0 then return
+        proxiedUrl = proxyPrefix + currentUrl
+        request.setUrl(proxiedUrl)
+    end if
+end sub
+</code></pre>
+
+<p>Call this function any time you make a network request like so:</p>
+
+<pre><code>function callApi(apiUrl, proxyAddress)
+    port = CreateObject("roMessagePort")
+    request = CreateObject("roUrlTransfer")
+    request.SetCertificatesFile("common:/certs/ca-bundle.crt")
+    request.InitClientCertificates()
+    request.SetMessagePort(port)
+    request.SetUrl(apiUrl)
+
+    configureRequestProxy(request, proxyAddress) ' &lt;-- THIS IS THE IMPORTANT PART
+
+    requestSent = request.AsyncGetToString() ' or AsyncPostFromString()
+
+    '...rest of response handling code as normal...
+end function
+</code></pre>
+
+<h3>Proxy server configuration</h3>
+
+<p>Since the <code>roUrlTransfer</code> object does not allow constructing an actual valid proxy request, the <code>createRequestProxy()</code> function instead modifies the outgoing url to pass the necessary info to the proxy server. The proxy server needs to be set up to understand these special requests and handle them appropriately.</p>
+
+<h4>Fiddler (Windows)</h4>
+
+<p>Rules > Customize Rules</p>
+
+<p>In the <code>OnBeforeRequest()</code> method, add the following:</p>
+
+<pre><code>// Roku Proxy
+var parts = oSession.fullUrl.Split([';'], 2)
+if (parts.Length &gt; 1)
+{
+    oSession.fullUrl = parts[1]
+}
+</code></pre>
+
+<p><img src="/images/proxy_fiddler_settings.png" /></p>
+
+<p>Other Notes: Make sure <em>'Allow remote computers to connect'</em> is enabled</p>
+
+<h4>Charles (Windows or Mac)</h4>
+
+<p>Tools > Rewrite</p>
+
+<p>Import the <a href="/charles_roku_proxy.xml">charles_roku_proxy.xml ruleset definition file</a>. It should add a <em>'Roku Proxy'</em> ruleset with the necessary rules to enable the proxying.</p>
+
+<p><img src="/images/proxy_charles_settings.png" /></p>
+
+<p>Other Notes: Make sure <em>'Rewrite'</em> is enabled whenever you run Charles. If you run Charles on a port other than <code>8888</code>, be sure to update the rule filter.</p>
+</div>
+        </div>
+
+        <div class="pagination">
+
+                <a href="/create_certificate_from_bytes" class="left arrow">&#8592; Quick Fix: Creating an X509Certificate from bytes</a>
+                            <a href="/handling_roInputEvent" class="right arrow">Roku: Handling roInputEvent &#8594;</a>
+            <a href="#" class="top">Top</a>
+        </div>
+    </main>
+
+    <footer>
+        <span>
+            &copy; 2012-2022 brian dunnington
+        </span>
+    </footer>
+
+</body>
+</html>

@@ -1,131 +1,77 @@
 ﻿@model Nest.SiteData
-<!doctype html>
-<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
-<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
-<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<!DOCTYPE html>
+<html lang="en">
 
-    <title>brian dunnington</title>
-    <meta name="description" content="code and computer related tidbits">
-    <meta name="author" content="brian dunnington">
-    <link rel="alternate" type="application/rss+xml" title="brian dunnington" href="/rss.xml" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta name="viewport" content="width=device-width">
+    <title>Home | @Model.CurrentItem.Title</title>
 
-    <link rel="stylesheet" href="css/bootstrap.css">
-    <style>
-      body {
-        padding-top: 60px;
-        padding-bottom: 40px;
-      }
-      footer {
-        text-align: right;
-        margin-top: 40px;
-      }
-      h1 {
-        margin-bottom: 0.6em;
-      }
-      .hero-wrapper {
-        position: relative;
-      }
-      .hero-button {
-        text-align: right;
-        padding: 0 32px 32px 0;
-        margin-top: -32px;
-      }
-      .featured-home {
-        display: flex;
-      }
-      @@media (max-width: 768px) {
-        .featured-home {
-          flex-direction:column;
-        }
-      }
-      .maincontent {
-        margin-top: 16px !important;
-        background-color: #f5f5f5;
-        flex: 1;
-      }
-      .postgrid {
-        margin-top: 24px !important;
-      }
-      .row.rest > .span4:nth-child(3n+1) {
-        clear: both;
-      }
-      .hero-wrapper .muted {
-        position: absolute;
-        top: 14px;
-        left: 32px;
-      }
-    </style>
-    <link rel="stylesheet" href="css/bootstrap-responsive.css">
-    <link rel="stylesheet" href="css/style.css">
+    <meta name="title" content="Home | @Model.CurrentItem.Title">
+    <meta name="description" content="@Model.CurrentItem.Summary">
+    <meta name="author" content="Brian Dunnington" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Brian Dunnington" />
+    <meta property="og:url" content="https://briandunnington.github.io/">
+    <meta property="og:title" content="Home | @Model.CurrentItem.Title">
+    <meta property="og:description" content="@Model.CurrentItem.Summary">
+    <meta property="og:image" content="https://briandunnington.github.io/img/bd_logo.png">
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:site" content="@("@briandunnington")">
+    <meta property="twitter:creator" content="@("@briandunnington")">
+    <meta property="twitter:url" content="https://briandunnington.github.io/">
+    <meta property="twitter:title" content="Home | @Model.CurrentItem.Title">
+    <meta property="twitter:description" content="@Model.CurrentItem.Summary">
+    <meta property="twitter:image" content="https://briandunnington.github.io/img/bd_logo.png">
 
-    <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <script>window.html5 || document.write('<script src="js/libs/html5.js"><\/script>')</script>
-    <![endif]-->
-  </head>
+    <link rel="canonical" href="https://briandunnington.github.io" />
+    <link rel="stylesheet" href="/css/style.css">
+    <link type="application/atom+xml" rel="alternate" href="https://briandunnington.github.io/rss.xml" title="Brian Dunnington" />
+</head>
 
-  <body>
-    <div class="navbar navbar-fixed-top">
-      <div class="navbar-inner">
-        <div class="container">
-          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </a>
-          <a class="brand" href="/"><img src="img/bd_logo.png" style="margin: -8px 0 -14px;" /> : brian dunnington</a>
-          <div class="nav-collapse">
-            <ul class="nav">
-              <li class="active"><a href="/">Home</a></li>
-              <li><a href="/about">About</a></li>
-              <li><a href="/contact">Contact</a></li>
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/">
+                <h2 class="nav-title">brian dunnington</h2>
+            </a>
+            <ul>
+                <li><a href="/about">About</a></li>
+                <li><a href="/contact">Contact</a></li>
+                <li><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="48" style="position: relative;top:30px;"/></a></li>
             </ul>
-          </div><!--/.nav-collapse -->
         </div>
-      </div>
-    </div>
+    </nav>
 
-    <div class="container">
-      <div class="row featured-home">
-        @foreach(var post in @Model.Posts.Where((p) => !p.Contains("DRAFT")).OrderByDescending((p) => p.Date).Take(2)) {
-        <div class="span6 maincontent">
-            <div class="hero-wrapper">
-              <div class="hero-unit">
-                <h1>@post.Title</h1>
-                <p>@post.Summary</p>
-              </div>
-              <h6 class="muted">@post.Date.ToString("yyyy.MM.dd")</h6>
-              <div class="hero-button"><a class="btn" href="@post.LinkNoExt">View details &raquo;</a></div>
-            </div>
+    <main>
+        <div class="catalogue">
+            @foreach (var post in @Model.Posts.Where((p) => !p.Contains("DRAFT") && !p.LinkNoExt.Contains("/categories/")).OrderByDescending(p => p.Date))
+            {
+                <a href="@post.LinkNoExt" class="catalogue-item">
+                    <div>
+                        <time datetime="@post.Date.ToString("yyyy-MM-dd hh:mm:ss +0000")" class="catalogue-time">@post.Date.ToString("MMMM d, yyyy")</time>
+                        <h1 class="catalogue-title">@post.Title</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            @post.Summary
+                        </p>
+                    </div>
+                </a>
+            }
         </div>
-        }
-      </div>
 
-      <div class="row rest">
-          @foreach (var post in @Model.Posts.Where((p) => !p.Contains("DRAFT")).OrderByDescending((p) => p.Date).Skip(2))
-          {
-              <div class="span4 postgrid">
-                <h6 class="muted">@post.Date.ToString("yyyy.MM.dd")</h6>
-                <h2>@post.Title</h2>
-                <p>@post.Summary</p>
-                <p><a class="btn" href="@post.LinkNoExt">View details &raquo;</a></p>
-              </div>
-          }
-      </div>
+        <div class="pagination">
+        </div>
+    </main>
 
-      <footer>
-        <small>&copy; 2012-@DateTime.Now.Year.ToString() brian dunnington</small>
-      </footer>
-    </div> <!-- /container -->
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-    <script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
-    <script src="js/libs/bootstrap/bootstrap.js"></script>
-    <script src="js/script.js"></script>
-  </body>
+    <footer>
+        <span>
+            &copy; 2012-@DateTime.Now.Year.ToString() brian dunnington
+        </span>
+    </footer>
+
+</body>
+
 </html>

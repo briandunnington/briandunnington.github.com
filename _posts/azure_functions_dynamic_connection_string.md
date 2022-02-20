@@ -10,20 +10,19 @@ Image: http://briandunnington.github.io/images/azure_functions.png
 
 By now you surely have noticed that I have a crush on [Azure Functions][AzureFunctions]. They are just about the perfect tool for so many scenarios. Lately, I have found myself using the [Cosmos DB trigger][CosmosDbTrigger] a lot to get notified when data is added or changed. Like many of the triggers that are triggered by another service, you have to specify the connection string to the DB in order for it to work. You don't actually specify the connection string, but the name of the setting that *contains* the connection string and you do it in the attribute that decorates the function, usually like this:
 
-        [FunctionName("CosmosTrigger")]
-        public static void Run([CosmosDBTrigger(
-            databaseName: "ToDoItems",
-            collectionName: "Items",
-            ConnectionStringSetting = "CosmosDBConnection",
-            LeaseCollectionName = "leases",
-            CreateLeaseCollectionIfNotExists = true)]IReadOnlyList<Document> documents,
-            ILogger log)
+    [FunctionName("CosmosTrigger")]
+    public static void Run([CosmosDBTrigger(
+        databaseName: "ToDoItems",
+        collectionName: "Items",
+        ConnectionStringSetting = "CosmosDBConnection",
+        LeaseCollectionName = "leases",
+        CreateLeaseCollectionIfNotExists = true)]IReadOnlyList<Document> documents,
+        ILogger log)
+    {
+        if (documents != null && documents.Count > 0)
         {
-            if (documents != null && documents.Count > 0)
-            {
-                log.LogInformation($"Documents modified: {documents.Count}");
-                log.LogInformation($"First document Id: {documents[0].Id}");
-            }
+            log.LogInformation($"Documents modified: {documents.Count}");
+            log.LogInformation($"First document Id: {documents[0].Id}");
         }
     }
 

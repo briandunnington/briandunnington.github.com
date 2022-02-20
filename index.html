@@ -1,333 +1,503 @@
-<!doctype html>
-<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
-<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
-<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<!DOCTYPE html>
+<html lang="en">
 
-    <title>brian dunnington</title>
-    <meta name="description" content="code and computer related tidbits">
-    <meta name="author" content="brian dunnington">
-    <link rel="alternate" type="application/rss+xml" title="brian dunnington" href="/rss.xml" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta name="viewport" content="width=device-width">
+    <title>Home | brian dunnington</title>
 
-    <link rel="stylesheet" href="css/bootstrap.css">
-    <style>
-      body {
-        padding-top: 60px;
-        padding-bottom: 40px;
-      }
-      footer {
-        text-align: right;
-        margin-top: 40px;
-      }
-      h1 {
-        margin-bottom: 0.6em;
-      }
-      .hero-wrapper {
-        position: relative;
-      }
-      .hero-button {
-        text-align: right;
-        padding: 0 32px 32px 0;
-        margin-top: -32px;
-      }
-      .featured-home {
-        display: flex;
-      }
-      @media (max-width: 768px) {
-        .featured-home {
-          flex-direction:column;
-        }
-      }
-      .maincontent {
-        margin-top: 16px !important;
-        background-color: #f5f5f5;
-        flex: 1;
-      }
-      .postgrid {
-        margin-top: 24px !important;
-      }
-      .row.rest > .span4:nth-child(3n+1) {
-        clear: both;
-      }
-      .hero-wrapper .muted {
-        position: absolute;
-        top: 14px;
-        left: 32px;
-      }
-    </style>
-    <link rel="stylesheet" href="css/bootstrap-responsive.css">
-    <link rel="stylesheet" href="css/style.css">
+    <meta name="title" content="Home | brian dunnington">
+    <meta name="description" content="brian dunnington">
+    <meta name="author" content="Brian Dunnington" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Brian Dunnington" />
+    <meta property="og:url" content="https://briandunnington.github.io/">
+    <meta property="og:title" content="Home | brian dunnington">
+    <meta property="og:description" content="brian dunnington">
+    <meta property="og:image" content="https://briandunnington.github.io/img/bd_logo.png">
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:site" content="@briandunnington">
+    <meta property="twitter:creator" content="@briandunnington">
+    <meta property="twitter:url" content="https://briandunnington.github.io/">
+    <meta property="twitter:title" content="Home | brian dunnington">
+    <meta property="twitter:description" content="brian dunnington">
+    <meta property="twitter:image" content="https://briandunnington.github.io/img/bd_logo.png">
 
-    <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <script>window.html5 || document.write('<script src="js/libs/html5.js"><\/script>')</script>
-    <![endif]-->
-  </head>
+    <link rel="canonical" href="https://briandunnington.github.io" />
+    <link rel="stylesheet" href="/css/style.css">
+    <link type="application/atom+xml" rel="alternate" href="https://briandunnington.github.io/rss.xml" title="Brian Dunnington" />
+</head>
 
-  <body>
-    <div class="navbar navbar-fixed-top">
-      <div class="navbar-inner">
-        <div class="container">
-          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </a>
-          <a class="brand" href="/"><img src="img/bd_logo.png" style="margin: -8px 0 -14px;" /> : brian dunnington</a>
-          <div class="nav-collapse">
-            <ul class="nav">
-              <li class="active"><a href="/">Home</a></li>
-              <li><a href="/about">About</a></li>
-              <li><a href="/contact">Contact</a></li>
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/">
+                <h2 class="nav-title">brian dunnington</h2>
+            </a>
+            <ul>
+                <li><a href="/about">About</a></li>
+                <li><a href="/contact">Contact</a></li>
+                <li><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="48" style="position: relative;top:30px;"/></a></li>
             </ul>
-          </div><!--/.nav-collapse -->
         </div>
-      </div>
-    </div>
+    </nav>
 
-    <div class="container">
-      <div class="row featured-home">
-        <div class="span6 maincontent">
-            <div class="hero-wrapper">
-              <div class="hero-unit">
-                <h1>Serializing JObject to camelCase</h1>
-                <p>How to serialize a JSON.NET JObject to camelCase</p>
-              </div>
-              <h6 class="muted">2020.11.25</h6>
-              <div class="hero-button"><a class="btn" href="/jobject_serialization">View details &raquo;</a></div>
-            </div>
+    <main>
+        <div class="catalogue">
+                <a href="/jobject_serialization" class="catalogue-item">
+                    <div>
+                        <time datetime="2020-11-25 12:00:00 +0000" class="catalogue-time">November 25, 2020</time>
+                        <h1 class="catalogue-title">Serializing JObject to camelCase</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            How to serialize a JSON.NET JObject to camelCase
+                        </p>
+                    </div>
+                </a>
+                <a href="/azure_functions_key_vault_config" class="catalogue-item">
+                    <div>
+                        <time datetime="2020-03-20 12:00:00 +0000" class="catalogue-time">March 20, 2020</time>
+                        <h1 class="catalogue-title">Azure Functions: Trigger Attribute Settings From Key Vault</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            How to read trigger attribute settings from Key Vault
+                        </p>
+                    </div>
+                </a>
+                <a href="/azure_functions_wildcard_routing" class="catalogue-item">
+                    <div>
+                        <time datetime="2020-03-19 12:00:00 +0000" class="catalogue-time">March 19, 2020</time>
+                        <h1 class="catalogue-title">Azure Functions: Wildcard Routing</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            A quick tip to support wildcard routes in Azure Functions
+                        </p>
+                    </div>
+                </a>
+                <a href="/azure_functions_route_priority" class="catalogue-item">
+                    <div>
+                        <time datetime="2019-08-01 12:00:00 +0000" class="catalogue-time">August 1, 2019</time>
+                        <h1 class="catalogue-title">Azure Functions: Route Priority</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            Making Azure Functions route matching make more sense
+                        </p>
+                    </div>
+                </a>
+                <a href="/azure_functions_dynamic_connection_string" class="catalogue-item">
+                    <div>
+                        <time datetime="2019-07-30 12:00:00 +0000" class="catalogue-time">July 30, 2019</time>
+                        <h1 class="catalogue-title">Azure Functions: Set Cosmos DB Trigger Connection String At Runtime</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            How to specify the trigger connection string at runtime and avoid storing secrets during local development
+                        </p>
+                    </div>
+                </a>
+                <a href="/create_certificate_from_bytes" class="catalogue-item">
+                    <div>
+                        <time datetime="2019-07-10 12:00:00 +0000" class="catalogue-time">July 10, 2019</time>
+                        <h1 class="catalogue-title">Quick Fix: Creating an X509Certificate from bytes</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            How to fix a strange error when creating an X509Certificate from an array of bytes
+                        </p>
+                    </div>
+                </a>
+                <a href="/proxying_network_requests" class="catalogue-item">
+                    <div>
+                        <time datetime="2019-04-05 12:00:00 +0000" class="catalogue-time">April 5, 2019</time>
+                        <h1 class="catalogue-title">Roku: Proxying network requests</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            Some of the options available for inspecting network traffic from your Roku
+                        </p>
+                    </div>
+                </a>
+                <a href="/handling_roInputEvent" class="catalogue-item">
+                    <div>
+                        <time datetime="2019-03-19 12:00:00 +0000" class="catalogue-time">March 19, 2019</time>
+                        <h1 class="catalogue-title">Roku: Handling roInputEvent</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            How to handle roInputEvent messages without restarting your app
+                        </p>
+                    </div>
+                </a>
+                <a href="/distributed_cache_invalidation" class="catalogue-item">
+                    <div>
+                        <time datetime="2019-02-28 12:00:00 +0000" class="catalogue-time">February 28, 2019</time>
+                        <h1 class="catalogue-title">Distributed Cache Invalidation using Azure Service Bus</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            It has been said that there are only two hard problems in computer science: cache invalidation and naming things. Time to cross one of those off of the list
+                        </p>
+                    </div>
+                </a>
+                <a href="/everything_about_http" class="catalogue-item">
+                    <div>
+                        <time datetime="2019-01-15 12:00:00 +0000" class="catalogue-time">January 15, 2019</time>
+                        <h1 class="catalogue-title">HTTP on Roku</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            Everything you ever wanted to know about making network calls on Roku
+                        </p>
+                    </div>
+                </a>
+                <a href="/live_video_delay" class="catalogue-item">
+                    <div>
+                        <time datetime="2018-12-20 12:00:00 +0000" class="catalogue-time">December 20, 2018</time>
+                        <h1 class="catalogue-title">Roku: Fix for live video delay</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            How to make sure your live stream is really live
+                        </p>
+                    </div>
+                </a>
+                <a href="/node_aa" class="catalogue-item">
+                    <div>
+                        <time datetime="2018-12-19 12:00:00 +0000" class="catalogue-time">December 19, 2018</time>
+                        <h1 class="catalogue-title">Roku: Nodes and Associative Array fields</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            A look at how associative array fields on nodes are handled and how they can affect performance
+                        </p>
+                    </div>
+                </a>
+                <a href="/init_order" class="catalogue-item">
+                    <div>
+                        <time datetime="2018-12-18 12:00:00 +0000" class="catalogue-time">December 18, 2018</time>
+                        <h1 class="catalogue-title">Roku: Component initialization order</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            Understanding the component initialization order and some potential gotchas
+                        </p>
+                    </div>
+                </a>
+                <a href="/divisible_by_3" class="catalogue-item">
+                    <div>
+                        <time datetime="2018-12-17 12:00:00 +0000" class="catalogue-time">December 17, 2018</time>
+                        <h1 class="catalogue-title">Roku: A Different Kind of 'Rule of Thirds'</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            Roku devices support a variety of resolutions. Here is a tip to make sure your FHD layouts look great when scaled down to HD.
+                        </p>
+                    </div>
+                </a>
+                <a href="/poster_property_order" class="catalogue-item">
+                    <div>
+                        <time datetime="2018-12-17 12:00:00 +0000" class="catalogue-time">December 17, 2018</time>
+                        <h1 class="catalogue-title">Roku: Poster component property order</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            Often when loading images from the web, we do not have control over how large the source images are. Loading images that are too large will eat up precious Roku memory and cause performance problems in your app. There is a way to solve this, but it has an interesting twist that can trip people up.
+                        </p>
+                    </div>
+                </a>
+                <a href="/webapp_certificate_from_keyvault" class="catalogue-item">
+                    <div>
+                        <time datetime="2018-11-27 12:00:00 +0000" class="catalogue-time">November 27, 2018</time>
+                        <h1 class="catalogue-title">Deploying Azure Web App Certificates from Key Vault</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            How to work around an ARM template limitation when using a Key Vault certificate in a Web App
+                        </p>
+                    </div>
+                </a>
+                <a href="/roku_roundup" class="catalogue-item">
+                    <div>
+                        <time datetime="2018-11-06 12:00:00 +0000" class="catalogue-time">November 6, 2018</time>
+                        <h1 class="catalogue-title">Roku Round-up</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            Quick updates on some Roku libraries that I recently released
+                        </p>
+                    </div>
+                </a>
+                <a href="/cors_and_exceptions" class="catalogue-item">
+                    <div>
+                        <time datetime="2018-10-09 12:00:00 +0000" class="catalogue-time">October 9, 2018</time>
+                        <h1 class="catalogue-title">CORS and exceptions on ASP.NET Core</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            How to ensure your CORS headers are properly returned with HTTP error responses on ASP.NET Core
+                        </p>
+                    </div>
+                </a>
+                <a href="/azure_functions_proxies" class="catalogue-item">
+                    <div>
+                        <time datetime="2018-03-25 12:00:00 +0000" class="catalogue-time">March 25, 2018</time>
+                        <h1 class="catalogue-title">The many uses of Azure Functions Proxies</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            Azure Functions Proxies are awesome - here are just a few ways to leverage them
+                        </p>
+                    </div>
+                </a>
+                <a href="/use_azure_functions_with_alexa" class="catalogue-item">
+                    <div>
+                        <time datetime="2018-03-12 12:00:00 +0000" class="catalogue-time">March 12, 2018</time>
+                        <h1 class="catalogue-title">Build an Alexa skill using Azure Functions</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            Although AWS Lambdas are the default, it is dead simple to use Azure Functions for your Alexa skill as well
+                        </p>
+                    </div>
+                </a>
+                <a href="/roact" class="catalogue-item">
+                    <div>
+                        <time datetime="2018-02-28 12:00:00 +0000" class="catalogue-time">February 28, 2018</time>
+                        <h1 class="catalogue-title">Roll Your Own React</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            (on Roku, just for an added twist)
+                        </p>
+                    </div>
+                </a>
+                <a href="/dronecast" class="catalogue-item">
+                    <div>
+                        <time datetime="2018-02-06 12:00:00 +0000" class="catalogue-time">February 6, 2018</time>
+                        <h1 class="catalogue-title">Streaming live drone footage using Azure Media Services</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            Directly from your drone to the world, via the the cloud
+                        </p>
+                    </div>
+                </a>
+                <a href="/redoku" class="catalogue-item">
+                    <div>
+                        <time datetime="2017-07-07 12:00:00 +0000" class="catalogue-time">July 7, 2017</time>
+                        <h1 class="catalogue-title">Redux + Roku = Redoku</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            Making Roku development less painful by making state changes more predictable
+                        </p>
+                    </div>
+                </a>
+                <a href="/gethashcode_warning" class="catalogue-item">
+                    <div>
+                        <time datetime="2016-12-26 12:00:00 +0000" class="catalogue-time">December 26, 2016</time>
+                        <h1 class="catalogue-title">UWP GetHashCode warning</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            A cautionary tale about making assumptions
+                        </p>
+                    </div>
+                </a>
+                <a href="/uwp_unittesting" class="catalogue-item">
+                    <div>
+                        <time datetime="2015-08-31 12:00:00 +0000" class="catalogue-time">August 31, 2015</time>
+                        <h1 class="catalogue-title">MockMock - A mocking framework for UWP</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            ...or: how to generate classes on the fly when your language doesn't allow it
+                        </p>
+                    </div>
+                </a>
+                <a href="/run-azure-mobile-services-locally" class="catalogue-item">
+                    <div>
+                        <time datetime="2015-03-24 12:00:00 +0000" class="catalogue-time">March 24, 2015</time>
+                        <h1 class="catalogue-title">Run Node.js Azure Mobile Services locally</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            Want to unit test or debug your Node.js-based Azure Mobile Service? Here's how.
+                        </p>
+                    </div>
+                </a>
+                <a href="/compare_across_forks" class="catalogue-item">
+                    <div>
+                        <time datetime="2015-03-10 12:00:00 +0000" class="catalogue-time">March 10, 2015</time>
+                        <h1 class="catalogue-title">Compare Across Forks</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            My new favorite feature on GitHub
+                        </p>
+                    </div>
+                </a>
+                <a href="/triggering_storyboards_with_databinding" class="catalogue-item">
+                    <div>
+                        <time datetime="2014-04-24 12:00:00 +0000" class="catalogue-time">April 24, 2014</time>
+                        <h1 class="catalogue-title">Triggering Storyboards with data binding</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            A clean way for your viewmodel's properties to trigger storyboard animations
+                        </p>
+                    </div>
+                </a>
+                <a href="/bluetooth_capability" class="catalogue-item">
+                    <div>
+                        <time datetime="2014-04-04 12:00:00 +0000" class="catalogue-time">April 4, 2014</time>
+                        <h1 class="catalogue-title">Declare Bluetooth capability for Windows Store and Windows Phone 8.1 apps</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            
+                        </p>
+                    </div>
+                </a>
+                <a href="/uitask" class="catalogue-item">
+                    <div>
+                        <time datetime="2014-04-03 12:00:00 +0000" class="catalogue-time">April 3, 2014</time>
+                        <h1 class="catalogue-title">Run arbitrary code on the UI thread asynchronously</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            A gotcha and a solution for easily running async code on the UI thread from a background thread.
+                        </p>
+                    </div>
+                </a>
+                <a href="/azure_mobile_services_no_id" class="catalogue-item">
+                    <div>
+                        <time datetime="2014-01-06 12:00:00 +0000" class="catalogue-time">January 6, 2014</time>
+                        <h1 class="catalogue-title">Azure Mobile Services: No 'id' member found on type</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            When using Azure Mobile Services, you can sometimes get an error with the message "No 'id' member found on type" even when your type has an 'id' member. Here is why and how to solve it.
+                        </p>
+                    </div>
+                </a>
+                <a href="/sharing_html_via_share_contract" class="catalogue-item">
+                    <div>
+                        <time datetime="2013-11-06 12:00:00 +0000" class="catalogue-time">November 6, 2013</time>
+                        <h1 class="catalogue-title">Sharing Html & Images via the Share Contract</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            The right way to share html that contains images (and other external resources) via the Share charm.
+                        </p>
+                    </div>
+                </a>
+                <a href="/migrate-scheduled-jobs" class="catalogue-item">
+                    <div>
+                        <time datetime="2013-10-25 12:00:00 +0000" class="catalogue-time">October 25, 2013</time>
+                        <h1 class="catalogue-title">Migrating Scheduled Task Jobs</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            Finally retiring that old Windows Server 2003 machine? Need to migrate your scheduled tasks? Here is an easy solution.
+                        </p>
+                    </div>
+                </a>
+                <a href="/textoptions-displaycoloremoji" class="catalogue-item">
+                    <div>
+                        <time datetime="2013-10-15 12:00:00 +0000" class="catalogue-time">October 15, 2013</time>
+                        <h1 class="catalogue-title">Windows Phone Color Emoji Override</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            What to do when your font glyphs start showing up in multi-color when you dont want them to
+                        </p>
+                    </div>
+                </a>
+                <a href="/winrt-xaml-image-source-bug" class="catalogue-item">
+                    <div>
+                        <time datetime="2013-06-13 12:00:00 +0000" class="catalogue-time">June 13, 2013</time>
+                        <h1 class="catalogue-title">WinRT Xaml Image Source Bug</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            Following Microsoft's 'Best Practices' advice when using images in Xaml can result in a strange bug.
+                        </p>
+                    </div>
+                </a>
+                <a href="/winrt-version-info" class="catalogue-item">
+                    <div>
+                        <time datetime="2013-03-14 12:00:00 +0000" class="catalogue-time">March 14, 2013</time>
+                        <h1 class="catalogue-title">Assmebly and File Version Information in WinRT</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            How to get the assembly and file version information in WinRT apps
+                        </p>
+                    </div>
+                </a>
+                <a href="/progressring-wp8" class="catalogue-item">
+                    <div>
+                        <time datetime="2013-01-11 12:00:00 +0000" class="catalogue-time">January 11, 2013</time>
+                        <h1 class="catalogue-title">ProgressRing for Windows Phone 8</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            A Windows-8-style ProgressRing for Windows Phone 8
+                        </p>
+                    </div>
+                </a>
+                <a href="/json-parser" class="catalogue-item">
+                    <div>
+                        <time datetime="2013-01-09 12:00:00 +0000" class="catalogue-time">January 9, 2013</time>
+                        <h1 class="catalogue-title">WinRT JSON Parser</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            A nicer way to deal with JSON in WinRT (Windows Store) apps
+                        </p>
+                    </div>
+                </a>
+                <a href="/windows8-color-overrides" class="catalogue-item">
+                    <div>
+                        <time datetime="2012-12-19 12:00:00 +0000" class="catalogue-time">December 19, 2012</time>
+                        <h1 class="catalogue-title">Windows 8 Store Apps Color Overrides</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            Tired of that purple color in your ComboBoxes, ListBoxes, and GridViews? Here is how to change it without retemplating all of the controls.
+                        </p>
+                    </div>
+                </a>
+                <a href="/xaml-visualstatemanager-note" class="catalogue-item">
+                    <div>
+                        <time datetime="2012-12-18 12:00:00 +0000" class="catalogue-time">December 18, 2012</time>
+                        <h1 class="catalogue-title">Xaml VisualStateManager weirdness</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            Sometimes GoToState() just wont work or works intermittently. Here is a note to myself with the answer.
+                        </p>
+                    </div>
+                </a>
+                <a href="/reentrant-async-locks" class="catalogue-item">
+                    <div>
+                        <time datetime="2012-12-12 12:00:00 +0000" class="catalogue-time">December 12, 2012</time>
+                        <h1 class="catalogue-title">Reentrant async locks in .NET</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            The new async/await keywords in .NET make async programming a snap, but there are some things to watch out for when synchronizing multiple threads.
+                        </p>
+                    </div>
+                </a>
+                <a href="/gridview-in-a-scrollviewer" class="catalogue-item">
+                    <div>
+                        <time datetime="2012-12-10 12:00:00 +0000" class="catalogue-time">December 10, 2012</time>
+                        <h1 class="catalogue-title">GridView in a ScrollViewer</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            How to use a GridView inside of a ScrollViewer in a Windows Store app while still retaining mouse-wheel scrolling and swipe-to-select behavior.
+                        </p>
+                    </div>
+                </a>
+                <a href="/sqlite-winrt-bug" class="catalogue-item">
+                    <div>
+                        <time datetime="2012-09-14 12:00:00 +0000" class="catalogue-time">September 14, 2012</time>
+                        <h1 class="catalogue-title">SQLite on WinRT bug</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            Got some queries that run fine, but if you add a column to the SELECT list or change the ORDER BY stop working? Got queries in a transaction that sometimes fail? Read on for the solution...
+                        </p>
+                    </div>
+                </a>
+                <a href="/first-post" class="catalogue-item">
+                    <div>
+                        <time datetime="2012-03-19 12:00:00 +0000" class="catalogue-time">March 19, 2012</time>
+                        <h1 class="catalogue-title">Hello World!</h1>
+                        <div class="catalogue-line"></div>
+                        <p>
+                            See what tools are used to build this blog. Markdown, html5boilerplate, Twitter Bootstrap, Github Pages and more.
+                        </p>
+                    </div>
+                </a>
         </div>
-        <div class="span6 maincontent">
-            <div class="hero-wrapper">
-              <div class="hero-unit">
-                <h1>Azure Functions: Trigger Attribute Settings From Key Vault</h1>
-                <p>How to read trigger attribute settings from Key Vault</p>
-              </div>
-              <h6 class="muted">2020.03.20</h6>
-              <div class="hero-button"><a class="btn" href="/azure_functions_key_vault_config">View details &raquo;</a></div>
-            </div>
+
+        <div class="pagination">
         </div>
-      </div>
+    </main>
 
-      <div class="row rest">
-              <div class="span4 postgrid">
-                <h6 class="muted">2020.03.19</h6>
-                <h2>Azure Functions: Wildcard Routing</h2>
-                <p>A quick tip to support wildcard routes in Azure Functions</p>
-                <p><a class="btn" href="/azure_functions_wildcard_routing">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2019.08.01</h6>
-                <h2>Azure Functions: Route Priority</h2>
-                <p>Making Azure Functions route matching make more sense</p>
-                <p><a class="btn" href="/azure_functions_route_priority">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2019.07.30</h6>
-                <h2>Azure Functions: Set Cosmos DB Trigger Connection String At Runtime</h2>
-                <p>How to specify the trigger connection string at runtime and avoid storing secrets during local development</p>
-                <p><a class="btn" href="/azure_functions_dynamic_connection_string">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2019.07.10</h6>
-                <h2>Quick Fix: Creating an X509Certificate from bytes</h2>
-                <p>How to fix a strange error when creating an X509Certificate from an array of bytes</p>
-                <p><a class="btn" href="/create_certificate_from_bytes">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2019.02.28</h6>
-                <h2>Distributed Cache Invalidation using Azure Service Bus</h2>
-                <p>It has been said that there are only two hard problems in computer science: cache invalidation and naming things. Time to cross one of those off of the list</p>
-                <p><a class="btn" href="/distributed_cache_invalidation">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2018.11.27</h6>
-                <h2>Deploying Azure Web App Certificates from Key Vault</h2>
-                <p>How to work around an ARM template limitation when using a Key Vault certificate in a Web App</p>
-                <p><a class="btn" href="/webapp_certificate_from_keyvault">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2018.11.06</h6>
-                <h2>Roku Round-up</h2>
-                <p>Quick updates on some Roku libraries that I recently released</p>
-                <p><a class="btn" href="/roku_roundup">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2018.10.09</h6>
-                <h2>CORS and exceptions on ASP.NET Core</h2>
-                <p>How to ensure your CORS headers are properly returned with HTTP error responses on ASP.NET Core</p>
-                <p><a class="btn" href="/cors_and_exceptions">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2018.03.25</h6>
-                <h2>The many uses of Azure Functions Proxies</h2>
-                <p>Azure Functions Proxies are awesome - here are just a few ways to leverage them</p>
-                <p><a class="btn" href="/azure_functions_proxies">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2018.03.12</h6>
-                <h2>Build an Alexa skill using Azure Functions</h2>
-                <p>Although AWS Lambdas are the default, it is dead simple to use Azure Functions for your Alexa skill as well</p>
-                <p><a class="btn" href="/use_azure_functions_with_alexa">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2018.02.28</h6>
-                <h2>Roll Your Own React</h2>
-                <p>(on Roku, just for an added twist)</p>
-                <p><a class="btn" href="/roact">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2018.02.06</h6>
-                <h2>Streaming live drone footage using Azure Media Services</h2>
-                <p>Directly from your drone to the world, via the the cloud</p>
-                <p><a class="btn" href="/dronecast">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2017.07.07</h6>
-                <h2>Redux + Roku = Redoku</h2>
-                <p>Making Roku development less painful by making state changes more predictable</p>
-                <p><a class="btn" href="/redoku">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2016.12.26</h6>
-                <h2>UWP GetHashCode warning</h2>
-                <p>A cautionary tale about making assumptions</p>
-                <p><a class="btn" href="/gethashcode_warning">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2015.08.31</h6>
-                <h2>MockMock - A mocking framework for UWP</h2>
-                <p>...or: how to generate classes on the fly when your language doesn't allow it</p>
-                <p><a class="btn" href="/uwp_unittesting">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2015.03.24</h6>
-                <h2>Run Node.js Azure Mobile Services locally</h2>
-                <p>Want to unit test or debug your Node.js-based Azure Mobile Service? Here's how.</p>
-                <p><a class="btn" href="/run-azure-mobile-services-locally">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2015.03.10</h6>
-                <h2>Compare Across Forks</h2>
-                <p>My new favorite feature on GitHub</p>
-                <p><a class="btn" href="/compare_across_forks">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2014.04.24</h6>
-                <h2>Triggering Storyboards with data binding</h2>
-                <p>A clean way for your viewmodel's properties to trigger storyboard animations</p>
-                <p><a class="btn" href="/triggering_storyboards_with_databinding">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2014.04.04</h6>
-                <h2>Declare Bluetooth capability for Windows Store and Windows Phone 8.1 apps</h2>
-                <p></p>
-                <p><a class="btn" href="/bluetooth_capability">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2014.04.03</h6>
-                <h2>Run arbitrary code on the UI thread asynchronously</h2>
-                <p>A gotcha and a solution for easily running async code on the UI thread from a background thread.</p>
-                <p><a class="btn" href="/uitask">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2014.01.06</h6>
-                <h2>Azure Mobile Services: No 'id' member found on type</h2>
-                <p>When using Azure Mobile Services, you can sometimes get an error with the message "No 'id' member found on type" even when your type has an 'id' member. Here is why and how to solve it.</p>
-                <p><a class="btn" href="/azure_mobile_services_no_id">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2013.11.06</h6>
-                <h2>Sharing Html & Images via the Share Contract</h2>
-                <p>The right way to share html that contains images (and other external resources) via the Share charm.</p>
-                <p><a class="btn" href="/sharing_html_via_share_contract">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2013.10.25</h6>
-                <h2>Migrating Scheduled Task Jobs</h2>
-                <p>Finally retiring that old Windows Server 2003 machine? Need to migrate your scheduled tasks? Here is an easy solution.</p>
-                <p><a class="btn" href="/migrate-scheduled-jobs">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2013.10.15</h6>
-                <h2>Windows Phone Color Emoji Override</h2>
-                <p>What to do when your font glyphs start showing up in multi-color when you dont want them to</p>
-                <p><a class="btn" href="/textoptions-displaycoloremoji">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2013.06.13</h6>
-                <h2>WinRT Xaml Image Source Bug</h2>
-                <p>Following Microsoft's 'Best Practices' advice when using images in Xaml can result in a strange bug.</p>
-                <p><a class="btn" href="/winrt-xaml-image-source-bug">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2013.03.14</h6>
-                <h2>Assmebly and File Version Information in WinRT</h2>
-                <p>How to get the assembly and file version information in WinRT apps</p>
-                <p><a class="btn" href="/winrt-version-info">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2013.01.11</h6>
-                <h2>ProgressRing for Windows Phone 8</h2>
-                <p>A Windows-8-style ProgressRing for Windows Phone 8</p>
-                <p><a class="btn" href="/progressring-wp8">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2013.01.09</h6>
-                <h2>WinRT JSON Parser</h2>
-                <p>A nicer way to deal with JSON in WinRT (Windows Store) apps</p>
-                <p><a class="btn" href="/json-parser">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2012.12.19</h6>
-                <h2>Windows 8 Store Apps Color Overrides</h2>
-                <p>Tired of that purple color in your ComboBoxes, ListBoxes, and GridViews? Here is how to change it without retemplating all of the controls.</p>
-                <p><a class="btn" href="/windows8-color-overrides">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2012.12.18</h6>
-                <h2>Xaml VisualStateManager weirdness</h2>
-                <p>Sometimes GoToState() just wont work or works intermittently. Here is a note to myself with the answer.</p>
-                <p><a class="btn" href="/xaml-visualstatemanager-note">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2012.12.12</h6>
-                <h2>Reentrant async locks in .NET</h2>
-                <p>The new async/await keywords in .NET make async programming a snap, but there are some things to watch out for when synchronizing multiple threads.</p>
-                <p><a class="btn" href="/reentrant-async-locks">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2012.12.10</h6>
-                <h2>GridView in a ScrollViewer</h2>
-                <p>How to use a GridView inside of a ScrollViewer in a Windows Store app while still retaining mouse-wheel scrolling and swipe-to-select behavior.</p>
-                <p><a class="btn" href="/gridview-in-a-scrollviewer">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2012.09.14</h6>
-                <h2>SQLite on WinRT bug</h2>
-                <p>Got some queries that run fine, but if you add a column to the SELECT list or change the ORDER BY stop working? Got queries in a transaction that sometimes fail? Read on for the solution...</p>
-                <p><a class="btn" href="/sqlite-winrt-bug">View details &raquo;</a></p>
-              </div>
-              <div class="span4 postgrid">
-                <h6 class="muted">2012.03.19</h6>
-                <h2>Hello World!</h2>
-                <p>See what tools are used to build this blog. Markdown, html5boilerplate, Twitter Bootstrap, Github Pages and more.</p>
-                <p><a class="btn" href="/first-post">View details &raquo;</a></p>
-              </div>
-      </div>
+    <footer>
+        <span>
+            &copy; 2012-2022 brian dunnington
+        </span>
+    </footer>
 
-      <footer>
-        <small>&copy; 2012-2020 brian dunnington</small>
-      </footer>
-    </div> <!-- /container -->
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-    <script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
-    <script src="js/libs/bootstrap/bootstrap.js"></script>
-    <script src="js/script.js"></script>
-  </body>
+</body>
+
 </html>

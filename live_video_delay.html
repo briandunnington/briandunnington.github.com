@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <title>Roku: Fix for live video delay</title>
+
+    <meta name="title" content="Roku: Fix for live video delay"/>
+    <meta name="description" content="How to make sure your live stream is really live"/>
+    <meta name="author" content="Brian Dunnington" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:type" content="website"/>
+    <meta property="og:site_name" content="Brian Dunnington" />
+    <meta property="og:url" content="https://briandunnington.github.io/live_video_delay"/>
+    <meta property="og:title" content="Roku: Fix for live video delay"/>
+    <meta property="og:description" content="How to make sure your live stream is really live"/>
+    <meta property="og:image" content="https://briandunnington.github.io/img/bd_logo.png"/>
+    <meta property="article:published_time" content="2018-12-20T12:00:00"/>
+    <meta property="twitter:card" content="summary_large_image"/>
+    <meta property="twitter:site" content="@briandunnington"/>
+    <meta property="twitter:creator" content="@briandunnington"/>
+    <meta property="twitter:url" content="https://briandunnington.github.io/live_video_delay"/>
+    <meta property="twitter:title" content="Roku: Fix for live video delay"/>
+    <meta property="twitter:description" content="How to make sure your live stream is really live"/>
+    <meta property="twitter:image" content="https://briandunnington.github.io/img/bd_logo.png"/>
+
+    <link rel="canonical" href="https://briandunnington.github.io/live_video_delay" />
+    <link rel="stylesheet" href="/css/style.css"/>
+    <link rel="stylesheet" href="/css/prism.css"/>
+    <link type="application/atom+xml" rel="alternate" href="https://briandunnington.github.io/rss.xml" title="Brian Dunnington" />
+
+    <script src="/js/prism.js"></script>
+</head>
+
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/">
+                <h2 class="nav-title">brian dunnington</h2>
+            </a>
+            <ul>
+                <li><a href="/about">About</a></li>
+                <li><a href="/contact">Contact</a></li>
+                <li><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="48" style="position: relative;top:30px;"/></a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <div class="post">
+            <div class="post-info">
+                <time datetime="2018-12-20 12:00:00 +0000" class="catalogue-time">December 20, 2018</time>
+            </div>
+
+            <h1 class="post-title">Roku: Fix for live video delay</h1>
+            <div class="post-line"></div>
+
+
+
+            <div class="language-csharp"><p>The first time you implement live video playback in your Roku app and then go to try it out, you invariably find that the video is starting from some other point than the current live position. This one trips a lot of folks up (see <a href="https://forums.roku.com/viewtopic.php?t=39589">here</a>, <a href="https://forums.roku.com/viewtopic.php?t=66558">here</a>, <a href="https://forums.roku.com/viewtopic.php?t=37622">here</a>, and <a href="https://stackoverflow.com/questions/50021092/roku-is-playing-about-a-1-hour-delay-on-the-live-stream">here</a>), but luckily it has an easy solution.</p>
+
+<p>The trick is to set the <code>PlayStart</code> field of the <code>ContentNode</code> that you pass to <code>video.content</code>. <a href="https://sdkdocs.roku.com/display/sdkdoc/Content+Meta-Data">Roku's docs</a> say that "PlayStart defines the start position of the content, in seconds." Ok - but what is the start position of a live stream? There are ways to actually calculate it, but most folks find that it is easier to simply set it to "a sufficiently large number". What constitutes a sufficiently large number? Many folks use 99999 or something like that, but since <code>PlayStart</code> is an <code>int</code>, the largest possibly value it can take it is 2147483647, so that is what I use - just to be safe 😎</p>
+
+<pre><code>content = CreateObject("roSGNode", "ContentNode")
+content.setFields({
+    streamformat: "hls"
+    url: "http://your.video.url"
+    live: true
+    playstart: 2147483647
+})
+video.content = content
+</code></pre>
+</div>
+        </div>
+
+        <div class="pagination">
+
+                <a href="/everything_about_http" class="left arrow">&#8592; HTTP on Roku</a>
+                            <a href="/node_aa" class="right arrow">Roku: Nodes and Associative Array fields &#8594;</a>
+            <a href="#" class="top">Top</a>
+        </div>
+    </main>
+
+    <footer>
+        <span>
+            &copy; 2012-2022 brian dunnington
+        </span>
+    </footer>
+
+</body>
+</html>

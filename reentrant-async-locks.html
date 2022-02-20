@@ -1,79 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
 
-<!doctype html>
-<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
-<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
-<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
 <head>
-	<meta charset="utf-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-	<title>brian dunnington - Reentrant async locks in .NET</title>
-	<meta name="description" content="code and computer related tidbits">
-	<meta name="author" content="brian dunnington">
-  <link rel="alternate" type="application/rss+xml" title="brian dunnington" href="/rss.xml" />
+    <title>Reentrant async locks in .NET</title>
 
-	<meta name="viewport" content="width=device-width">
+    <meta name="title" content="Reentrant async locks in .NET"/>
+    <meta name="description" content="The new async/await keywords in .NET make async programming a snap, but there are some things to watch out for when synchronizing multiple threads."/>
+    <meta name="author" content="Brian Dunnington" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:type" content="website"/>
+    <meta property="og:site_name" content="Brian Dunnington" />
+    <meta property="og:url" content="https://briandunnington.github.io/reentrant-async-locks"/>
+    <meta property="og:title" content="Reentrant async locks in .NET"/>
+    <meta property="og:description" content="The new async/await keywords in .NET make async programming a snap, but there are some things to watch out for when synchronizing multiple threads."/>
+    <meta property="og:image" content="https://briandunnington.github.io/img/bd_logo.png"/>
+    <meta property="article:published_time" content="2012-12-12T12:00:00"/>
+    <meta property="twitter:card" content="summary_large_image"/>
+    <meta property="twitter:site" content="@briandunnington"/>
+    <meta property="twitter:creator" content="@briandunnington"/>
+    <meta property="twitter:url" content="https://briandunnington.github.io/reentrant-async-locks"/>
+    <meta property="twitter:title" content="Reentrant async locks in .NET"/>
+    <meta property="twitter:description" content="The new async/await keywords in .NET make async programming a snap, but there are some things to watch out for when synchronizing multiple threads."/>
+    <meta property="twitter:image" content="https://briandunnington.github.io/img/bd_logo.png"/>
 
-    <!-- Twitter Summary Card -->
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:site" content="@briandunnington">
-    <meta name="twitter:creator" content="@briandunnington">
-    <meta name="twitter:title" content="Reentrant async locks in .NET">
-    <meta name="twitter:description" content="The new async/await keywords in .NET make async programming a snap, but there are some things to watch out for when synchronizing multiple threads.">
-    <meta name="twitter:domain" content="http://briandunnington.github.io/">
-    <meta name="twitter:image" content="https://pbs.twimg.com/profile_images/1989458361/soupbox_bigger.jpg">
+    <link rel="canonical" href="https://briandunnington.github.io/reentrant-async-locks" />
+    <link rel="stylesheet" href="/css/style.css"/>
+    <link rel="stylesheet" href="/css/prism.css"/>
+    <link type="application/atom+xml" rel="alternate" href="https://briandunnington.github.io/rss.xml" title="Brian Dunnington" />
 
-
-	<link rel="stylesheet" href="css/bootstrap.css">
-	<style>
-    body {
-      padding-top: 60px;
-      padding-bottom: 40px;
-    }
-    footer {
-      text-align: right;
-      margin-top: 40px;
-    }
-    h1 {
-      margin-bottom: 0.6em;
-    }
-  </style>
-	<link rel="stylesheet" href="css/bootstrap-responsive.css">
-	<link rel="stylesheet" href="css/style.css">
-
-	<!--[if lt IE 9]>
-	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-	<script>window.html5 || document.write('<script src="js/libs/html5.js"><\/script>')</script>
-	<![endif]-->
+    <script src="/js/prism.js"></script>
 </head>
 
 <body>
-    <div class="navbar navbar-fixed-top">
-      <div class="navbar-inner">
-        <div class="container">
-          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </a>
-          <a class="brand" href="/"><img src="img/bd_logo.png" style="margin: -8px 0 -14px;" /> : brian dunnington</a>
-          <div class="nav-collapse">
-            <ul class="nav">
-              <li id="linkHome"><a href="/">Home</a></li>
-              <li id="linkAbout"><a href="/about">About</a></li>
-              <li id="linkContact"><a href="/contact">Contact</a></li>
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/">
+                <h2 class="nav-title">brian dunnington</h2>
+            </a>
+            <ul>
+                <li><a href="/about">About</a></li>
+                <li><a href="/contact">Contact</a></li>
+                <li><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="48" style="position: relative;top:30px;"/></a></li>
             </ul>
-          </div><!--/.nav-collapse -->
         </div>
-      </div>
-    </div>
+    </nav>
 
-    <div class="container">
+    <main>
+        <div class="post">
+            <div class="post-info">
+                <time datetime="2012-12-12 12:00:00 +0000" class="catalogue-time">December 12, 2012</time>
+            </div>
 
-	  <div class="row">
-      <div class="span8 maincontent">
-          <!-- Main hero unit for a primary marketing message or call to action -->
+            <h1 class="post-title">Reentrant async locks in .NET</h1>
+            <div class="post-line"></div>
+
+
+
+            <div class="language-csharp"><!-- Main hero unit for a primary marketing message or call to action -->
 
 <div class="hero-unit">
 <h1>Reentrant async locks in .NET</h1>
@@ -151,53 +137,22 @@
 <p>So what is the right thing to do? Well, the right thing to do is to avoid needing to lock around asynchronous operations altogether. That will completely avoid this issue and usually result in more robust code. Using the built-in classes in the <a href="http://msdn.microsoft.com/en-us/library/system.collections.concurrent.aspx">System.Collections.Concurrent</a> namespace coupled with the <a href="http://msdn.microsoft.com/en-us/library/dd642331.aspx">Lazy&lt;T&gt;</a> object can often achieve a similar effect without any (user-authored) locks at all. I will write an upcoming post with an example of how to implement this approach.</p>
 
 <p>But in cases where you absolutely have to have locking behavior around asynchronous code, you really have to be extra-super-duper diligent that you never have any reentrant locking code. Using the same thread-tracking mechanisms that we talked about earlier, you could probably build a deadlock-detection scheme that would at least alert you to the issue during testing. Otherwise, you can always leave it up to your users to find for you =)</p>
+</div>
+        </div>
 
-      </div>
+        <div class="pagination">
 
-      <div class="span4">
-          <h3><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="64" style="vertical-align:middle;" /></a> <a href="http://twitter.com/briandunnington">@briandunnington</a></h3>
-          <hr />
+                <a href="/xaml-visualstatemanager-note" class="left arrow">&#8592; Xaml VisualStateManager weirdness</a>
+                            <a href="/gridview-in-a-scrollviewer" class="right arrow">GridView in a ScrollViewer &#8594;</a>
+            <a href="#" class="top">Top</a>
+        </div>
+    </main>
 
-              <h6 class="muted">2020.11.25</h6>
-              <h2>Serializing JObject to camelCase</h2>
-              <p>How to serialize a JSON.NET JObject to camelCase</p>
-              <p><a class="btn" href="/jobject_serialization">View details &raquo;</a></p>
-              <hr/>
-              <h6 class="muted">2020.03.20</h6>
-              <h2>Azure Functions: Trigger Attribute Settings From Key Vault</h2>
-              <p>How to read trigger attribute settings from Key Vault</p>
-              <p><a class="btn" href="/azure_functions_key_vault_config">View details &raquo;</a></p>
-              <hr/>
-              <h6 class="muted">2020.03.19</h6>
-              <h2>Azure Functions: Wildcard Routing</h2>
-              <p>A quick tip to support wildcard routes in Azure Functions</p>
-              <p><a class="btn" href="/azure_functions_wildcard_routing">View details &raquo;</a></p>
-              <hr/>
-              <h6 class="muted">2019.08.01</h6>
-              <h2>Azure Functions: Route Priority</h2>
-              <p>Making Azure Functions route matching make more sense</p>
-              <p><a class="btn" href="/azure_functions_route_priority">View details &raquo;</a></p>
-              <hr/>
-              <h6 class="muted">2019.07.30</h6>
-              <h2>Azure Functions: Set Cosmos DB Trigger Connection String At Runtime</h2>
-              <p>How to specify the trigger connection string at runtime and avoid storing secrets during local development</p>
-              <p><a class="btn" href="/azure_functions_dynamic_connection_string">View details &raquo;</a></p>
-              <hr/>
+    <footer>
+        <span>
+            &copy; 2012-2022 brian dunnington
+        </span>
+    </footer>
 
-          <h4><a href="/index">More Posts ></a></h4>
-      </div>
-	  </div>
-
-      <footer>
-        <small>&copy; 2012-2020 brian dunnington</small>
-      </footer>
-
-    </div> <!-- /container -->
-<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-<script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
-
-<script src="js/libs/bootstrap/bootstrap.js"></script>
-
-<script src="js/script.js"></script>
 </body>
 </html>

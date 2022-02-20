@@ -10,12 +10,9 @@ Summary: Contact Information
 
 ### Github: [https://github.com/briandunnington][Github]
 
-### Roku Blog: [https://rokulikeahurricane.io][RokuLikeAHurricane]
-
 ### Personal Blog: [https://briandunnington.com][Blog]
 
 
 [Twitter]: https://twitter.com/briandunnington
 [Github]: https://github.com/briandunnington
 [Blog]: https://briandunnington.com
-[RokuLikeAHurricane]: https://rokulikeahurricane.io

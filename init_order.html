@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <title>Roku: Component initialization order</title>
+
+    <meta name="title" content="Roku: Component initialization order"/>
+    <meta name="description" content="Understanding the component initialization order and some potential gotchas"/>
+    <meta name="author" content="Brian Dunnington" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:type" content="website"/>
+    <meta property="og:site_name" content="Brian Dunnington" />
+    <meta property="og:url" content="https://briandunnington.github.io/init_order"/>
+    <meta property="og:title" content="Roku: Component initialization order"/>
+    <meta property="og:description" content="Understanding the component initialization order and some potential gotchas"/>
+    <meta property="og:image" content="https://briandunnington.github.io/img/bd_logo.png"/>
+    <meta property="article:published_time" content="2018-12-18T12:00:00"/>
+    <meta property="twitter:card" content="summary_large_image"/>
+    <meta property="twitter:site" content="@briandunnington"/>
+    <meta property="twitter:creator" content="@briandunnington"/>
+    <meta property="twitter:url" content="https://briandunnington.github.io/init_order"/>
+    <meta property="twitter:title" content="Roku: Component initialization order"/>
+    <meta property="twitter:description" content="Understanding the component initialization order and some potential gotchas"/>
+    <meta property="twitter:image" content="https://briandunnington.github.io/img/bd_logo.png"/>
+
+    <link rel="canonical" href="https://briandunnington.github.io/init_order" />
+    <link rel="stylesheet" href="/css/style.css"/>
+    <link rel="stylesheet" href="/css/prism.css"/>
+    <link type="application/atom+xml" rel="alternate" href="https://briandunnington.github.io/rss.xml" title="Brian Dunnington" />
+
+    <script src="/js/prism.js"></script>
+</head>
+
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/">
+                <h2 class="nav-title">brian dunnington</h2>
+            </a>
+            <ul>
+                <li><a href="/about">About</a></li>
+                <li><a href="/contact">Contact</a></li>
+                <li><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="48" style="position: relative;top:30px;"/></a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <div class="post">
+            <div class="post-info">
+                <time datetime="2018-12-18 12:00:00 +0000" class="catalogue-time">December 18, 2018</time>
+            </div>
+
+            <h1 class="post-title">Roku: Component initialization order</h1>
+            <div class="post-line"></div>
+
+
+
+            <div class="language-csharp"><p>Roku's documentation contains <a href="https://sdkdocs.roku.com/display/sdkdoc/Component+Initialization+Order">a good article</a> about component initialization order. Specifically, it states:</p>
+
+<blockquote>
+  <p>Instances of components defined in an XML file follow a well-defined initialization order when they are created.</p>
+  
+  <ul>
+  <li>The <code>&lt;children&gt;</code> element nodes defined in XML markup are created, and their fields are set to their initial values, either to a default value, or to the value specified in the XML markup.</li>
+  <li>The <code>&lt;interface&gt;</code> element fields of the XML component are created, and their initial values are set, either to a default value, or to the value specified by the value attribute.</li>
+  <li>The <code>&lt;script&gt;</code> element <code>init()</code> function is called, and all initializations contained in the function are performed.</li>
+  </ul>
+</blockquote>
+
+<p>While that is very helpful, it leaves out some subtle bits and sometimes it can be hard to visualize, so let's do some experiments to better illustrate the order.</p>
+
+<p>Consider the following component hierarchies:</p>
+
+<pre><code>Parent &gt; ParentBase &gt; Group
+Child &gt; ChildBase &gt; Group
+</code></pre>
+
+<p>Let's let the <code>ParentBase</code> component define a <code>Child</code> in its <code>&lt;children&gt;</code> markup:</p>
+
+<pre  class="language-markup" ><code>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;component name="ParentBase" extends="Group"&gt;
+    &lt;script type="text/brightscript" uri="pkg:/components/ParentBase.brs"/&gt;
+    &lt;children&gt;
+        &lt;Child id="childInParentBase"/&gt;
+    &lt;/children&gt;
+&lt;/component&gt;
+</code></pre>
+
+<p>And, let's imagine that the <code>Parent</code> component defines a <code>Child</code> component as part of its <code>&lt;children&gt;</code>:</p>
+
+<pre  class="language-markup" ><code>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;component name="Parent" extends="ParentBase"&gt;
+    &lt;script type="text/brightscript" uri="pkg:/components/Parent.brs"/&gt;
+    &lt;children&gt;
+        &lt;Child id="childFromParent"/&gt;
+    &lt;/children&gt;
+&lt;/component&gt;
+</code></pre>
+
+<p>Now consider another component that uses the <code>Parent</code> component and defines some additional children:</p>
+
+<pre  class="language-markup" ><code>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;component name="OtherComponent" extends="Group"&gt;
+    &lt;script type="text/brightscript" uri="pkg:/components/OtherComponent.brs"/&gt;
+    &lt;children&gt;
+        &lt;Parent id="parent"&gt;
+            &lt;Child id="firstchild"/&gt;
+            &lt;Child id="secondchild"/&gt;
+        &lt;/Parent&gt;
+    &lt;/children&gt;
+&lt;/component&gt;
+</code></pre>
+
+<p>If you run this code, you will see that the order of the <code>init</code> calls is actually:</p>
+
+<pre><code>ChildBase for childInParentBase
+Child for childInParentBase
+ParentBase for parent
+ChildBase for childFromParent
+ChildBase for childFromParent
+Parent for parent
+ChildBase for firstChild
+Child for firstChild
+ChildBase for secondChild
+Child for secondChild
+</code></pre>
+
+<p>So if we wanted to write a more complete order of initialization, it might look like this:</p>
+
+<ol>
+<li>If the component extends another component, the base component (including all children) will be initialized first</li>
+<li>Initialize nodes defined in <code>&lt;children&gt;</code></li>
+<li>Call component's <code>init()</code> method</li>
+<li>Field values are available for reading</li>
+<li>Children added via markup are initialized</li>
+</ol>
+
+<p>Understanding the order is helpful, but understanding the implications is also very important. Consider these perhaps subtle implications:</p>
+
+<h3>Non-default field values are not available in <code>init()</code></h3>
+
+<p>Consider this <code>init()</code> code:</p>
+
+<pre><code>sub init()
+    ?"My id is: " + m.top.id
+end sub
+</code></pre>
+
+<p>Assuming the <code>id</code> property was set in markup, you might be surprised to see the output of this is:</p>
+
+<pre><code>My id is:
+</code></pre>
+
+<p>At the time that <code>init()</code> is called, any non-default field values are not yet set, so <code>m.top.id</code> has no value.</p>
+
+<p>Similarly, any values you set on <code>m.top</code> in <code>init()</code> could be overwritten when initialization is complete:</p>
+
+<pre><code>sub init()
+    m.top.id = "set_in_init"
+    ?"My id is: " + m.top.id
+end sub
+
+function onKeyEvent(key, press)
+    ?"My id is now: " + m.top.id
+    return true
+end function
+</code></pre>
+
+<p>Prints:</p>
+
+<pre><code>My id is: set_in_init
+My id is now: parent
+</code></pre>
+
+<h3>Cannot access <code>getParent()</code> from <code>init()</code></h3>
+
+<p>The Roku docs say:</p>
+
+<blockquote>
+  <p>For nodes that are defined in the <code>&lt;children&gt;</code> XML markup of the component file, the parent node is set after the node is created, and <code>init()</code> is called.</p>
+</blockquote>
+
+<p>Essentially that means that the children are not yet 'parented' when their <code>init()</code> function is ran. That means that if you call <code>getParent()</code> in <code>init()</code>, it will return <code>invalid</code>.</p>
+
+<h3>Cannot <code>setFocus()</code> from <code>init()</code></h3>
+
+<p>Following on the above behavior, that means that the children created in a component are not yet valid targets for focus while <code>init()</code> is running. The children are not parented (added to the Scene Graph tree) until after <code>init()</code> is complete and calls to <code>setFocus()</code> require that the node being focused is in the Scene Graph tree. <strong>However</strong>, experimentation has shown that you can often get away with calling <code>setFocus()</code> on a child in the <code>init()</code> and I personally have done it often in real apps. I have also seen it not work and struggled to figure out why, so it is probably better to just avoid the ambiguity and not do this.</p>
+
+<p>(It is usually not a good idea to set the focus during object creation anyway, and a better approach is to set up an observer on <code>focusedChild</code> so that your component is aware when something is trying to set focus on it and handle focus at that time.)</p>
+</div>
+        </div>
+
+        <div class="pagination">
+
+                <a href="/node_aa" class="left arrow">&#8592; Roku: Nodes and Associative Array fields</a>
+                            <a href="/divisible_by_3" class="right arrow">Roku: A Different Kind of 'Rule of Thirds' &#8594;</a>
+            <a href="#" class="top">Top</a>
+        </div>
+    </main>
+
+    <footer>
+        <span>
+            &copy; 2012-2022 brian dunnington
+        </span>
+    </footer>
+
+</body>
+</html>

@@ -6,9 +6,9 @@
         <link>http://briandunnington.github.io</link>
         <description>RSS feed for website</description>
         <language>en-us</language>
-        <copyright>Copyright 2012 - 2018 : Brian Dunnington</copyright>
-        <pubDate>Wed, 25 Nov 2020 08:34:00 GMT</pubDate>
-        <lastBuildDate>Wed, 25 Nov 2020 08:34:00 GMT</lastBuildDate>
+        <copyright>Copyright 2012 - 2022 : Brian Dunnington</copyright>
+        <pubDate>Sun, 20 Feb 2022 09:23:23 GMT</pubDate>
+        <lastBuildDate>Sun, 20 Feb 2022 09:23:23 GMT</lastBuildDate>
 
         <item>
             <title>Serializing JObject to camelCase</title>
@@ -506,20 +506,19 @@ public static class IWebJobsRouterExtensions
 
 <p>By now you surely have noticed that I have a crush on <a href="https://azure.microsoft.com/en-us/services/functions/">Azure Functions</a>. They are just about the perfect tool for so many scenarios. Lately, I have found myself using the <a href="https://docs.microsoft.com/en-us/azure/azure-functions/functions-create-cosmos-db-triggered-function">Cosmos DB trigger</a> a lot to get notified when data is added or changed. Like many of the triggers that are triggered by another service, you have to specify the connection string to the DB in order for it to work. You don't actually specify the connection string, but the name of the setting that <em>contains</em> the connection string and you do it in the attribute that decorates the function, usually like this:</p>
 
-<pre><code>    [FunctionName("CosmosTrigger")]
-    public static void Run([CosmosDBTrigger(
-        databaseName: "ToDoItems",
-        collectionName: "Items",
-        ConnectionStringSetting = "CosmosDBConnection",
-        LeaseCollectionName = "leases",
-        CreateLeaseCollectionIfNotExists = true)]IReadOnlyList&lt;Document&gt; documents,
-        ILogger log)
+<pre><code>[FunctionName("CosmosTrigger")]
+public static void Run([CosmosDBTrigger(
+    databaseName: "ToDoItems",
+    collectionName: "Items",
+    ConnectionStringSetting = "CosmosDBConnection",
+    LeaseCollectionName = "leases",
+    CreateLeaseCollectionIfNotExists = true)]IReadOnlyList&lt;Document&gt; documents,
+    ILogger log)
+{
+    if (documents != null &amp;&amp; documents.Count &gt; 0)
     {
-        if (documents != null &amp;&amp; documents.Count &gt; 0)
-        {
-            log.LogInformation($"Documents modified: {documents.Count}");
-            log.LogInformation($"First document Id: {documents[0].Id}");
-        }
+        log.LogInformation($"Documents modified: {documents.Count}");
+        log.LogInformation($"First document Id: {documents[0].Id}");
     }
 }
 </code></pre>
@@ -651,6 +650,185 @@ var certificate = new X509Certificate2(Convert.FromBase64String(secret.Value));
             <image>http://briandunnington.github.io/images/create_certificate_from_bytes.png</image>
         </item>
         <item>
+            <title>Roku: Proxying network requests</title>
+            <link>http://briandunnington.github.io/proxying_network_requests</link>
+            <description><![CDATA[
+<p>Roku does not have built-in support for proxies, and the HTTP stack (<code>roUrlTransfer</code>) does not expose the necessary methods to manually construct a valid proxy request. There are two approaches to get proxying working in spite of these limitations.</p>
+
+<h2>System-level proxying</h2>
+
+<p>Although Roku does not explicitly support proxying, there is a way to capture the network traffic. The Hulu dev team <a href="https://medium.com/hulu-tech-blog/automating-mitmproxy-and-improving-hulus-build-loading-tool-for-roku-629e7f763682">recently shared a post</a> on how they set this up, but the basic steps are:</p>
+
+<ul>
+<li>Set up <a href="https://mitmproxy.org/">mitmproxy</a> on a host machine.</li>
+<li>Share the host machine's internet connection. This will appear as a normal WiFi network that the Roku can connect to.</li>
+<li>Configure some routing rules on the host machine. The steps to do this are specific to each OS but are <a href="https://forums.roku.com/viewtopic.php?t=86886">outlined in this forum thread</a>.</li>
+<li>Modify your Roku app code to load the mitmproxy SSL certificate</li>
+</ul>
+
+<p>Essentially what happens is that the Roku connects to the shared WiFi connection, which causes all traffic to flow through the host machine. The routing rules redirect the HTTP and HTTPS traffic through the mitmproxy, which allows you to inspect the results.</p>
+
+<p>The Hulu blog post notes some caveats to be aware of:</p>
+
+<ul>
+<li>You can only set the mitmproxy SSL cert for network calls that your app makes. This means that the network calls from the Roku OS itself and some native video player/RAF calls cannot be configured to use the certificate. Those urls will need to be configured to pass through directly without being intercepted by mitmproxy.</li>
+<li>Setting up the routing rules is a bit tricky for the different OSes, and the forum post does not provide a working example for Windows at all.</li>
+</ul>
+
+<h2>App-level proxying</h2>
+
+<p>There is another way to proxy both HTTP and HTTPS requests, but it requires modifying the actual outgoing request. As with the previous solution, it only works for apps that you develop with specific proxying support (it doesn't work for OS-level calls or other apps on the device). The advantage is that is does not require sharing your internet connection, setting up any special routing rules, or loading any special certificates. In order to support this type of proxying, two pieces are required.</p>
+
+<h3>Modifying requests from the Roku</h3>
+
+<p>Include the following <code>configureRequestProxy()</code> function in your app. The function takes two arguments:</p>
+
+<ul>
+<li><code>request</code> - This should be your original <code>roUrlTransfer</code> object that has already had <code>SetUrl()</code> called on it. <em>(The url will be munged to point to the proxy server but the original value will be preserved.)</em></li>
+<li><code>proxyAddress</code> - The IP address (and optional port) of your proxy server. Ex: <code>192.168.1.100:8888</code></li>
+</ul>
+
+<!-- force end of list -->
+
+<pre><code>sub configureRequestProxy(request, proxy)
+    if request &lt;&gt; invalid and proxy &lt;&gt; invalid
+        proxyPrefix = "http://" + proxy + "/;"
+        currentUrl = request.getUrl()
+        if currentUrl.instr(proxyPrefix) = 0 then return
+        proxiedUrl = proxyPrefix + currentUrl
+        request.setUrl(proxiedUrl)
+    end if
+end sub
+</code></pre>
+
+<p>Call this function any time you make a network request like so:</p>
+
+<pre><code>function callApi(apiUrl, proxyAddress)
+    port = CreateObject("roMessagePort")
+    request = CreateObject("roUrlTransfer")
+    request.SetCertificatesFile("common:/certs/ca-bundle.crt")
+    request.InitClientCertificates()
+    request.SetMessagePort(port)
+    request.SetUrl(apiUrl)
+
+    configureRequestProxy(request, proxyAddress) ' &lt;-- THIS IS THE IMPORTANT PART
+
+    requestSent = request.AsyncGetToString() ' or AsyncPostFromString()
+
+    '...rest of response handling code as normal...
+end function
+</code></pre>
+
+<h3>Proxy server configuration</h3>
+
+<p>Since the <code>roUrlTransfer</code> object does not allow constructing an actual valid proxy request, the <code>createRequestProxy()</code> function instead modifies the outgoing url to pass the necessary info to the proxy server. The proxy server needs to be set up to understand these special requests and handle them appropriately.</p>
+
+<h4>Fiddler (Windows)</h4>
+
+<p>Rules > Customize Rules</p>
+
+<p>In the <code>OnBeforeRequest()</code> method, add the following:</p>
+
+<pre><code>// Roku Proxy
+var parts = oSession.fullUrl.Split([';'], 2)
+if (parts.Length &gt; 1)
+{
+    oSession.fullUrl = parts[1]
+}
+</code></pre>
+
+<p><img src="/images/proxy_fiddler_settings.png" /></p>
+
+<p>Other Notes: Make sure <em>'Allow remote computers to connect'</em> is enabled</p>
+
+<h4>Charles (Windows or Mac)</h4>
+
+<p>Tools > Rewrite</p>
+
+<p>Import the <a href="/charles_roku_proxy.xml">charles_roku_proxy.xml ruleset definition file</a>. It should add a <em>'Roku Proxy'</em> ruleset with the necessary rules to enable the proxying.</p>
+
+<p><img src="/images/proxy_charles_settings.png" /></p>
+
+<p>Other Notes: Make sure <em>'Rewrite'</em> is enabled whenever you run Charles. If you run Charles on a port other than <code>8888</code>, be sure to update the rule filter.</p>
+
+]]></description>
+            <pubDate>Fri, 05 Apr 2019 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/proxying_network_requests</guid>
+        </item>
+        <item>
+            <title>Roku: Handling roInputEvent</title>
+            <link>http://briandunnington.github.io/handling_roInputEvent</link>
+            <description><![CDATA[
+<p>Many of Roku's latest round of certification requirements go into effect on March 31, 2019 so developers are scrambling to update their apps. One of the new requirements has to do with handling deep links while the channel is already running. Section 5.2 of the <a href="https://developer.roku.com/develop/channel-store/certification">current certification requirements</a> states:</p>
+
+<blockquote>
+  <p>5.2 When the channel is already running, direct playback commands will deep link to content in the channel without requiring a channel launch delay by using roInputEvent. To support this, channels must process roInputEvent the same way deep link parameters are passed through the main entry point on launch. (Required after March 31, 2019)</p>
+</blockquote>
+
+<p>Implementing this is actually pretty straight-forward. In your <code>main.brs</code>, just add something like this:</p>
+
+<pre><code>input = CreateObject("roInput")
+input.setMessagePort(port)
+</code></pre>
+
+<p>The in your <code>while</code> loop, you can handle the incoming message like this:</p>
+
+<pre><code>while(true)
+    msg = port.GetMessage()
+    msgType = type(msg)
+    if msgType = "roInputEvent"
+        info = msg.getInfo()
+        'info is now just like args passed to your Main() method
+        'it contains mediaType and contentId properties, so you
+        'can use your normal deep-link handling code
+        handleDeepLink(info)
+    end if
+end while
+</code></pre>
+
+<p>Note that the <code>getInfo()</code> method returns an object that looks just like the <code>args</code> that are passed to your <code>Main()</code> method - it contains the same <code>mediaType</code> and <code>contentId</code> properties so you can usually just re-use your existing deep-link handling code.</p>
+
+<h2>Testing it out</h2>
+
+<p>You can use the <a href="https://sdkdocs.roku.com/display/sdkdoc/External+Control+API#ExternalControlAPI-input">External Control Protocol (ECP)</a> to test our your implementation. Using a tool like Postman or curl, you can construct a url that will send the appropriate <code>input</code> event. The command should look like:</p>
+
+<pre><code>curl -d '' 'http://YOUR-IP:8060/input?mediaType=movie&amp;contentId=happy-gilmore'
+</code></pre>
+
+<p>The command needs to be sent as a <code>POST</code> (hence the <code>-d ''</code>) and needs to include the <code>mediaType</code> and <code>contentId</code> parameters. Make sure your app is already running and then issue the command - your app should receive the command and handle the deep-link appropriately without causing the channel to relaunch.</p>
+
+<blockquote>
+  <p><strong>NOTE:</strong> If you try this out and your app still relaunches when receiving the input event, double check your url. Specifically, <strong>do not</strong> include <code>/dev</code> at the end - input events are only applicable for the currently-running channel so you should not include the channel ID in the url.</p>
+</blockquote>
+
+<h2>Bonus Tip</h2>
+
+<p>The Roku <a href="https://sdkdocs.roku.com/display/sdkdoc/Roku+Channel+Manifest#RokuChannelManifest-LaunchRequirementAttributes">documentation about manifest files</a> lists <code>supports_input_launch</code> with this description:</p>
+
+<blockquote>
+  <p>The Roku mobile app (previously using roInputEvent) was changed recently to always use 'launch' events rather than 'input' events.
+  That means that Deep Link launches should always work, and with this attribute, the launch will no longer force exiting and restarting the app if it was already running.</p>
+</blockquote>
+
+<p>I have seen folks get confused and think this is required to support <code>roInputEvent</code> (I mean, the property is called <em>supports input launch</em> so it is understandable.) But if you read that description carefully, what it is actually saying is that if you send a <code>launch</code> command, your app will no longer restart if you have set this flag.</p>
+
+<p>To try this out, try sending this command to your unmodified app:</p>
+
+<pre><code>curl -d '' 'http://YOUR-IP:8060/launch/dev?mediaType=movie&amp;contentId=happy-gilmore'
+</code></pre>
+
+<p>(Note that the channel ID (<code>/dev</code>) is required for <code>launch</code> events). Even if your app was already running, it should have exited and relaunched. Now add the following to your manifest file and launch your app:</p>
+
+<pre><code>supports_input_launch=1
+</code></pre>
+
+<p>Now send the curl command again - this time your app should <em>not</em> restart: the manifest flag instructed the Roku to treat the <code>launch</code> event like an <code>input</code> event so it won't relaunch the channel.</p>
+
+]]></description>
+            <pubDate>Tue, 19 Mar 2019 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/handling_roInputEvent</guid>
+        </item>
+        <item>
             <title>Distributed Cache Invalidation using Azure Service Bus</title>
             <link>http://briandunnington.github.io/distributed_cache_invalidation</link>
             <description><![CDATA[
@@ -767,6 +945,753 @@ this.subscriptionClient = new SubscriptionClient(topicClient.ServiceBusConnectio
             <pubDate>Thu, 28 Feb 2019 12:00:00 GMT</pubDate>
             <guid>http://briandunnington.github.io/distributed_cache_invalidation</guid>
             <image>http://briandunnington.github.io/images/azure_servicebus.png</image>
+        </item>
+        <item>
+            <title>HTTP on Roku</title>
+            <link>http://briandunnington.github.io/everything_about_http</link>
+            <description><![CDATA[
+<p>After getting your development environment all set up for Roku dev and creating your first <code>Hello World!</code> app, one of the first 'real' things you will need to do when developing a proper app is to fetch data from the network. However, Roku's HTTP stack is a little different than you might be used to on other platforms, so this post aims to walk through how it works and how to perform common operations.</p>
+
+<h2>Overview</h2>
+
+<p>The object that you use to fetch data from the network in BrightScript is called <a href="https://sdkdocs.roku.com/display/sdkdoc/roUrlTransfer">roUrlTransfer</a>. This class implements several interfaces, the most important of which are <a href="https://sdkdocs.roku.com/display/sdkdoc/ifUrlTransfer">ifUrlTransfer</a> and <a href="https://sdkdocs.roku.com/display/sdkdoc/ifHttpAgent">ifHttpAgent</a>. The Roku docs explain how to create an instance and what each of the methods do (though they can be a little bit sparse and don't include many real-world examples). One important thing to note is that the <code>roUrlTransfer</code> object can only be used from a <code>Task</code> node - since network calls are inherently asynchronous, Roku forces you to do these operations in a <code>Task</code> to avoid blocking the UI thread.</p>
+
+<h2>Preparing a request</h2>
+
+<p>To make a request, the general steps are:</p>
+
+<ul>
+<li>Create an instance of the <code>roUrlTransfer</code> object</li>
+<li>Configure it appropriately, including setting the url</li>
+<li>Call one of the built-in methods to actually fetch the data</li>
+</ul>
+
+<p>Let's start with some simple usage:</p>
+
+<h3><code>GET</code> request</h3>
+
+<p>To make a simple <code>GET</code> request, you can do this:</p>
+
+<pre><code>request = CreateObject("roUrlTransfer")
+request.SetUrl("http://your.url/goes.here")
+response = request.GetToString()
+</code></pre>
+
+<p>In this case, <code>response</code> will be the actual HTTP body. The docs say that <code>GetToString</code> will <em>"connect to the remote service as specified in the URL and return the response body as a string. This function waits for the transfer to complete and it may block for a long time. This calls discards the headers and response codes. If that information is required, use AsyncGetToString instead."</em></p>
+
+<p>We will get to <code>AsyncGetToString</code> in a moment, but let's look at another example first.</p>
+
+<h3><code>POST</code> request</h3>
+
+<p>To <code>POST</code> data, the code looks similar:</p>
+
+<pre><code>request = CreateObject("roUrlTransfer")
+request.SetUrl("http://your.url/goes.here")
+response = request.PostFromString(body)
+</code></pre>
+
+<p>Although the code is not much different, there are a couple of things to note here. The first is that the return value is not the same as <code>GetToString</code>. Instead, the docs say: <em>"The HTTP response code is returned. Any response body is discarded."</em> Probably not super useful in most cases, so we will see how to get the entire HTTP response (including body and headers) a little later on.</p>
+
+<p>The second is that <code>body</code> is a string and is the exact HTTP body that you want to send. If your server is expecting <code>application/x-www-form-urlencoded</code> values (like would be received from an HTML <code>&lt;form&gt;</code>), then you need to format the data appropriately. <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST">MDN says</a> <em>"the keys and values are encoded in key-value tuples separated by '&amp;', with a '=' between the key and the value. Non-alphanumeric characters in both keys and values are percent encoded"</em>. You can use the <a href="https://sdkdocs.roku.com/display/sdkdoc/ifUrlTransfer#ifUrlTransfer-Escape(textasString)asString">Escape</a> function to url-encode the keys and values like this:</p>
+
+<pre><code>request = CreateObject("roUrlTransfer")
+body = "firstname=" + request.Escape("Mary Ann") + "&amp;lastname=" + request.Escape("Smith-Jones")
+request.SetUrl("http://your.url/goes.here")
+response = request.PostFromString(body)
+</code></pre>
+
+<p>If your server is expecting JSON, you can build an object and then use <code>[FormatJSON][]</code> to produce the string to send:</p>
+
+<pre><code>request = CreateObject("roUrlTransfer")
+data = {
+    firstname: "Mary Ann"
+    lastname: "Smith-Jones"
+}
+body = FormatJSON(data)
+request.SetUrl("http://your.url/goes.here")
+response = request.PostFromString(body)
+</code></pre>
+
+<p>In most cases, you will also need to specify the <code>Content-Type</code> header as well, which brings us to...</p>
+
+<h3>Request headers</h3>
+
+<p>To add headers to a request, you can either add them individually using the <code>AddHeader</code> method like this:</p>
+
+<pre><code>request = CreateObject("roUrlTransfer")
+data = {
+    firstname: "Mary Ann"
+    lastname: "Smith-Jones"
+}
+body = FormatJSON(data)
+request.AddHeader("Content-Type", "application/json")
+request.AddHeader("X-Api-Key", "ABC-123-DEF")
+request.SetUrl("http://your.url/goes.here")
+response = request.PostFromString(body)
+</code></pre>
+
+<p>Or you can set them all at once by passing an AA to <code>SetHeaders</code> like this:</p>
+
+<pre><code>request = CreateObject("roUrlTransfer")
+data = {
+    firstname: "Mary Ann"
+    lastname: "Smith-Jones"
+}
+body = FormatJSON(data)
+headers = {
+    "Content-Type": "application/json"
+    "X-Api-Key": "ABC-123-DEF"
+}
+request.SetHeaders(headers)
+request.SetUrl("http://your.url/goes.here")
+response = request.PostFromString(body)
+</code></pre>
+
+<p>Some headers (like <code>User-Agent</code> and <code>Content-Length</code>) are set automatically for you but can be overridden in special cases.</p>
+
+<h3>Other HTTP verbs</h3>
+
+<p>Along with <code>GetToString</code> and <code>PostFromString</code>, there is also a built-in <code>Head</code> method that will do a <code>HEAD</code> request. But for all other HTTP verbs (such as <code>PUT</code>, <code>DELETE</code>, etc) you must use the <code>SetRequest</code> method:</p>
+
+<pre><code>request = CreateObject("roUrlTransfer")
+request.SetRequest("DELETE")
+request.SetUrl("http://your.url/goes.here")
+response = request.GetToString()
+</code></pre>
+
+<p>Confusingly, you still have to use either <code>GetToString</code> or <code>PostFromString</code> to actually send the request, depending on if you need to also send a message body or not.</p>
+
+<h3>HTTPS and SSL</h3>
+
+<p>Unlike most other HTTP stacks that you may be familiar with, <code>roUrlTransfer</code> does not support HTTPS in the default configuration. You must explicitly call <code>SetCertificatesFile</code> and pass it the local file path of a <code>.pem</code> file that contains the certificates from the Certificate Authority. You can provide your own <code>.pem</code> file, but for most scenarios it is easier to use the file provided by Roku with this special path: <code>common:/certs/ca-bundle.crt</code>. So the full usage would be:</p>
+
+<pre><code>request = CreateObject("roUrlTransfer")
+request.SetCertificatesFile("common:/certs/ca-bundle.crt")
+request.SetUrl("https://your.secure.url/goes.here")
+response = request.GetToString()
+</code></pre>
+
+<p>If for some reason your server returns an invalid SSL certificate and you want to accept it anyway (perhaps in a testing or staging situation), you can set use <code>EnableHostVerification(false)</code> and <code>EnablePeerVerification(false)</code> to disable the SSL check.</p>
+
+<p><em>Note that there is also a method called <code>InitClientCertificates</code> but all that does is cause the Roku to send its own client cert to your server. There are cases where that might be useful (for authenticating a specific Roku device, for example), but it is not related to HTTPS.</em></p>
+
+<hr />
+
+<h2>Handling a response</h2>
+
+<p>As mentioned earlier, <code>GetToString</code> will return the HTTP body, so if you:</p>
+
+<ul>
+<li>are making a <code>GET</code> call, and</li>
+<li>dont need the status code to know it was a success, and</li>
+<li>dont need any HTTP response headers, and</li>
+<li>dont mind the synchronous nature of <code>GetToString</code></li>
+</ul>
+
+<p>...then you can just use <code>GetToString</code> and grab the response and go about your business. However, in most cases, you <em>will</em> want to know if the request succeeded or not, or want to access the headers, or want to make the request asynchronously. In those cases, we need to move away from <code>GetToString</code> (and <code>PostFromString</code>) and use the asynchronous versions instead: <code>AsyncGetToString</code> and <code>AsyncPostFromString</code> (and <code>AsyncHead</code> if for some reason you need that).</p>
+
+<p>For all of these methods, the request is sent asynchronously and later a <code>roUrlEvent</code> will be dispatched to the message port when the response is ready. This has several benefits:</p>
+
+<ul>
+<li>the call returns immediately so it does not block further execution</li>
+<li>the <code>roUrlEvent</code> contains not only the response body, but also access to the response status code and headers</li>
+</ul>
+
+<p>In most non-trivial apps, these are the methods you will want to use.</p>
+
+<h3>Handling the <code>roUrlEvent</code> message</h3>
+
+<p>In order to handle the asynchronous events, you need to configure the <code>roUrlTransfer</code> object to send its messages to a message port. Like other objects that implement the <code>ifSetMessagePort</code> interface, you do it like this:</p>
+
+<pre><code>port = CreateObject("roMessagePort")
+request = CreateObject("roUrlTransfer")
+request.SetMessagePort(port)
+request.SetUrl("http://your.url/goes.here")
+request.AsyncGetToString()
+</code></pre>
+
+<p>Then, in your port-monitoring code, you can listen for the <code>roUrlEvent</code> message like this:</p>
+
+<pre><code>msg = wait(0, port)
+if (type(msg) = "roUrlEvent")
+    'TODO: handle response here
+else
+    'Not a roUrlEvent
+end if
+</code></pre>
+
+<p>Once you have the <code>roUrlEvent</code> message, you can access the status code, body, and headers. The <a href="https://sdkdocs.roku.com/display/sdkdoc/roUrlEvent">roUrlEvent documentation</a> lists all available methods, but let's cover the common scenarios.</p>
+
+<h3>Linking requests &amp; responses</h3>
+
+<p>Note that the docs also have this to say about asynchronous requests:</p>
+
+<blockquote>
+  <p><em>"Each roUrlTransfer object can perform only one asynchronous operation at one time. After starting an asynchronous operation, you cannot perform any other data transfer operations using that object until the asynchronous operation has completed, as indicated by receiving an roUrlEvent message whose GetSourceIdentity value matches the GetIdentity value of the roUrlTransfer.  Furthermore, the roUrlTransfer object must remain referenced until the transfer has completed. That means that there must be at least one variable containing a reference to the object during the transfer.  Allowing the variable to go out of scope (for example, by returning from a function where the variable is declared, or reusing the variable to hold a different value) will stop the asynchronous transfer."</em></p>
+</blockquote>
+
+<p>If you use asynchronous requests, make sure that you keep a reference to the <code>roUrlTransfer</code> object until the response is complete or else the request will be cancelled. One approach is to create a dictionary of in-flight requests that will hold the references and can be used to look up the request when the response message comes in.</p>
+
+<p>Each request generates a unique ID that can be read using the <code>GetIdentity</code> method like this:</p>
+
+<pre><code>port = CreateObject("roMessagePort")
+request = CreateObject("roUrlTransfer")
+request.SetMessagePort(port)
+request.SetUrl("http://your.url/goes.here")
+request.AsyncGetToString()
+id = request.GetIdentity().ToStr()
+</code></pre>
+
+<p>When you receive a <code>roUrlEvent</code> message, it has a <code>GetSourceIdentity</code> method (I dont know why they have different names) that will return the ID of the response. You can use these IDs to correlate response messages with requests.</p>
+
+<pre><code>msg = wait(0, port)
+if (type(msg) = "roUrlEvent")
+    responseId = msg.GetSourceIdentity().ToStr()
+    'If responseId = requestId, then this response goes with that request
+end if
+</code></pre>
+
+<p>You can use this ID as the key in the lookup dictionary to track multiple concurrent HTTP requests.</p>
+
+<h3>HTTP status codes</h3>
+
+<p>When you get the <code>roUrlEvent</code> message, usually the first thing you want to do is check the status code to see if it succeeded. You can use the <code>GetResponseCode</code> method to read the status code:</p>
+
+<pre><code>msg = wait(0, port)
+if (type(msg) = "roUrlEvent")
+    responseId = msg.GetSourceIdentity().ToStr()
+    statusCode = msg.GetResponseCode()
+    'If statusCode &gt;= 200 and &lt; 300, then it was a success
+end if
+</code></pre>
+
+<p>If the status code is a positive value, it will represent the HTTP status code of the response. However, if the status code is a negative value, it indicates a low-level failure. These error codes are <a href="https://sdkdocs.roku.com/display/sdkdoc/roUrlEvent">documented here</a> (and notice that <code>roUrlTransfer</code> is really just a thin wrapper over <code>curl</code>).</p>
+
+<h3>Handling the response body</h3>
+
+<p>You can get the actual response body with the <code>GetString</code> method. This will be the raw HTTP body so if you are expecting a structured format like JSON or XML, you will need to parse it accordingly:</p>
+
+<pre><code>msg = wait(0, port)
+if (type(msg) = "roUrlEvent")
+    responseId = msg.GetSourceIdentity().ToStr()
+    statusCode = msg.GetResponseCode()
+    body = msg.GetString()
+    json = ParseJSON(body)
+end if
+</code></pre>
+
+<p>Note that if the status code is not in the 200-299 range, the body will be empty. You can change this behavior (so that you can get the full body for non-200 responses as well) by setting the <code>RetainBodyOnError(true)</code> method on the request</p>
+
+<pre><code>port = CreateObject("roMessagePort")
+request = CreateObject("roUrlTransfer")
+request.SetMessagePort(port)
+request.SetUrl("http://your.url/goes.here")
+request.RetainBodyOnError(true)
+request.AsyncGetToString()
+</code></pre>
+
+<h3>Response headers</h3>
+
+<p>Strangely, there are two different ways to read the response headers. The first is <code>GetResponseHeaders</code> which returns an AA with the header names as the keys and the header values as the values. However, the documentation states: <em>"Headers are only returned when the status code is greater than or equal to 200 and less than 300."</em>. Also note that some headers are allowed to appear in the HTTP response multiple times, and since they are represented as an AA here (which cannot have duplicate keys), only the last HTTP value is represented.</p>
+
+<pre><code>msg = wait(0, port)
+if (type(msg) = "roUrlEvent")
+    responseId = msg.GetSourceIdentity().ToStr()
+    statusCode = msg.GetResponseCode()
+    if statusCode &gt;= 200 AND &lt; 300
+        headers = msg.GetResponseHeaders()
+        etag = headers["Etag"]
+    end if
+end if
+</code></pre>
+
+<p>The alternative is <code>GetResponseHeadersArray</code>. This returns and array of AAs instead and the documentation states: <em>"Each associative array contains a single header name/value pair. Use this function if you need access to duplicate headers, since GetResponseHeaders() returns only the last name/value pair for a given name. All headers are returned regardless of the status code."</em> The down side of this is that you cannot directly access the header value by name (you have to loop over the array instead).</p>
+
+<pre><code>msg = wait(0, port)
+if (type(msg) = "roUrlEvent")
+    responseId = msg.GetSourceIdentity().ToStr()
+    statusCode = msg.GetResponseCode()
+    headers = msg.GetResponseHeadersArray()
+    for each headerObj in headers
+        for each headerName in headerObj
+            ?headerName, headerObj[headerName]
+        end for
+    end for
+end if
+</code></pre>
+
+<h3>Putting it all together</h3>
+
+<pre><code>data = {
+    firstname: "Mary Ann"
+    lastname: "Smith-Jones"
+}
+body = FormatJSON(data)
+port = CreateObject("roMessagePort")
+request = CreateObject("roUrlTransfer")
+request.SetMessagePort(port)
+request.SetCertificatesFile("common:/certs/ca-bundle.crt")
+request.RetainBodyOnError(true)
+request.AddHeader("Content-Type", "application/json")
+request.SetRequest("PUT")
+request.SetUrl("https://your.secure.url/goes.here")
+requestSent = request.AsyncPostFromString(data)
+if (requestSent)
+    msg = wait(0, port)
+    if (type(msg) = "roUrlEvent")
+        statusCode = msg.GetResponseCode()
+        headers = msg.GetResponseHeaders()
+        etag = headers["Etag"]
+        body = msg.GetString()
+        json = ParseJSON(body)
+    end if
+end if
+</code></pre>
+
+<hr />
+
+<h2>Helper Libraries</h2>
+
+<p>As you can see, Roku's HTTP handling is quite different than many of the other implementations you might be familiar with. If all of this <code>roUrlTransfer</code> stuff is confusing, you might consider using one of the open-source libraries out there that wrap it all up into a more user-friendly package. A couple to consider are:</p>
+
+<p><a href="https://github.com/bvisin/roku-requests">roku-requests</a> - Python-inspired library that includes client-side caching. Lets you write code like:</p>
+
+<pre><code>r = Requests().request("PUT", "https://httpbin.org/put", {"key":"value"})
+</code></pre>
+
+<p><a href="https://github.com/briandunnington/roku-fetch">roku-fetch</a> - Inspired by Javascript's <code>fetch</code> functionality, you can write code like:</p>
+
+<pre><code>response = fetch({
+    url: "http://example.url",
+    timeout: 5000,
+    method: "PUT",
+    headers: {
+        "Content-Type": "application/json",
+        "If-None-Match": "abc123"
+    }
+    body: FormatJson({id: "xyz", amount: 8.29})
+})
+</code></pre>
+
+<p><em>NOTE: Full disclosure - I am the author of the roku-fetch library</em></p>
+
+<hr />
+
+<h2>Wrapping up</h2>
+
+<p>Hopefully that gave you a better understanding of how Roku's HTTP handling works and how to use it. If you have questions, head over to the <a href="https://rokudevelopers.slack.com">Roku Slack channel</a> and ask away.</p>
+
+]]></description>
+            <pubDate>Tue, 15 Jan 2019 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/everything_about_http</guid>
+        </item>
+        <item>
+            <title>Roku: Fix for live video delay</title>
+            <link>http://briandunnington.github.io/live_video_delay</link>
+            <description><![CDATA[
+<p>The first time you implement live video playback in your Roku app and then go to try it out, you invariably find that the video is starting from some other point than the current live position. This one trips a lot of folks up (see <a href="https://forums.roku.com/viewtopic.php?t=39589">here</a>, <a href="https://forums.roku.com/viewtopic.php?t=66558">here</a>, <a href="https://forums.roku.com/viewtopic.php?t=37622">here</a>, and <a href="https://stackoverflow.com/questions/50021092/roku-is-playing-about-a-1-hour-delay-on-the-live-stream">here</a>), but luckily it has an easy solution.</p>
+
+<p>The trick is to set the <code>PlayStart</code> field of the <code>ContentNode</code> that you pass to <code>video.content</code>. <a href="https://sdkdocs.roku.com/display/sdkdoc/Content+Meta-Data">Roku's docs</a> say that "PlayStart defines the start position of the content, in seconds." Ok - but what is the start position of a live stream? There are ways to actually calculate it, but most folks find that it is easier to simply set it to "a sufficiently large number". What constitutes a sufficiently large number? Many folks use 99999 or something like that, but since <code>PlayStart</code> is an <code>int</code>, the largest possibly value it can take it is 2147483647, so that is what I use - just to be safe 😎</p>
+
+<pre><code>content = CreateObject("roSGNode", "ContentNode")
+content.setFields({
+    streamformat: "hls"
+    url: "http://your.video.url"
+    live: true
+    playstart: 2147483647
+})
+video.content = content
+</code></pre>
+
+]]></description>
+            <pubDate>Thu, 20 Dec 2018 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/live_video_delay</guid>
+        </item>
+        <item>
+            <title>Roku: Nodes and Associative Array fields</title>
+            <link>http://briandunnington.github.io/node_aa</link>
+            <description><![CDATA[
+<p>Like a lot of other languages, BrightScript passes 'intrinsic' types by value and 'object' types by reference. In fact, <a href="https://sdkdocs.roku.com/display/sdkdoc/Component+Architecture#ComponentArchitecture-Intrinsictypesandobjecttypes">their documentation</a> shows an example of how this works:</p>
+
+<pre><code>function Modify(a as Integer, b as Object) as Void
+    a = 43
+    b.first = 6
+end function
+'.....
+x = 42
+y = { first: 1, second: 2 }
+Modify(x, y)
+' now x is still 42 but y.first is 6
+</code></pre>
+
+<p>As you can see, <code>y</code> was an associative array that got passed to the <code>Modify()</code> function. The <code>Modify()</code> function changed one of the properties on the <code>y</code> object, and since it was passed by ref, the original <code>y</code> object was updated.</p>
+
+<p>But did you know that this is only true some of the time? Consider a simple component like this:</p>
+
+<pre  class="language-markup" ><code>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;component name="MyComponent" extends="Group"&gt;
+    &lt;script type="text/brightscript" uri="pkg:/components/MyComponent.brs"/&gt;
+    &lt;interface&gt;
+        &lt;field id="props" type="assocarray"/&gt;
+    &lt;/interface&gt;
+&lt;/component&gt;
+</code></pre>
+
+<p>This component defines a single additional field called <code>props</code> that is of type <code>assocarray</code>. We use this component like this:</p>
+
+<pre><code>my = m.top.findNode("my")
+my.props = {
+    text: "initial text"
+    count: 1
+}
+</code></pre>
+
+<p>And when we inspect the value, it is what we would expect:</p>
+
+<p><img src="/images/node_aa_1.png" /></p>
+
+<p>Pretty straight-forward so far. And since we learned that AAs are passed by ref, we can modify the value like this:</p>
+
+<p><code>my.props.count = 2</code></p>
+
+<p>And when we inspect the value:</p>
+
+<p><img src="/images/node_aa_2.png" /></p>
+
+<p>Wait, what?! We just set the value of the <code>count</code> property to 2, so why is it reporting it as 1?</p>
+
+<p>The answer is that AAs are '<a href="https://sdkdocs.roku.com/display/sdkdoc/Optimization+Techniques#OptimizationTechniques-DataFlow">deep-copied through fields (pass-by-value)</a>'. So in the special case where the AA is a field on a node, it is <strong>not</strong> passed by ref, but is instead copied. So when we did this:</p>
+
+<p><code>my.props.count = 2</code></p>
+
+<p>what really happened is that <code>my.props</code> returned a <em>copy</em> of the AA, on which we set the <code>count</code> property to 2. When we inspected <code>my.props</code> again, it was yet another copy which of course did <em>not</em> contain the changes.</p>
+
+<p>So how do you actually update a property on an AA like this? You don't 😜 Instead, you have to update the entire AA. The common pattern is:</p>
+
+<pre><code>props = my.props
+props.count = 2
+m.props = props
+</code></pre>
+
+<p>Here we get a copy of the AA, update it, and then set the node's field to the new AA. We can see that by doing this, the AA now reports the correct values:</p>
+
+<p><img src="/images/node_aa_3.png" /></p>
+
+<p>There is one other caveat to this copying behavior. Consider a normal AA like this:</p>
+
+<pre><code>props = {
+    text: "initial text"
+    count: 1
+    func: function()
+        return "func called"
+    end function
+}
+</code></pre>
+
+<p>This AA defines <code>func</code> as a function, and when we call it, we get the expected results:</p>
+
+<p><img src="/images/node_aa_4.png" /></p>
+
+<p>But if we set this AA as a node field and call it:</p>
+
+<pre><code>props = {
+    text: "initial text"
+    count: 1
+    func: function()
+        return "func called"
+    end function
+}
+my = m.top.findNode("my")
+my.props = props
+</code></pre>
+
+<p><img src="/images/node_aa_5.png" /></p>
+
+<p>The call fails, and when we inspect the AA, we see that the <code>func</code> property does not even exist! Every time the AA is copied, any function properties are silently stripped out (presumably to make them 'data-only' so that they can be marshalled across thread boundaries if necessary). Definitely something to watch out for since the debugger does not give any kind of hint that this has happened until you try to access the now-missing function.</p>
+
+<p>As you might imagine, all of this has some substantial performance implications, especially when copying AAs across thread boundaries. Stay tuned for another post that dives deep into how to deal with those situations and some recommendations on best practices to ensure optimum performance.</p>
+
+]]></description>
+            <pubDate>Wed, 19 Dec 2018 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/node_aa</guid>
+        </item>
+        <item>
+            <title>Roku: Component initialization order</title>
+            <link>http://briandunnington.github.io/init_order</link>
+            <description><![CDATA[
+<p>Roku's documentation contains <a href="https://sdkdocs.roku.com/display/sdkdoc/Component+Initialization+Order">a good article</a> about component initialization order. Specifically, it states:</p>
+
+<blockquote>
+  <p>Instances of components defined in an XML file follow a well-defined initialization order when they are created.</p>
+  
+  <ul>
+  <li>The <code>&lt;children&gt;</code> element nodes defined in XML markup are created, and their fields are set to their initial values, either to a default value, or to the value specified in the XML markup.</li>
+  <li>The <code>&lt;interface&gt;</code> element fields of the XML component are created, and their initial values are set, either to a default value, or to the value specified by the value attribute.</li>
+  <li>The <code>&lt;script&gt;</code> element <code>init()</code> function is called, and all initializations contained in the function are performed.</li>
+  </ul>
+</blockquote>
+
+<p>While that is very helpful, it leaves out some subtle bits and sometimes it can be hard to visualize, so let's do some experiments to better illustrate the order.</p>
+
+<p>Consider the following component hierarchies:</p>
+
+<pre><code>Parent &gt; ParentBase &gt; Group
+Child &gt; ChildBase &gt; Group
+</code></pre>
+
+<p>Let's let the <code>ParentBase</code> component define a <code>Child</code> in its <code>&lt;children&gt;</code> markup:</p>
+
+<pre  class="language-markup" ><code>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;component name="ParentBase" extends="Group"&gt;
+    &lt;script type="text/brightscript" uri="pkg:/components/ParentBase.brs"/&gt;
+    &lt;children&gt;
+        &lt;Child id="childInParentBase"/&gt;
+    &lt;/children&gt;
+&lt;/component&gt;
+</code></pre>
+
+<p>And, let's imagine that the <code>Parent</code> component defines a <code>Child</code> component as part of its <code>&lt;children&gt;</code>:</p>
+
+<pre  class="language-markup" ><code>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;component name="Parent" extends="ParentBase"&gt;
+    &lt;script type="text/brightscript" uri="pkg:/components/Parent.brs"/&gt;
+    &lt;children&gt;
+        &lt;Child id="childFromParent"/&gt;
+    &lt;/children&gt;
+&lt;/component&gt;
+</code></pre>
+
+<p>Now consider another component that uses the <code>Parent</code> component and defines some additional children:</p>
+
+<pre  class="language-markup" ><code>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;component name="OtherComponent" extends="Group"&gt;
+    &lt;script type="text/brightscript" uri="pkg:/components/OtherComponent.brs"/&gt;
+    &lt;children&gt;
+        &lt;Parent id="parent"&gt;
+            &lt;Child id="firstchild"/&gt;
+            &lt;Child id="secondchild"/&gt;
+        &lt;/Parent&gt;
+    &lt;/children&gt;
+&lt;/component&gt;
+</code></pre>
+
+<p>If you run this code, you will see that the order of the <code>init</code> calls is actually:</p>
+
+<pre><code>ChildBase for childInParentBase
+Child for childInParentBase
+ParentBase for parent
+ChildBase for childFromParent
+ChildBase for childFromParent
+Parent for parent
+ChildBase for firstChild
+Child for firstChild
+ChildBase for secondChild
+Child for secondChild
+</code></pre>
+
+<p>So if we wanted to write a more complete order of initialization, it might look like this:</p>
+
+<ol>
+<li>If the component extends another component, the base component (including all children) will be initialized first</li>
+<li>Initialize nodes defined in <code>&lt;children&gt;</code></li>
+<li>Call component's <code>init()</code> method</li>
+<li>Field values are available for reading</li>
+<li>Children added via markup are initialized</li>
+</ol>
+
+<p>Understanding the order is helpful, but understanding the implications is also very important. Consider these perhaps subtle implications:</p>
+
+<h3>Non-default field values are not available in <code>init()</code></h3>
+
+<p>Consider this <code>init()</code> code:</p>
+
+<pre><code>sub init()
+    ?"My id is: " + m.top.id
+end sub
+</code></pre>
+
+<p>Assuming the <code>id</code> property was set in markup, you might be surprised to see the output of this is:</p>
+
+<pre><code>My id is:
+</code></pre>
+
+<p>At the time that <code>init()</code> is called, any non-default field values are not yet set, so <code>m.top.id</code> has no value.</p>
+
+<p>Similarly, any values you set on <code>m.top</code> in <code>init()</code> could be overwritten when initialization is complete:</p>
+
+<pre><code>sub init()
+    m.top.id = "set_in_init"
+    ?"My id is: " + m.top.id
+end sub
+
+function onKeyEvent(key, press)
+    ?"My id is now: " + m.top.id
+    return true
+end function
+</code></pre>
+
+<p>Prints:</p>
+
+<pre><code>My id is: set_in_init
+My id is now: parent
+</code></pre>
+
+<h3>Cannot access <code>getParent()</code> from <code>init()</code></h3>
+
+<p>The Roku docs say:</p>
+
+<blockquote>
+  <p>For nodes that are defined in the <code>&lt;children&gt;</code> XML markup of the component file, the parent node is set after the node is created, and <code>init()</code> is called.</p>
+</blockquote>
+
+<p>Essentially that means that the children are not yet 'parented' when their <code>init()</code> function is ran. That means that if you call <code>getParent()</code> in <code>init()</code>, it will return <code>invalid</code>.</p>
+
+<h3>Cannot <code>setFocus()</code> from <code>init()</code></h3>
+
+<p>Following on the above behavior, that means that the children created in a component are not yet valid targets for focus while <code>init()</code> is running. The children are not parented (added to the Scene Graph tree) until after <code>init()</code> is complete and calls to <code>setFocus()</code> require that the node being focused is in the Scene Graph tree. <strong>However</strong>, experimentation has shown that you can often get away with calling <code>setFocus()</code> on a child in the <code>init()</code> and I personally have done it often in real apps. I have also seen it not work and struggled to figure out why, so it is probably better to just avoid the ambiguity and not do this.</p>
+
+<p>(It is usually not a good idea to set the focus during object creation anyway, and a better approach is to set up an observer on <code>focusedChild</code> so that your component is aware when something is trying to set focus on it and handle focus at that time.)</p>
+
+]]></description>
+            <pubDate>Tue, 18 Dec 2018 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/init_order</guid>
+        </item>
+        <item>
+            <title>Roku: A Different Kind of &#39;Rule of Thirds&#39;</title>
+            <link>http://briandunnington.github.io/divisible_by_3</link>
+            <description><![CDATA[
+<p>Roku devices <a href="https://sdkdocs.roku.com/display/sdkdoc/Specifying+Display+Resolution">support a few different resolutions</a> for displaying your app's UI:</p>
+
+<ul>
+<li>FHD (1920x1080)</li>
+<li>HD (1280x720)</li>
+<li>SD (720x480)</li>
+</ul>
+
+<p><em>NOTE: This post is only going to focus on FHD and HD. Since SD is a different aspect ratio (4:3) and most Roku devices cannot output SD anyway, it is usually easier to omit explicit support and let the Roku autoscale the UI to handle SD.</em></p>
+
+<p>Although you can provide explicit layouts for both HD and FHD, a much more common approach is to only provide the FHD layout and let the Roku downscale the UI to handle HD automatically. To do this, simply add this to your <code>manifest</code> file:</p>
+
+<p><code>ui_resolutions=FHD</code></p>
+
+<p>Now, you can simply use a 1920x1080 grid when specifying your UI dimensions and Roku will automatically handle converting it to HD as necessary. In order to autoscale the UI down, all of the dimensions are essentially multiplied by 2/3. So an element that is half-a-screen wide in and FHD app would be specified as 960 (1920/2), but would correctly render at 640 (960 * 2/3) on an HD screen.</p>
+
+<p>However, there is a catch with this approach. Since everything is multiplied by 2/3, the original element dimensions must always be divisible by 3 to avoid rounding issues. Consider the following layout which renders a 3x3 grid - it is 597px wide (<a href="http://www.aaamath.com/div66_x3.htm">which is divisible by 3 since 5+9+7=12, which is divisible by 3</a>) and thus each square is 199x199:</p>
+
+<pre  class="language-markup" ><code>&lt;Rectangle width="597" height="597" color="0xFFFFFF"&gt;
+    &lt;Rectangle width="199" height="199" color="0xFF0000" translation="[0,0]"/&gt;
+    &lt;Rectangle width="199" height="199" color="0x00FF00" translation="[199,0]"/&gt;
+    &lt;Rectangle width="199" height="199" color="0xFF0000" translation="[398,0]"/&gt;
+    &lt;Rectangle width="199" height="199" color="0x00FF00" translation="[0,199]"/&gt;
+    &lt;Rectangle width="199" height="199" color="0xFF0000" translation="[199,199]"/&gt;
+    &lt;Rectangle width="199" height="199" color="0x00FF00" translation="[398,199]"/&gt;
+    &lt;Rectangle width="199" height="199" color="0xFF0000" translation="[0,399]"/&gt;
+    &lt;Rectangle width="199" height="199" color="0x00FF00" translation="[199,398]"/&gt;
+    &lt;Rectangle width="199" height="199" color="0xFF0000" translation="[398,398]"/&gt;
+&lt;/Rectangle&gt;
+</code></pre>
+
+<p><img src="/images/divisible_by_3_1.png" style="width: 600px;" /></p>
+
+<p>If you look closely, you can see there are some white lines along the right edge of the grid. Zooming in on the image, we can see:</p>
+
+<p><img src="/images/divisible_by_3_2.png" style="width: 600px;" /></p>
+
+<p>The squares are not lining up correctly since 199 is not divisible by 3. Let's work through what is going on.</p>
+
+<ul>
+<li>The overall grid is 597x597 which is divisible by 3. The HD grid should end up 597 * 2/3 = 398px wide</li>
+<li>In order to make a 3x3 grid, each square is 199x199 - 199 is <em>not</em> divisible by 3</li>
+<li>199 * 2/3 = 132.66666667 which gets rendered as 132</li>
+<li>The top left square ends up 132x132 at position 0,0</li>
+<li>The top middle square ends up rendered at position 132,0 so there is no gap</li>
+<li>The top right square should have been rendered at 398,0, which converts to 265 in HD. But since the first two squares were only 132 each, they only take up 264px so there ends up being a 1px gap between the second and third columns.</li>
+<li>Same thing happens between the second and third rows</li>
+<li>The top right square gets positioned at 265, but since it is only 132px wide, it only fills in to 397, leaving a 1px gap along the right edge (same along the bottom row)</li>
+</ul>
+
+<p>So if we adjust our dimensions so that each individual square is divisible by 3 in both dimensions, we get:</p>
+
+<pre  class="language-markup" ><code>&lt;Rectangle width="603" height="603" color="0xFFFFFF"&gt;
+    &lt;Rectangle width="201" height="201" color="0xFF0000" translation="[0,0]"/&gt;
+    &lt;Rectangle width="201" height="201" color="0x00FF00" translation="[201,0]"/&gt;
+    &lt;Rectangle width="201" height="201" color="0xFF0000" translation="[402,0]"/&gt;
+    &lt;Rectangle width="201" height="201" color="0x00FF00" translation="[0,201]"/&gt;
+    &lt;Rectangle width="201" height="201" color="0xFF0000" translation="[201,201]"/&gt;
+    &lt;Rectangle width="201" height="201" color="0x00FF00" translation="[402,201]"/&gt;
+    &lt;Rectangle width="201" height="201" color="0xFF0000" translation="[0,402]"/&gt;
+    &lt;Rectangle width="201" height="201" color="0x00FF00" translation="[201,402]"/&gt;
+    &lt;Rectangle width="201" height="201" color="0xFF0000" translation="[402,402]"/&gt;
+&lt;/Rectangle&gt;
+</code></pre>
+
+<p><img src="/images/divisible_by_3_3.png" style="width: 600px;" /></p>
+
+<p>Here are the two grids side by side for comparison:</p>
+
+<p><img src="/images/divisible_by_3_4.png" style="width: 600px;" /></p>
+
+<p>Note that this applies to all UI dimensions, not just <code>width</code> and <code>height</code>. Any property that specifies a UI dimension is affected, including <code>translation</code> and <code>scale</code>. <code>scale</code> is particularly tricky because the resulting post-scaled dimension must be divisible by 3. So:</p>
+
+<ul>
+<li>600 ✔️ with <code>scale</code> of <code>0.8</code> = 480 ✔️ * 2/3 = 320 ✔️</li>
+<li>597 ✔️ with <code>scale</code> of <code>0.8</code> = 477.6 ❌</li>
+</ul>
+
+]]></description>
+            <pubDate>Mon, 17 Dec 2018 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/divisible_by_3</guid>
+        </item>
+        <item>
+            <title>Roku: Poster component property order</title>
+            <link>http://briandunnington.github.io/poster_property_order</link>
+            <description><![CDATA[
+<p>Often when loading images from the web, we do not have control over how large the source images are. Loading images
+that are too large will eat up precious Roku memory and cause performance problems in your app.</p>
+
+<p>However, the <code>Poster</code> component does have the ability to automatically resize the incoming image as it is loaded so
+that no excess memory is used. The <a href="https://sdkdocs.roku.com/display/sdkdoc/Poster">Roku docs</a> indicate that you can use the following
+properties to control how the image is loaded into memory:</p>
+
+<ul>
+<li><code>loadWith</code></li>
+<li><code>loadHeight</code></li>
+<li><code>loadDisplayMode</code></li>
+</ul>
+
+<p>By using these properties, you can load an image that is normally too large but only consume the memory required for the
+desired final size. For example:</p>
+
+<pre  class="language-markup" ><code>&lt;Poster uri="http://big.image" loadDisplayMode="scaleToZoom" loadWidth="720" loadHeight="405" /&gt;
+</code></pre>
+
+<p>If you view the <a href="https://sdkdocs.roku.com/display/sdkdoc/Texture+Memory">texture memory</a>, you can see:</p>
+
+<p><img src="/images/poster_properties_1.png" /></p>
+
+<p>But wait - why does it report that the image is 1920x1080 if we specified it to be 720x405? The Roku docs actually mention
+the reason, but it is not always immediately obvious:</p>
+
+<blockquote>
+  <p>In order for the load scaling options to work, the option fields must be set in XML markup before the <code>uri</code> field.</p>
+</blockquote>
+
+<p>What that means is that <strong>property source order is important</strong>. As soon as the <code>uri</code> field is set, the image begins loading
+with whatever options have been set. If the <code>load*</code> properties have not been set yet, they will be ignored. So we need to
+change our markup to ensure that the <code>uri</code> is set <em>after</em> the other properties:</p>
+
+<pre  class="language-markup" ><code>&lt;Poster loadDisplayMode="scaleToZoom" loadWidth="720" loadHeight="405" uri="http://big.image" /&gt;
+</code></pre>
+
+<p>Now when you view the texture memory, you see:</p>
+
+<p><img src="/images/poster_properties_2.png" /></p>
+
+<p>That looks more like it. Even though the Roku docs mention this, it catches lots of folks off guard since xml property order is normally not significant.</p>
+
+]]></description>
+            <pubDate>Mon, 17 Dec 2018 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/poster_property_order</guid>
         </item>
         <item>
             <title>Deploying Azure Web App Certificates from Key Vault</title>

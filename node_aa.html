@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <title>Roku: Nodes and Associative Array fields</title>
+
+    <meta name="title" content="Roku: Nodes and Associative Array fields"/>
+    <meta name="description" content="A look at how associative array fields on nodes are handled and how they can affect performance"/>
+    <meta name="author" content="Brian Dunnington" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:type" content="website"/>
+    <meta property="og:site_name" content="Brian Dunnington" />
+    <meta property="og:url" content="https://briandunnington.github.io/node_aa"/>
+    <meta property="og:title" content="Roku: Nodes and Associative Array fields"/>
+    <meta property="og:description" content="A look at how associative array fields on nodes are handled and how they can affect performance"/>
+    <meta property="og:image" content="https://briandunnington.github.io/img/bd_logo.png"/>
+    <meta property="article:published_time" content="2018-12-19T12:00:00"/>
+    <meta property="twitter:card" content="summary_large_image"/>
+    <meta property="twitter:site" content="@briandunnington"/>
+    <meta property="twitter:creator" content="@briandunnington"/>
+    <meta property="twitter:url" content="https://briandunnington.github.io/node_aa"/>
+    <meta property="twitter:title" content="Roku: Nodes and Associative Array fields"/>
+    <meta property="twitter:description" content="A look at how associative array fields on nodes are handled and how they can affect performance"/>
+    <meta property="twitter:image" content="https://briandunnington.github.io/img/bd_logo.png"/>
+
+    <link rel="canonical" href="https://briandunnington.github.io/node_aa" />
+    <link rel="stylesheet" href="/css/style.css"/>
+    <link rel="stylesheet" href="/css/prism.css"/>
+    <link type="application/atom+xml" rel="alternate" href="https://briandunnington.github.io/rss.xml" title="Brian Dunnington" />
+
+    <script src="/js/prism.js"></script>
+</head>
+
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/">
+                <h2 class="nav-title">brian dunnington</h2>
+            </a>
+            <ul>
+                <li><a href="/about">About</a></li>
+                <li><a href="/contact">Contact</a></li>
+                <li><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="48" style="position: relative;top:30px;"/></a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <div class="post">
+            <div class="post-info">
+                <time datetime="2018-12-19 12:00:00 +0000" class="catalogue-time">December 19, 2018</time>
+            </div>
+
+            <h1 class="post-title">Roku: Nodes and Associative Array fields</h1>
+            <div class="post-line"></div>
+
+
+
+            <div class="language-csharp"><p>Like a lot of other languages, BrightScript passes 'intrinsic' types by value and 'object' types by reference. In fact, <a href="https://sdkdocs.roku.com/display/sdkdoc/Component+Architecture#ComponentArchitecture-Intrinsictypesandobjecttypes">their documentation</a> shows an example of how this works:</p>
+
+<pre><code>function Modify(a as Integer, b as Object) as Void
+    a = 43
+    b.first = 6
+end function
+'.....
+x = 42
+y = { first: 1, second: 2 }
+Modify(x, y)
+' now x is still 42 but y.first is 6
+</code></pre>
+
+<p>As you can see, <code>y</code> was an associative array that got passed to the <code>Modify()</code> function. The <code>Modify()</code> function changed one of the properties on the <code>y</code> object, and since it was passed by ref, the original <code>y</code> object was updated.</p>
+
+<p>But did you know that this is only true some of the time? Consider a simple component like this:</p>
+
+<pre  class="language-markup" ><code>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;component name="MyComponent" extends="Group"&gt;
+    &lt;script type="text/brightscript" uri="pkg:/components/MyComponent.brs"/&gt;
+    &lt;interface&gt;
+        &lt;field id="props" type="assocarray"/&gt;
+    &lt;/interface&gt;
+&lt;/component&gt;
+</code></pre>
+
+<p>This component defines a single additional field called <code>props</code> that is of type <code>assocarray</code>. We use this component like this:</p>
+
+<pre><code>my = m.top.findNode("my")
+my.props = {
+    text: "initial text"
+    count: 1
+}
+</code></pre>
+
+<p>And when we inspect the value, it is what we would expect:</p>
+
+<p><img src="/images/node_aa_1.png" /></p>
+
+<p>Pretty straight-forward so far. And since we learned that AAs are passed by ref, we can modify the value like this:</p>
+
+<p><code>my.props.count = 2</code></p>
+
+<p>And when we inspect the value:</p>
+
+<p><img src="/images/node_aa_2.png" /></p>
+
+<p>Wait, what?! We just set the value of the <code>count</code> property to 2, so why is it reporting it as 1?</p>
+
+<p>The answer is that AAs are '<a href="https://sdkdocs.roku.com/display/sdkdoc/Optimization+Techniques#OptimizationTechniques-DataFlow">deep-copied through fields (pass-by-value)</a>'. So in the special case where the AA is a field on a node, it is <strong>not</strong> passed by ref, but is instead copied. So when we did this:</p>
+
+<p><code>my.props.count = 2</code></p>
+
+<p>what really happened is that <code>my.props</code> returned a <em>copy</em> of the AA, on which we set the <code>count</code> property to 2. When we inspected <code>my.props</code> again, it was yet another copy which of course did <em>not</em> contain the changes.</p>
+
+<p>So how do you actually update a property on an AA like this? You don't 😜 Instead, you have to update the entire AA. The common pattern is:</p>
+
+<pre><code>props = my.props
+props.count = 2
+m.props = props
+</code></pre>
+
+<p>Here we get a copy of the AA, update it, and then set the node's field to the new AA. We can see that by doing this, the AA now reports the correct values:</p>
+
+<p><img src="/images/node_aa_3.png" /></p>
+
+<p>There is one other caveat to this copying behavior. Consider a normal AA like this:</p>
+
+<pre><code>props = {
+    text: "initial text"
+    count: 1
+    func: function()
+        return "func called"
+    end function
+}
+</code></pre>
+
+<p>This AA defines <code>func</code> as a function, and when we call it, we get the expected results:</p>
+
+<p><img src="/images/node_aa_4.png" /></p>
+
+<p>But if we set this AA as a node field and call it:</p>
+
+<pre><code>props = {
+    text: "initial text"
+    count: 1
+    func: function()
+        return "func called"
+    end function
+}
+my = m.top.findNode("my")
+my.props = props
+</code></pre>
+
+<p><img src="/images/node_aa_5.png" /></p>
+
+<p>The call fails, and when we inspect the AA, we see that the <code>func</code> property does not even exist! Every time the AA is copied, any function properties are silently stripped out (presumably to make them 'data-only' so that they can be marshalled across thread boundaries if necessary). Definitely something to watch out for since the debugger does not give any kind of hint that this has happened until you try to access the now-missing function.</p>
+
+<p>As you might imagine, all of this has some substantial performance implications, especially when copying AAs across thread boundaries. Stay tuned for another post that dives deep into how to deal with those situations and some recommendations on best practices to ensure optimum performance.</p>
+</div>
+        </div>
+
+        <div class="pagination">
+
+                <a href="/live_video_delay" class="left arrow">&#8592; Roku: Fix for live video delay</a>
+                            <a href="/init_order" class="right arrow">Roku: Component initialization order &#8594;</a>
+            <a href="#" class="top">Top</a>
+        </div>
+    </main>
+
+    <footer>
+        <span>
+            &copy; 2012-2022 brian dunnington
+        </span>
+    </footer>
+
+</body>
+</html>

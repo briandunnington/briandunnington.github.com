@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+@model Nest.SiteData
+@{
+    var siteRoot = "https://briandunnington.github.io";
+    var now = DateTime.UtcNow;
+}
+<urlset
+      xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+    <url>
+        <loc>@siteRoot</loc>
+        <lastmod>@now.ToString("yyyy-MM-ddThh:mm:ss+00:00")</lastmod>
+        <priority>1.00</priority>
+    </url>
+    @foreach (var page in @Model.Pages.Where((p) => p.Contains("Priority")).OrderByDescending((p) => p.Priority))
+    {
+        var link = siteRoot + page.LinkNoExt;
+    <url>
+        <loc>@link</loc>
+        <lastmod>@now.ToString("yyyy-MM-ddThh:mm:ss+00:00")</lastmod>
+        <priority>@page.Priority</priority>
+    </url>
+    }
+    @foreach (var post in @Model.Posts.OrderByDescending((p) => p.Date))
+    {
+        var link = siteRoot + post.LinkNoExt;
+    <url>
+        <loc>@link</loc>
+        <lastmod>@post.Date.ToString("yyyy-MM-ddThh:mm:ss+00:00")</lastmod>
+        <priority>0.80</priority>
+    </url>
+    }
+</urlset>
