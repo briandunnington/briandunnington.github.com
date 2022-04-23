@@ -7,9 +7,45 @@
         <description>RSS feed for website</description>
         <language>en-us</language>
         <copyright>Copyright 2012 - 2022 : Brian Dunnington</copyright>
-        <pubDate>Sun, 20 Feb 2022 09:35:58 GMT</pubDate>
-        <lastBuildDate>Sun, 20 Feb 2022 09:35:58 GMT</lastBuildDate>
+        <pubDate>Sat, 23 Apr 2022 12:13:39 GMT</pubDate>
+        <lastBuildDate>Sat, 23 Apr 2022 12:13:39 GMT</lastBuildDate>
 
+        <item>
+            <title>Keyless Cosmos Connections</title>
+            <link>http://briandunnington.github.io/keyless-cosmos-connections</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Keyless Cosmos Connections</h1>
+<p>How to connect to Cosmos without any secrets at all</p>
+</div>
+
+<p><style>
+.videoWrapper {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 */
+    padding-top: 25px;
+    height: 0;
+    margin-top: 24px;
+}
+.videoWrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+</style></p>
+
+<p>Here is my talk from the 2022 Azure Cosmos DB Conference (<a href="https://docs.microsoft.com/en-us/events/learntv/azure-cosmos-db-april-2022/">#AzureCosmosDbConf</a>). Learn how to addd an extra layer of security by connecting to Cosmos without any secrets at all.</p>
+
+<div class="videoWrapper">
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/vMp4YhAnNFA" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</div>
+
+]]></description>
+            <pubDate>Fri, 22 Apr 2022 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/keyless-cosmos-connections</guid>
+        </item>
         <item>
             <title>Serializing JObject to camelCase</title>
             <link>http://briandunnington.github.io/jobject_serialization</link>
