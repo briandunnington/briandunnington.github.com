@@ -6,10 +6,46 @@
         <link>http://briandunnington.github.io</link>
         <description>RSS feed for website</description>
         <language>en-us</language>
-        <copyright>Copyright 2012 - 2022 : Brian Dunnington</copyright>
-        <pubDate>Sat, 23 Apr 2022 12:13:39 GMT</pubDate>
-        <lastBuildDate>Sat, 23 Apr 2022 12:13:39 GMT</lastBuildDate>
+        <copyright>Copyright 2012 - 2023 : Brian Dunnington</copyright>
+        <pubDate>Thu, 25 May 2023 02:33:57 GMT</pubDate>
+        <lastBuildDate>Thu, 25 May 2023 02:33:57 GMT</lastBuildDate>
 
+        <item>
+            <title>Cloud Distributed Lock with Azure Cosmos DB</title>
+            <link>http://briandunnington.github.io/cloud-distributed-lock</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Cloud Distributed Lock with Azure Cosmos DB</h1>
+<p>How to implement a cloud-distributed lock using Azure Cosmos DB</p>
+</div>
+
+<p><style>
+.videoWrapper {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 */
+    padding-top: 25px;
+    height: 0;
+    margin-top: 24px;
+}
+.videoWrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+</style></p>
+
+<p>I was lucky enough to be invited on Azure Cosmos Live TV to talk about building a cloud distributed lock. If you have actions that you need to synchronize across multiple distributed instances of your code, take a look.</p>
+
+<div class="videoWrapper">
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/Hreew-l5rCQ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</div>
+
+]]></description>
+            <pubDate>Fri, 19 May 2023 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/cloud-distributed-lock</guid>
+        </item>
         <item>
             <title>Keyless Cosmos Connections</title>
             <link>http://briandunnington.github.io/keyless-cosmos-connections</link>
