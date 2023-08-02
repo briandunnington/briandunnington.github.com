@@ -7,9 +7,45 @@
         <description>RSS feed for website</description>
         <language>en-us</language>
         <copyright>Copyright 2012 - 2023 : Brian Dunnington</copyright>
-        <pubDate>Wed, 02 Aug 2023 01:03:16 GMT</pubDate>
-        <lastBuildDate>Wed, 02 Aug 2023 01:03:16 GMT</lastBuildDate>
+        <pubDate>Wed, 02 Aug 2023 01:13:30 GMT</pubDate>
+        <lastBuildDate>Wed, 02 Aug 2023 01:13:30 GMT</lastBuildDate>
 
+        <item>
+            <title>Everything You Ever Wanted To Know About Cookies</title>
+            <link>http://briandunnington.github.io/everything_you_ever_wanted_to_know_about_cookies</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Everything You Ever Wanted To Know About Cookies</h1>
+<p>What are HTTP cookies? Are they dangerous? Do you really understand how they work? We will dive deep into what cookies are, what they can/can’t do, and some little-known properties that make working with cookies more secure.</p>
+</div>
+
+<p><style>
+.videoWrapper {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 */
+    padding-top: 25px;
+    height: 0;
+    margin-top: 24px;
+}
+.videoWrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+</style></p>
+
+<p>After a couple of years of hiatus (something about a global pandemic?), the Learn Engineering Summit was back and I got to give this fun talk about cookies. Stick around til the end for some extra important information! 🍪🍪</p>
+
+<div class="videoWrapper">
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/FSCNU1aoRLI" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</div>
+
+]]></description>
+            <pubDate>Thu, 15 Jun 2023 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/everything_you_ever_wanted_to_know_about_cookies</guid>
+        </item>
         <item>
             <title>Cloud Distributed Lock with Azure Cosmos DB</title>
             <link>http://briandunnington.github.io/cloud-distributed-lock</link>
