@@ -31,6 +31,16 @@ What gives? We aren't even trying to access a file. Well, when running in Azure,
 
 Turns out this has been biting folks for many years as [this post on StackOverflow from 7 years ago][StackOverflow] shows, and if you want to get deep into the weeds about what each of these flags do and why it works this way, I will point you over to [this explanation (also on StackOverflow)][Rationale] for some light reading.
 
+**UPDATE 2023.08.01**: This post is four years old, but this cropped up in a slightly new way again today. If you are using the [Azure Key Vault SDK for certificates][sdk] and use either the `DownloadCertificate()` or `DownloadCertificateAsync()` methods that take the certificate name, you can encounter this same issue. Behind the scenes, it is [doing the same thing as the original post][behindthescenes]. Luckily, the fix is easy: just use the overloads that take a `DownloadCertificateOptions` parameter and you can set the `KeyStoreFlags` property:
+
+    var certificate = await certificateClient.DownloadCertificateAsync(new DownloadCertificateOptions(name) {
+        KeyStoreFlags = X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable
+    });
+
 
 [StackOverflow]: https://stackoverflow.com/questions/9951729/x509certificate-constructor-exception
 [Rationale]: https://stackoverflow.com/questions/52750160/what-is-the-rationale-for-all-the-different-x509keystorageflags/52840537#52840537
+[sdk]: https://www.nuget.org/packages/Azure.Security.KeyVault.Certificates/
+[DownloadCertificate]: https://learn.microsoft.com/en-us/dotnet/api/azure.security.keyvault.certificates.certificateclient.downloadcertificate?view=azure-dotnet
+[DownloadCertificateAsync]: https://learn.microsoft.com/en-us/dotnet/api/azure.security.keyvault.certificates.certificateclient.downloadcertificateasync?view=azure-dotnet
+[behindthescenes]: https://github.com/Azure/azure-sdk-for-net/blob/79671d0524558c907c1d0bfbfd9d2e17615cbe8b/sdk/keyvault/Azure.Security.KeyVault.Certificates/src/CertificateClient.cs#L231C21-L231C97

@@ -90,6 +90,13 @@ var certificate = new X509Certificate2(Convert.FromBase64String(secret.Value));
 </code></pre>
 
 <p>Turns out this has been biting folks for many years as <a href="https://stackoverflow.com/questions/9951729/x509certificate-constructor-exception">this post on StackOverflow from 7 years ago</a> shows, and if you want to get deep into the weeds about what each of these flags do and why it works this way, I will point you over to <a href="https://stackoverflow.com/questions/52750160/what-is-the-rationale-for-all-the-different-x509keystorageflags/52840537#52840537">this explanation (also on StackOverflow)</a> for some light reading.</p>
+
+<p><strong>UPDATE 2023.08.01</strong>: This post is four years old, but this cropped up in a slightly new way again today. If you are using the <a href="https://www.nuget.org/packages/Azure.Security.KeyVault.Certificates/">Azure Key Vault SDK for certificates</a> and use either the <code>DownloadCertificate()</code> or <code>DownloadCertificateAsync()</code> methods that take the certificate name, you can encounter this same issue. Behind the scenes, it is <a href="https://github.com/Azure/azure-sdk-for-net/blob/79671d0524558c907c1d0bfbfd9d2e17615cbe8b/sdk/keyvault/Azure.Security.KeyVault.Certificates/src/CertificateClient.cs#L231C21-L231C97">doing the same thing as the original post</a>. Luckily, the fix is easy: just use the overloads that take a <code>DownloadCertificateOptions</code> parameter and you can set the <code>KeyStoreFlags</code> property:</p>
+
+<pre><code>var certificate = await certificateClient.DownloadCertificateAsync(new DownloadCertificateOptions(name) {
+    KeyStoreFlags = X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable
+});
+</code></pre>
 </div>
         </div>
 
