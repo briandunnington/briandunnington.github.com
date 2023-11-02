@@ -7,16 +7,16 @@
         <description>RSS feed for website</description>
         <language>en-us</language>
         <copyright>Copyright 2012 - 2023 : Brian Dunnington</copyright>
-        <pubDate>Thu, 02 Nov 2023 05:12:56 GMT</pubDate>
-        <lastBuildDate>Thu, 02 Nov 2023 05:12:56 GMT</lastBuildDate>
+        <pubDate>Thu, 02 Nov 2023 08:12:21 GMT</pubDate>
+        <lastBuildDate>Thu, 02 Nov 2023 08:12:21 GMT</lastBuildDate>
 
         <item>
-            <title>Durable Functions error - &#39;An EventStarted event is required&#39;</title>
+            <title>Durable Functions error - &#39;An ExecutionStarted event is required&#39;</title>
             <link>http://briandunnington.github.io/durable_functions_an_eventstarted_event_is_required</link>
             <description><![CDATA[
 <div class="hero-unit">
-<h1>Durable Functions error - 'An EventStarted event is required'</h1>
-<p>The solution to InvalidOperationException with 'An EventStarted event is required' when running or migrating Durable Functions to Isolated process</p>
+<h1>Durable Functions error - 'An ExecutionStarted event is required'</h1>
+<p>The solution to InvalidOperationException with 'An ExecutionStarted event is required' when running or migrating Durable Functions to Isolated process</p>
 </div>
 
 <p>We have been migrating our Azure Functions to the new <a href="isolated">isolated process model</a> and for the most part, it has been fairly straight-forward. However, the most recent function app I was migrating used Durable Functions and I kept getting a strange error:</p>
@@ -37,7 +37,7 @@ Exception: System.InvalidOperationException: An ExecutionStarted event is requir
 
 <p>You know it is going to be a fun debugging session when there are <em>zero</em> results on Google.</p>
 
-<p>This is a big complicated function app, so I created a <code>File &gt; New</code> Durable Function app from Visual Studio to see if I could reproduce the issue. Of course it ran fine out of the box. Now that I knew those functions themselves worked, I copied them into my actual function app, and when I ran it, I got the <code>An EventStarted event is required</code> error.</p>
+<p>This is a big complicated function app, so I created a <code>File &gt; New</code> Durable Function app from Visual Studio to see if I could reproduce the issue. Of course it ran fine out of the box. Now that I knew those functions themselves worked, I copied them into my actual function app, and when I ran it, I got the <code>An ExecutionStarted event is required</code> error.</p>
 
 <p>Like I said, this is a complex app with our own custom middleware and authentication and lots of stuff going on, so I assumed there was some strange incompatibility somehwere. I spent a ton of time trying to hunt down the issue thinking it had to do with how we were modifying the function results and possibly messing up the durable functions runtime somehow.</p>
 

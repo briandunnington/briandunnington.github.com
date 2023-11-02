@@ -1,11 +1,11 @@
-Title: Durable Functions error - 'An EventStarted event is required'
+Title: Durable Functions error - 'An ExecutionStarted event is required'
 Date: 2023.11.02
-Summary: The solution to InvalidOperationException with 'An EventStarted event is required' when running or migrating Durable Functions to Isolated process
+Summary: The solution to InvalidOperationException with 'An ExecutionStarted event is required' when running or migrating Durable Functions to Isolated process
 Image: http://briandunnington.github.io/images/eventstarted_event_required.png
 
 <div class="hero-unit">
-<h1>Durable Functions error - 'An EventStarted event is required'</h1>
-<p>The solution to InvalidOperationException with 'An EventStarted event is required' when running or migrating Durable Functions to Isolated process</p>
+<h1>Durable Functions error - 'An ExecutionStarted event is required'</h1>
+<p>The solution to InvalidOperationException with 'An ExecutionStarted event is required' when running or migrating Durable Functions to Isolated process</p>
 </div>
 
 We have been migrating our Azure Functions to the new [isolated process model](isolated) and for the most part, it has been fairly straight-forward. However, the most recent function app I was migrating used Durable Functions and I kept getting a strange error:
@@ -26,7 +26,7 @@ Of course I turned to Google:
 
 You know it is going to be a fun debugging session when there are *zero* results on Google.
 
-This is a big complicated function app, so I created a `File > New` Durable Function app from Visual Studio to see if I could reproduce the issue. Of course it ran fine out of the box. Now that I knew those functions themselves worked, I copied them into my actual function app, and when I ran it, I got the `An EventStarted event is required` error.
+This is a big complicated function app, so I created a `File > New` Durable Function app from Visual Studio to see if I could reproduce the issue. Of course it ran fine out of the box. Now that I knew those functions themselves worked, I copied them into my actual function app, and when I ran it, I got the `An ExecutionStarted event is required` error.
 
 Like I said, this is a complex app with our own custom middleware and authentication and lots of stuff going on, so I assumed there was some strange incompatibility somehwere. I spent a ton of time trying to hunt down the issue thinking it had to do with how we were modifying the function results and possibly messing up the durable functions runtime somehow.
 
