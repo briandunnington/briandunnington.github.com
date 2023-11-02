@@ -7,9 +7,81 @@
         <description>RSS feed for website</description>
         <language>en-us</language>
         <copyright>Copyright 2012 - 2023 : Brian Dunnington</copyright>
-        <pubDate>Wed, 02 Aug 2023 01:13:30 GMT</pubDate>
-        <lastBuildDate>Wed, 02 Aug 2023 01:13:30 GMT</lastBuildDate>
+        <pubDate>Thu, 02 Nov 2023 05:12:56 GMT</pubDate>
+        <lastBuildDate>Thu, 02 Nov 2023 05:12:56 GMT</lastBuildDate>
 
+        <item>
+            <title>Durable Functions error - &#39;An EventStarted event is required&#39;</title>
+            <link>http://briandunnington.github.io/durable_functions_an_eventstarted_event_is_required</link>
+            <description><![CDATA[
+<div class="hero-unit">
+<h1>Durable Functions error - 'An EventStarted event is required'</h1>
+<p>The solution to InvalidOperationException with 'An EventStarted event is required' when running or migrating Durable Functions to Isolated process</p>
+</div>
+
+<p>We have been migrating our Azure Functions to the new <a href="isolated">isolated process model</a> and for the most part, it has been fairly straight-forward. However, the most recent function app I was migrating used Durable Functions and I kept getting a strange error:</p>
+
+<p><br><img src="/images/eventstarted_event_required.png" width="100%"><br></p>
+
+<p>For those seaching, the full text is:</p>
+
+<pre><code>An exception was thrown by the invocation.  
+Exception: System.InvalidOperationException: An ExecutionStarted event is required.  
+    at DurableTask.Core.OrchestrationRuntimeState.GetExecutionStartedEventOrThrow()  
+    in /_/src/DurableTask.Core/OrchestrationRuntimeState.cs:line 201
+</code></pre>
+
+<p>Of course I turned to Google:</p>
+
+<p><br><img src="/images/eventstarted_no_google.png" width="100%"><br></p>
+
+<p>You know it is going to be a fun debugging session when there are <em>zero</em> results on Google.</p>
+
+<p>This is a big complicated function app, so I created a <code>File &gt; New</code> Durable Function app from Visual Studio to see if I could reproduce the issue. Of course it ran fine out of the box. Now that I knew those functions themselves worked, I copied them into my actual function app, and when I ran it, I got the <code>An EventStarted event is required</code> error.</p>
+
+<p>Like I said, this is a complex app with our own custom middleware and authentication and lots of stuff going on, so I assumed there was some strange incompatibility somehwere. I spent a ton of time trying to hunt down the issue thinking it had to do with how we were modifying the function results and possibly messing up the durable functions runtime somehow.</p>
+
+<p>I started to slowly move some of our custom logic over to the working sample app, piece by piece, trying to see what finally broke it. Eventually, I copied over my custom <code>host.json</code> and suddently the sample app also started breaking!</p>
+
+<p>Taking a look at the <code>host.json</code>, I saw this:</p>
+
+<pre><code>//...snip...
+"extensions": {
+    "http": {
+        "routePrefix": "api"
+    },
+    "durableTask": {
+        "extendedSessionsEnabled": true,
+        "extendedSessionIdleTimeoutInSeconds": 30
+    }
+}
+//...snip...
+</code></pre>
+
+<p>The sample app didnt include the <code>extendedSessions</code> stuff, but I recognized it from somewhere. In fact, the Azure Functions runtime emits this message when I ran the app:</p>
+
+<p><br><img src="/images/eventstarted_extendedSessions.png" width="100%"><br></p>
+
+<pre><code>Durable Functions does not work with extendedSessions = true for non-.NET languages. 
+This value is being set to false instead. 
+See https://docs.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-perf-and-scale#extended-sessions for more details.
+</code></pre>
+
+<p>Note that 'non-.NET languages' <em>includes</em> the Isolated model even if you are using .NET (it really means 'non-in-process model'). If you check out <a href="extendedSession">the help link from the message</a>, you can see this:</p>
+
+<p><br><img src="/images/eventstarted_notSupported.png" width="100%"><br></p>
+
+<p>So <code>extendedSessions</code> are not supported, and the output from the runtime says it is being set to <code>false</code>. But apparently, even when the runtime sets it to <code>false</code>, it still causes issues. I removed the <code>extendedSessions</code> config from my <code>host.json</code> file and my big complicated function app started working as expected 🎉</p>
+
+<p>This took me a long time to hunt down so I wanted to share this with the world. Hopefully the next time someone searches, Google will have at least one result.</p>
+
+<p>You can also <a href="https://twitter.com/briandunnington">follow me on Twitter</a> if you want more esoteric Azure Functions tidbits.</p>
+
+]]></description>
+            <pubDate>Thu, 02 Nov 2023 12:00:00 GMT</pubDate>
+            <guid>http://briandunnington.github.io/durable_functions_an_eventstarted_event_is_required</guid>
+            <image>http://briandunnington.github.io/images/eventstarted_event_required.png</image>
+        </item>
         <item>
             <title>Everything You Ever Wanted To Know About Cookies</title>
             <link>http://briandunnington.github.io/everything_you_ever_wanted_to_know_about_cookies</link>

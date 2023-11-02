@@ -1,0 +1,142 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <title>Durable Functions error - 'An EventStarted event is required'</title>
+
+    <meta name="title" content="Durable Functions error - 'An EventStarted event is required'"/>
+    <meta name="description" content="The solution to InvalidOperationException with 'An EventStarted event is required' when running or migrating Durable Functions to Isolated process"/>
+    <meta name="author" content="Brian Dunnington" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:type" content="website"/>
+    <meta property="og:site_name" content="Brian Dunnington" />
+    <meta property="og:url" content="https://briandunnington.github.io/durable_functions_an_eventstarted_event_is_required"/>
+    <meta property="og:title" content="Durable Functions error - 'An EventStarted event is required'"/>
+    <meta property="og:description" content="The solution to InvalidOperationException with 'An EventStarted event is required' when running or migrating Durable Functions to Isolated process"/>
+    <meta property="og:image" content="http://briandunnington.github.io/images/eventstarted_event_required.png"/>
+    <meta property="article:published_time" content="2023-11-02T12:00:00"/>
+    <meta property="twitter:card" content="summary_large_image"/>
+    <meta property="twitter:site" content="@briandunnington"/>
+    <meta property="twitter:creator" content="@briandunnington"/>
+    <meta property="twitter:url" content="https://briandunnington.github.io/durable_functions_an_eventstarted_event_is_required"/>
+    <meta property="twitter:title" content="Durable Functions error - 'An EventStarted event is required'"/>
+    <meta property="twitter:description" content="The solution to InvalidOperationException with 'An EventStarted event is required' when running or migrating Durable Functions to Isolated process"/>
+    <meta property="twitter:image" content="http://briandunnington.github.io/images/eventstarted_event_required.png"/>
+
+    <link rel="canonical" href="https://briandunnington.github.io/durable_functions_an_eventstarted_event_is_required" />
+    <link rel="stylesheet" href="/css/style.css"/>
+    <link rel="stylesheet" href="/css/prism.css"/>
+    <link type="application/atom+xml" rel="alternate" href="https://briandunnington.github.io/rss.xml" title="Brian Dunnington" />
+
+    <script src="/js/prism.js"></script>
+</head>
+
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/">
+                <h2 class="nav-title">brian dunnington</h2>
+            </a>
+            <ul>
+                <li><a href="/about">About</a></li>
+                <li><a href="/contact">Contact</a></li>
+                <li><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="48" style="position: relative;top:30px;"/></a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <div class="post">
+            <div class="post-info">
+                <time datetime="2023-11-02 12:00:00 +0000" class="catalogue-time">November 2, 2023</time>
+            </div>
+
+            <h1 class="post-title">Durable Functions error - 'An EventStarted event is required'</h1>
+            <div class="post-line"></div>
+
+
+
+            <div class="language-csharp"><div class="hero-unit">
+<h1>Durable Functions error - 'An EventStarted event is required'</h1>
+<p>The solution to InvalidOperationException with 'An EventStarted event is required' when running or migrating Durable Functions to Isolated process</p>
+</div>
+
+<p>We have been migrating our Azure Functions to the new <a href="isolated">isolated process model</a> and for the most part, it has been fairly straight-forward. However, the most recent function app I was migrating used Durable Functions and I kept getting a strange error:</p>
+
+<p><br><img src="/images/eventstarted_event_required.png" width="100%"><br></p>
+
+<p>For those seaching, the full text is:</p>
+
+<pre><code>An exception was thrown by the invocation.  
+Exception: System.InvalidOperationException: An ExecutionStarted event is required.  
+    at DurableTask.Core.OrchestrationRuntimeState.GetExecutionStartedEventOrThrow()  
+    in /_/src/DurableTask.Core/OrchestrationRuntimeState.cs:line 201
+</code></pre>
+
+<p>Of course I turned to Google:</p>
+
+<p><br><img src="/images/eventstarted_no_google.png" width="100%"><br></p>
+
+<p>You know it is going to be a fun debugging session when there are <em>zero</em> results on Google.</p>
+
+<p>This is a big complicated function app, so I created a <code>File &gt; New</code> Durable Function app from Visual Studio to see if I could reproduce the issue. Of course it ran fine out of the box. Now that I knew those functions themselves worked, I copied them into my actual function app, and when I ran it, I got the <code>An EventStarted event is required</code> error.</p>
+
+<p>Like I said, this is a complex app with our own custom middleware and authentication and lots of stuff going on, so I assumed there was some strange incompatibility somehwere. I spent a ton of time trying to hunt down the issue thinking it had to do with how we were modifying the function results and possibly messing up the durable functions runtime somehow.</p>
+
+<p>I started to slowly move some of our custom logic over to the working sample app, piece by piece, trying to see what finally broke it. Eventually, I copied over my custom <code>host.json</code> and suddently the sample app also started breaking!</p>
+
+<p>Taking a look at the <code>host.json</code>, I saw this:</p>
+
+<pre><code>//...snip...
+"extensions": {
+    "http": {
+        "routePrefix": "api"
+    },
+    "durableTask": {
+        "extendedSessionsEnabled": true,
+        "extendedSessionIdleTimeoutInSeconds": 30
+    }
+}
+//...snip...
+</code></pre>
+
+<p>The sample app didnt include the <code>extendedSessions</code> stuff, but I recognized it from somewhere. In fact, the Azure Functions runtime emits this message when I ran the app:</p>
+
+<p><br><img src="/images/eventstarted_extendedSessions.png" width="100%"><br></p>
+
+<pre><code>Durable Functions does not work with extendedSessions = true for non-.NET languages. 
+This value is being set to false instead. 
+See https://docs.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-perf-and-scale#extended-sessions for more details.
+</code></pre>
+
+<p>Note that 'non-.NET languages' <em>includes</em> the Isolated model even if you are using .NET (it really means 'non-in-process model'). If you check out <a href="extendedSession">the help link from the message</a>, you can see this:</p>
+
+<p><br><img src="/images/eventstarted_notSupported.png" width="100%"><br></p>
+
+<p>So <code>extendedSessions</code> are not supported, and the output from the runtime says it is being set to <code>false</code>. But apparently, even when the runtime sets it to <code>false</code>, it still causes issues. I removed the <code>extendedSessions</code> config from my <code>host.json</code> file and my big complicated function app started working as expected 🎉</p>
+
+<p>This took me a long time to hunt down so I wanted to share this with the world. Hopefully the next time someone searches, Google will have at least one result.</p>
+
+<p>You can also <a href="https://twitter.com/briandunnington">follow me on Twitter</a> if you want more esoteric Azure Functions tidbits.</p>
+</div>
+        </div>
+
+        <div class="pagination">
+
+                            <a href="/everything_you_ever_wanted_to_know_about_cookies" class="right arrow">Everything You Ever Wanted To Know About Cookies &#8594;</a>
+            <a href="#" class="top">Top</a>
+        </div>
+    </main>
+
+    <footer>
+        <span>
+            &copy; 2012-2023 brian dunnington
+        </span>
+    </footer>
+
+</body>
+</html>
