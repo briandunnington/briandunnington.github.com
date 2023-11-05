@@ -7,8 +7,8 @@
         <description>RSS feed for website</description>
         <language>en-us</language>
         <copyright>Copyright 2012 - 2023 : Brian Dunnington</copyright>
-        <pubDate>Sun, 05 Nov 2023 01:15:07 GMT</pubDate>
-        <lastBuildDate>Sun, 05 Nov 2023 01:15:07 GMT</lastBuildDate>
+        <pubDate>Sun, 05 Nov 2023 01:21:51 GMT</pubDate>
+        <lastBuildDate>Sun, 05 Nov 2023 01:21:51 GMT</lastBuildDate>
 
         <item>
             <title>Azure Functions: Route Priority Revisted (for Isolated functions)</title>
@@ -44,6 +44,8 @@
 </ul>
 
 <p>You don't <em>need</em> to know any of that in order to take advantage of this package, but it might be interesting to know what is going on under the hood.</p>
+
+<p>The full source code for this worker extension and the underlying WebJobs extension <a href="https://github.com/briandunnington/AzureFunctionsIsolatedRoutePriority">are available on Github</a>.</p>
 
 <h2>Usage</h2>
 

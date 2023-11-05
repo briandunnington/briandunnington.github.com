@@ -30,6 +30,8 @@ The actual mechanisms of how extensions work are:
 
 You don't _need_ to know any of that in order to take advantage of this package, but it might be interesting to know what is going on under the hood.
 
+The full source code for this worker extension and the underlying WebJobs extension [are available on Github][source].
+
 ## Usage
 Add the [Element.Azure.Functions.Worker.Extensions.RoutePriority][nuget] Nuget package to your Isolated Azure Functions project.
 
@@ -56,3 +58,4 @@ The [source code for the Microsoft-provided extensions](https://github.com/Azure
 [previous]: azure_functions_route_priority
 [nuget]: https://www.nuget.org/packages/Element.Azure.Functions.Worker.Extensions.RoutePriority
 [pr]: https://github.com/Azure/azure-webjobs-sdk-extensions/pull/842#issuecomment-1644597571
+[source]: https://github.com/briandunnington/AzureFunctionsIsolatedRoutePriority
