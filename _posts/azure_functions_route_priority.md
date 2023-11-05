@@ -8,6 +8,8 @@ Image: http://briandunnington.github.io/images/azure_functions.png
 <p>Making Azure Functions route matching make more sense</p>
 </div>
 
+**NOTE:** If you are using isolated (out-of-process) functions, this approach does not work. [Check out a new, easier way][isolated] to do it instead.
+
 **[Updated][Update]**: Updated to handle recent changes in the Functions webhost code.
 
 Although I continue to [profess][DynamicConnectionString] [my][FunctionProxies] [love][Alexa] for [Azure Functions][AzureFunctions], today we are going to discuss something that it doesn't do so good: route priority. Consider these two endpoints:
@@ -291,3 +293,4 @@ Here is the complete thing that you can copy and paste to check it out. Just dec
 [ApplicationStarted]: https://docs.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.hosting.iapplicationlifetime.applicationstarted
 [Comparison]: #comparison
 [Update]: #update
+[isolated]: azure_functions_isolated_route_priority

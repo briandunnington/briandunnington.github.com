@@ -65,6 +65,8 @@
 <p>Making Azure Functions route matching make more sense</p>
 </div>
 
+<p><strong>NOTE:</strong> If you are using isolated (out-of-process) functions, this approach does not work. <a href="azure_functions_isolated_route_priority">Check out a new, easier way</a> to do it instead.</p>
+
 <p><strong><a href="#update">Updated</a></strong>: Updated to handle recent changes in the Functions webhost code.</p>
 
 <p>Although I continue to <a href="/azure_functions_dynamic_connection_string">profess</a> <a href="/azure_functions_proxies">my</a> <a href="/use_azure_functions_with_alexa">love</a> for <a href="https://azure.microsoft.com/en-us/services/functions/">Azure Functions</a>, today we are going to discuss something that it doesn't do so good: route priority. Consider these two endpoints:</p>

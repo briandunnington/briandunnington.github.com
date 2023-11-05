@@ -18,7 +18,7 @@ Unfortunately, the code you write in your function app only runs in the worker p
 
 Except, there is. And it is via Binding Extensions.
 
-Binding extensions are ways to add your own custom trigger types, input bindings, and output bindings. In order to allow them to work, they also have to run in the host. So this solution creates a custom extension that allows code (in this case, code to reorder the route priority order) to run on the host.
+Binding extensions are ways to add your own custom trigger types, input bindings, and output bindings. In order to allow them to work, they also have to run in the host. So this solution creates a custom extension that allows code (in this case, code to reorder the route priority order) to run on the host. The code that runs on the host is the exact same code from the previous in-process solution.
 
 One limitation of extensions is that they are only geared towards bindings. As such, your function app code must make use of at least one binding from your extension or else the function extension metadata generator will strip out the extension information from the generated host code. That is why the `[RoutePriority]` input binding attribute needs to be applied _somewhere_ in a function in your function app - it doesnt do anything, other than prevent the rest of the extension code from being complied out.
 
