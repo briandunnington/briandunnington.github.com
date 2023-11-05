@@ -1,0 +1,133 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <title>Azure Functions: Route Priority Revisted (for Isolated functions)</title>
+
+    <meta name="title" content="Azure Functions: Route Priority Revisted (for Isolated functions)"/>
+    <meta name="description" content="Revisiting route priority when running functions in isolated (out-of-process) mode"/>
+    <meta name="author" content="Brian Dunnington" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:type" content="website"/>
+    <meta property="og:site_name" content="Brian Dunnington" />
+    <meta property="og:url" content="https://briandunnington.github.io/azure_functions_isolated_route_priority"/>
+    <meta property="og:title" content="Azure Functions: Route Priority Revisted (for Isolated functions)"/>
+    <meta property="og:description" content="Revisiting route priority when running functions in isolated (out-of-process) mode"/>
+    <meta property="og:image" content="http://briandunnington.github.io/images/azure_functions.png"/>
+    <meta property="article:published_time" content="2023-11-04T12:00:00"/>
+    <meta property="twitter:card" content="summary_large_image"/>
+    <meta property="twitter:site" content="@briandunnington"/>
+    <meta property="twitter:creator" content="@briandunnington"/>
+    <meta property="twitter:url" content="https://briandunnington.github.io/azure_functions_isolated_route_priority"/>
+    <meta property="twitter:title" content="Azure Functions: Route Priority Revisted (for Isolated functions)"/>
+    <meta property="twitter:description" content="Revisiting route priority when running functions in isolated (out-of-process) mode"/>
+    <meta property="twitter:image" content="http://briandunnington.github.io/images/azure_functions.png"/>
+
+    <link rel="canonical" href="https://briandunnington.github.io/azure_functions_isolated_route_priority" />
+    <link rel="stylesheet" href="/css/style.css"/>
+    <link rel="stylesheet" href="/css/prism.css"/>
+    <link type="application/atom+xml" rel="alternate" href="https://briandunnington.github.io/rss.xml" title="Brian Dunnington" />
+
+    <script src="/js/prism.js"></script>
+</head>
+
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/">
+                <h2 class="nav-title">brian dunnington</h2>
+            </a>
+            <ul>
+                <li><a href="/about">About</a></li>
+                <li><a href="/contact">Contact</a></li>
+                <li><a href="http://twitter.com/briandunnington"><img src="img/twitter.png" width="48" style="position: relative;top:30px;"/></a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <div class="post">
+            <div class="post-info">
+                <time datetime="2023-11-04 12:00:00 +0000" class="catalogue-time">November 4, 2023</time>
+            </div>
+
+            <h1 class="post-title">Azure Functions: Route Priority Revisted (for Isolated functions)</h1>
+            <div class="post-line"></div>
+
+
+
+            <div class="language-csharp"><div class="hero-unit">
+<h1>Azure Functions: Route Priority Revisted (for Isolated functions)</h1>
+<p>Revisiting route priority when running functions in isolated (out-of-process) mode</p>
+</div>
+
+<blockquote>
+  <p><strong>tl;dr:</strong> If you came here looking for the solution, you can grab <a href="https://www.nuget.org/packages/Element.Azure.Functions.Worker.Extensions.RoutePriority">the Nuget package</a> and be on your way. Otherwise, continue reading for the juicy details.</p>
+</blockquote>
+
+<p><a href="azure_functions_route_priority">In a previous post</a>, I walked through how we solved an a short-coming with Azure Functions - namely that the route resolution logic is uses is non-deterministic. That post goes into great detail about how to reach into the Functions runtime to modify <code>IWebJobsRouter</code> behavior. <em>(I also <a href="https://github.com/Azure/azure-webjobs-sdk-extensions/pull/842#issuecomment-1644597571">submitted a PR</a> to the Functions team to fix this in the source, but it has not been merged in yet - leave a comment there if you would like to show your support for it.)</em></p>
+
+<p>However, in the the isolated functions model, the functions host and your functions code run as two separate processes. The functions host recieves the incoming request then communicates with your worker process via gRPC. But the only way to get access to the <code>IWebJobsRouter</code> is to do it from the host.</p>
+
+<p>Unfortunately, the code you write in your function app only runs in the worker process and there is no way to 'reach into' the host to modify its behavior.</p>
+
+<p>Except, there is. And it is via Binding Extensions.</p>
+
+<p>Binding extensions are ways to add your own custom trigger types, input bindings, and output bindings. In order to allow them to work, they also have to run in the host. So this solution creates a custom extension that allows code (in this case, code to reorder the route priority order) to run on the host.</p>
+
+<p>One limitation of extensions is that they are only geared towards bindings. As such, your function app code must make use of at least one binding from your extension or else the function extension metadata generator will strip out the extension information from the generated host code. That is why the <code>[RoutePriority]</code> input binding attribute needs to be applied <em>somewhere</em> in a function in your function app - it doesnt do anything, other than prevent the rest of the extension code from being complied out.</p>
+
+<p>The actual mechanisms of how extensions work are:</p>
+
+<ul>
+<li>you add a reference to a worker extension library (in this case: <code>Element.Azure.Functions.Worker.Extensions.RoutePriority</code> available via <a href="https://www.nuget.org/packages/Element.Azure.Functions.Worker.Extensions.RoutePriority">Nuget</a>)</li>
+<li>that worker extension library has an <code>[ExtensionInformation]</code> attribute that points to <em>a different</em> Nuget package that contains the actual logic which will be injected into the host (in this case: <code>Element.Azure.WebJobs.Extensions.RoutePriority</code>, which is also available on <a href="https://www.nuget.org/packages/Element.Azure.WebJobs.Extensions.RoutePriority">Nuget</a> but should not be referenced directly from your function app)</li>
+<li>when you compile your function app, the function metadata generator scans your code for binding extensions, creates a temporary <code>.csproj</code> file, and outputs the necessary .dlls and and emits an <code>extensions.json</code> file with metadata about your extension and the entry points</li>
+</ul>
+
+<p>You don't <em>need</em> to know any of that in order to take advantage of this package, but it might be interesting to know what is going on under the hood.</p>
+
+<h2>Usage</h2>
+
+<p>Add the <a href="https://www.nuget.org/packages/Element.Azure.Functions.Worker.Extensions.RoutePriority">Element.Azure.Functions.Worker.Extensions.RoutePriority</a> Nuget package to your Isolated Azure Functions project.</p>
+
+<p><strong>NOTE</strong>: Due to how the Azure Functions metadata generator works, you must actually use the extension in a function declaration. To meet that requirement, you must add the <code>[RoutePriority]</code> input binding attribute to <strong>any one</strong> of your function triggers (does <strong>not</strong> need to be all of them):</p>
+
+<pre><code>[Function("Ping")]
+public HttpResponseData Ping([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "ping")] HttpRequestData req, [RoutePriority] object ignore)
+{
+    // ... your code ...
+}
+</code></pre>
+
+<p><em>(In my own use, I have been adding a <code>[WarmupTrigger]</code> function and adding this as an input binding there - that feels like a nice unintrusive way to handle it.)</em></p>
+
+<h3>References</h3>
+
+<p>Credit goes to <a href="https://github.com/maartenba">Maarten Balliauw</a> for <a href="https://blog.maartenballiauw.be/post/2021/06/01/custom-bindings-with-azure-functions-dotnet-isolated-worker.html">documenting how to write custom extensions for isolated functions</a>. It was invaluable in understanding how things worked internally.</p>
+
+<p>The <a href="https://github.com/Azure/azure-functions-dotnet-worker/blob/bba8136917f2a60d884387182fca35ed19aaf8e4/sdk/FunctionMetadataLoaderExtension/Startup.cs">source code for the functions metadata generator</a> (where you can see how items are stripped out if not used) is also interesting reading.</p>
+
+<p>The <a href="https://github.com/Azure/azure-functions-dotnet-worker/tree/main/extensions">source code for the Microsoft-provided extensions</a> was also a great reference, as was the <a href="https://github.com/Azure/azure-functions-dapr-extension/tree/master/src">Dapr extension source code</a>.</p>
+</div>
+        </div>
+
+        <div class="pagination">
+
+                            <a href="/durable_functions_an_eventstarted_event_is_required" class="right arrow">Durable Functions error - 'An ExecutionStarted event is required' &#8594;</a>
+            <a href="#" class="top">Top</a>
+        </div>
+    </main>
+
+    <footer>
+        <span>
+            &copy; 2012-2023 brian dunnington
+        </span>
+    </footer>
+
+</body>
+</html>
