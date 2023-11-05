@@ -91,7 +91,7 @@ Now when an exception is thrown and handled by the ASP.NET runtime, the CORS hea
 <img src="images/cors_500yes.png"/>
 </div>
 
-Now the broswer can access the response as expected and take the appropriate action. This is [supposed to be fixed in the next version of ASP.NET Core][FutureFix], but this does the trick in the meantime.
+Now the browser can access the response as expected and take the appropriate action. This is [supposed to be fixed in the next version of ASP.NET Core][FutureFix], but this does the trick in the meantime.
 
 
 
