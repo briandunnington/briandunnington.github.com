@@ -7,8 +7,8 @@
         <description>RSS feed for website</description>
         <language>en-us</language>
         <copyright>Copyright 2012 - 2023 : Brian Dunnington</copyright>
-        <pubDate>Thu, 02 Nov 2023 08:12:21 GMT</pubDate>
-        <lastBuildDate>Thu, 02 Nov 2023 08:12:21 GMT</lastBuildDate>
+        <pubDate>Sun, 05 Nov 2023 12:27:36 GMT</pubDate>
+        <lastBuildDate>Sun, 05 Nov 2023 12:27:36 GMT</lastBuildDate>
 
         <item>
             <title>Durable Functions error - &#39;An ExecutionStarted event is required&#39;</title>
@@ -798,6 +798,8 @@ builder.Services.PostConfigure&lt;CosmosDBOptions&gt;(options =&gt;
 <p>How to fix a strange error when creating an X509Certificate from an array of bytes</p>
 </div>
 
+<p><strong>UPDATED</strong> - see <a href="#update1">update 1</a> and <a href="#update2">update 2</a> for even more info.</p>
+
 <p>Dealing with certificates in .NET code is pretty straight-forward most of the time. If you need to access a certificate that is installed on the local machine, you can use the <code>X509Store</code> class to find certificates by name or other properties. But sometimes you need to load a certificate from raw bytes, and the <code>X509Certificate2</code> class has a constructor that allows you to do just that.</p>
 
 <p>For example, here is how to load a certificate from a KeyVault secret:</p>
@@ -824,12 +826,16 @@ var certificate = new X509Certificate2(Convert.FromBase64String(secret.Value));
 
 <p>Turns out this has been biting folks for many years as <a href="https://stackoverflow.com/questions/9951729/x509certificate-constructor-exception">this post on StackOverflow from 7 years ago</a> shows, and if you want to get deep into the weeds about what each of these flags do and why it works this way, I will point you over to <a href="https://stackoverflow.com/questions/52750160/what-is-the-rationale-for-all-the-different-x509keystorageflags/52840537#52840537">this explanation (also on StackOverflow)</a> for some light reading.</p>
 
-<p><strong>UPDATE 2023.08.01</strong>: This post is four years old, but this cropped up in a slightly new way again today. If you are using the <a href="https://www.nuget.org/packages/Azure.Security.KeyVault.Certificates/">Azure Key Vault SDK for certificates</a> and use either the <code>DownloadCertificate()</code> or <code>DownloadCertificateAsync()</code> methods that take the certificate name, you can encounter this same issue. Behind the scenes, it is <a href="https://github.com/Azure/azure-sdk-for-net/blob/79671d0524558c907c1d0bfbfd9d2e17615cbe8b/sdk/keyvault/Azure.Security.KeyVault.Certificates/src/CertificateClient.cs#L231C21-L231C97">doing the same thing as the original post</a>. Luckily, the fix is easy: just use the overloads that take a <code>DownloadCertificateOptions</code> parameter and you can set the <code>KeyStoreFlags</code> property:</p>
+<p><a name="update1"></a>
+<strong>UPDATE 2023.08.01</strong>: This post is four years old, but this cropped up in a slightly new way again today. If you are using the <a href="https://www.nuget.org/packages/Azure.Security.KeyVault.Certificates/">Azure Key Vault SDK for certificates</a> and use either the <code>DownloadCertificate()</code> or <code>DownloadCertificateAsync()</code> methods that take the certificate name, you can encounter this same issue. Behind the scenes, it is <a href="https://github.com/Azure/azure-sdk-for-net/blob/79671d0524558c907c1d0bfbfd9d2e17615cbe8b/sdk/keyvault/Azure.Security.KeyVault.Certificates/src/CertificateClient.cs#L231C21-L231C97">doing the same thing as the original post</a>. Luckily, the fix is easy: just use the overloads that take a <code>DownloadCertificateOptions</code> parameter and you can set the <code>KeyStoreFlags</code> property:</p>
 
 <pre><code>var certificate = await certificateClient.DownloadCertificateAsync(new DownloadCertificateOptions(name) {
     KeyStoreFlags = X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable
 });
 </code></pre>
+
+<p><a name="update2"></a>
+<strong>UPDATE 2023.11.04</strong>: We recently had a use case where we loaded a certificate (plus private key) from key vault to decrypt some data. When we ran it in Azure, though, we got <code>Keyset not found</code> - turns out this is a known issue and <a href="https://github.com/projectkudu/kudu/wiki/Best-X509Certificate2-Practices">the guidance</a> is to use the <code>EphemeralKeySet</code> flag to avoid saving the private key to disk at all. We made the switch and it did indeed solve our problem BUT we had another use case where we use a certificate with an <code>SslStream</code> for TLS client authentication and when we switched to <code>EphemeralKeySet</code> we started getting <code>No credentials are available in the security package</code> errors. Turns out that is also a <a href="https://github.com/dotnet/runtime/issues/23749">known issue</a> (due to some deep internals of Windows) and the cert must be peristed. So there is no one set of flags that works for every scenario. These certificate keyset options are the gift that keep on giving.</p>
 
 ]]></description>
             <pubDate>Wed, 10 Jul 2019 12:00:00 GMT</pubDate>
